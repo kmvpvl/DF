@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 import { I18nProvider } from './i18n/I18nContext';
 
@@ -25,7 +25,7 @@ describe('App', () => {
         <App />
       </I18nProvider>
     );
-    expect(screen.getAllByText('Dolceforte').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('DolceForte').length).toBeGreaterThan(0);
   });
 
   it('auto logs in a user on app visit when server session is valid', async () => {
@@ -63,9 +63,53 @@ describe('App', () => {
       </I18nProvider>
     );
 
-    expect((await screen.findAllByText('Dolceforte')).length).toBeGreaterThan(
+    expect((await screen.findAllByText('DolceForte')).length).toBeGreaterThan(
       0
     );
     expect(screen.queryByText('Hi, Marco')).not.toBeInTheDocument();
+  });
+
+  it('renders localized price variations for the milk chocolate cheesecake', () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({ data: { sessionUser: null } }),
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    );
+
+    expect(screen.getAllByText('50 din').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('60 din').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('209 din').length).toBeGreaterThan(0);
+  });
+
+  it('updates the add-to-basket price when a cheesecake option is selected', () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({ data: { sessionUser: null } }),
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Select Cube option for Cheesecake glazed in milk chocolate',
+      })
+    );
+
+    expect(screen.getByTestId('product-price-15')).toHaveTextContent('50 din');
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Select Star option for Cheesecake glazed in milk chocolate',
+      })
+    );
+
+    expect(screen.getByTestId('product-price-15')).toHaveTextContent('60 din');
   });
 });

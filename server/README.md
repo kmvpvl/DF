@@ -1,6 +1,6 @@
-# Dolceforte Server API
+# DolceForte Server API
 
-This is the GraphQL API server for the Dolceforte application, built with Node.js, Express, TypeScript, Apollo Server, and Prisma.
+This is the GraphQL API server for the DolceForte application, built with Node.js, Express, TypeScript, Apollo Server, and Prisma.
 
 ## Getting Started
 

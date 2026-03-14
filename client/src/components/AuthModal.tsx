@@ -8,6 +8,8 @@ interface AuthModalProps {
   onSuccess: (user: User) => void;
   onClose: () => void;
   pendingProductName: string | null;
+  initialTab?: Tab;
+  initialSignupEntityType?: 'INDIVIDUAL' | 'LEGAL_ENTITY';
 }
 
 type Tab = 'login' | 'signup';
@@ -20,6 +22,11 @@ interface AuthModalState {
   loginPassword: string;
   signupName: string;
   signupFullName: string;
+  signupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  signupPib: string;
+  signupMbr: string;
+  signupAccount: string;
+  signupBank: string;
   signupEmail: string;
   signupPhone: string;
   signupPassword: string;
@@ -43,7 +50,7 @@ async function gql<T>(
 const LOGIN_MUTATION = `
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
-      id name fullName email phone
+      id name fullName entityType email phone pib mbr account bank
     }
   }
 `;
@@ -51,7 +58,7 @@ const LOGIN_MUTATION = `
 const SIGNUP_MUTATION = `
   mutation CreateUser($input: CreateUserInput!) {
     createUser(input: $input) {
-      id name fullName email phone
+      id name fullName entityType email phone pib mbr account bank
     }
   }
 `;
@@ -59,6 +66,30 @@ const SIGNUP_MUTATION = `
 class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
+
+  componentDidMount() {
+    this.applyInitialAuthMode();
+  }
+
+  componentDidUpdate(prevProps: AuthModalProps) {
+    if (
+      prevProps.initialTab !== this.props.initialTab ||
+      prevProps.initialSignupEntityType !== this.props.initialSignupEntityType
+    ) {
+      this.applyInitialAuthMode();
+    }
+  }
+
+  private applyInitialAuthMode = () => {
+    const tab = this.props.initialTab ?? 'login';
+    const signupEntityType =
+      this.props.initialSignupEntityType ?? 'INDIVIDUAL';
+
+    this.setState({
+      tab,
+      signupEntityType,
+    });
+  };
 
   state: AuthModalState = {
     tab: 'login',
@@ -68,6 +99,11 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     loginPassword: '',
     signupName: '',
     signupFullName: '',
+    signupEntityType: 'INDIVIDUAL',
+    signupPib: '',
+    signupMbr: '',
+    signupAccount: '',
+    signupBank: '',
     signupEmail: '',
     signupPhone: '',
     signupPassword: '',
@@ -112,10 +148,29 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     const {
       signupName,
       signupFullName,
+      signupEntityType,
+      signupPib,
+      signupMbr,
+      signupAccount,
+      signupBank,
       signupEmail,
       signupPhone,
       signupPassword,
     } = this.state;
+
+    if (
+      signupEntityType === 'LEGAL_ENTITY' &&
+      (!signupPib.trim() ||
+        !signupMbr.trim() ||
+        !signupAccount.trim() ||
+        !signupBank.trim())
+    ) {
+      this.setState({
+        loading: false,
+        error: dictionary.auth.legalEntityFieldsRequired,
+      });
+      return;
+    }
 
     this.setState({ error: null, loading: true });
     try {
@@ -123,8 +178,14 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
         input: {
           name: signupName,
           fullName: signupFullName,
+          entityType: signupEntityType,
           email: signupEmail,
           phone: signupPhone || undefined,
+          pib: signupEntityType === 'LEGAL_ENTITY' ? signupPib : undefined,
+          mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : undefined,
+          account:
+            signupEntityType === 'LEGAL_ENTITY' ? signupAccount : undefined,
+          bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : undefined,
           password: signupPassword,
         },
       });
@@ -159,10 +220,17 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       loginPassword,
       signupName,
       signupFullName,
+      signupEntityType,
+      signupPib,
+      signupMbr,
+      signupAccount,
+      signupBank,
       signupEmail,
       signupPhone,
       signupPassword,
     } = this.state;
+
+    const isLegalEntity = signupEntityType === 'LEGAL_ENTITY';
 
     return (
       <div
@@ -272,6 +340,69 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
                 }
                 required
               />
+              <select
+                className="form-input"
+                value={signupEntityType}
+                onChange={(e) =>
+                  this.setState({
+                    signupEntityType: e.target.value as
+                      | 'INDIVIDUAL'
+                      | 'LEGAL_ENTITY',
+                  })
+                }
+                aria-label={dictionary.auth.buyerType}
+              >
+                <option value="INDIVIDUAL">
+                  {dictionary.auth.individual}
+                </option>
+                <option value="LEGAL_ENTITY">
+                  {dictionary.auth.legalEntity}
+                </option>
+              </select>
+              {isLegalEntity && (
+                <>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={dictionary.auth.pib}
+                    value={signupPib}
+                    onChange={(e) =>
+                      this.setState({ signupPib: e.target.value })
+                    }
+                    required={isLegalEntity}
+                  />
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={dictionary.auth.mbr}
+                    value={signupMbr}
+                    onChange={(e) =>
+                      this.setState({ signupMbr: e.target.value })
+                    }
+                    required={isLegalEntity}
+                  />
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={dictionary.auth.account}
+                    value={signupAccount}
+                    onChange={(e) =>
+                      this.setState({ signupAccount: e.target.value })
+                    }
+                    required={isLegalEntity}
+                  />
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={dictionary.auth.bank}
+                    value={signupBank}
+                    onChange={(e) =>
+                      this.setState({ signupBank: e.target.value })
+                    }
+                    required={isLegalEntity}
+                  />
+                </>
+              )}
               <input
                 className="form-input"
                 type="email"

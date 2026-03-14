@@ -17,10 +17,15 @@ describe('GraphQL createUser Mutation', () => {
         id
         name
         fullName
+        entityType
         email
         phone
         bio
         tgId
+        pib
+        mbr
+        account
+        bank
       }
     }
   `;
@@ -137,10 +142,70 @@ describe('GraphQL createUser Mutation', () => {
     expect(response.body.data.createUser).toMatchObject({
       name: `minimaluser${timestamp}`,
       fullName: 'Minimal User',
+      entityType: 'INDIVIDUAL',
       email: `minimal${timestamp}@example.com`,
       phone: null,
       bio: null,
       tgId: null,
+    });
+  });
+
+  it('should fail when legal entity fields are missing', async () => {
+    const timestamp = Date.now();
+    const variables = {
+      input: {
+        name: `legalmissing${timestamp}`,
+        fullName: 'Legal Missing',
+        entityType: 'LEGAL_ENTITY',
+        email: `legalmissing${timestamp}@example.com`,
+        password: 'password123',
+      },
+    };
+
+    const response = await request(app)
+      .post('/graphql')
+      .send({ query: createUserMutation, variables })
+      .set('Content-Type', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body.errors).toBeDefined();
+    expect(response.body.errors[0].message).toContain(
+      'Missing required legal entity fields'
+    );
+  });
+
+  it('should create legal entity when all required fields are provided', async () => {
+    const timestamp = Date.now();
+    const variables = {
+      input: {
+        name: `legalok${timestamp}`,
+        fullName: 'Legal Ready',
+        entityType: 'LEGAL_ENTITY',
+        email: `legalok${timestamp}@example.com`,
+        password: 'password123',
+        pib: `10${timestamp}`,
+        mbr: `20${timestamp}`,
+        account: `160-12345${timestamp % 1000}-12`,
+        bank: 'Banca Intesa',
+      },
+    };
+
+    const response = await request(app)
+      .post('/graphql')
+      .send({ query: createUserMutation, variables })
+      .set('Content-Type', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.createUser).toMatchObject({
+      name: `legalok${timestamp}`,
+      fullName: 'Legal Ready',
+      entityType: 'LEGAL_ENTITY',
+      email: `legalok${timestamp}@example.com`,
+      pib: `10${timestamp}`,
+      mbr: `20${timestamp}`,
+      account: `160-12345${timestamp % 1000}-12`,
+      bank: 'Banca Intesa',
     });
   });
 });

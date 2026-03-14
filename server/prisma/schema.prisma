@@ -14,6 +14,11 @@ model User {
   id           String   @id @default(cuid())
   name         String
   fullName     String
+  entityType   String   @default("INDIVIDUAL")
+  pib          String?
+  mbr          String?
+  account      String?
+  bank         String?
   phone        String?
   email        String   @unique
   bio          String?

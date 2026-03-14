@@ -26,8 +26,13 @@ const SESSION_USER_QUERY = `
       id
       name
       fullName
+      entityType
       email
       phone
+      pib
+      mbr
+      account
+      bank
     }
   }
 `;
@@ -36,8 +41,27 @@ export interface User {
   id: string;
   name: string;
   fullName: string;
+  entityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   email: string;
   phone?: string | null;
+  pib?: string | null;
+  mbr?: string | null;
+  account?: string | null;
+  bank?: string | null;
+}
+
+export interface DiscountTier {
+  threshold: number;
+  discount: number;
+}
+
+export interface ProductPriceVariation {
+  label: string;
+  price: number;
+  legalEntityPrice?: number;
+  unit?: string;
+  weight?: number;
+  weightUnit?: string;
 }
 
 export interface Product {
@@ -45,7 +69,15 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  legalEntityPrice?: number;
+  priceUnit?: string;
+  selectedVariationLabel?: string;
+  selectedWeightGrams?: number;
   emoji: string;
+  chapter: string;
+  photos?: string[];
+  discounts?: DiscountTier[];
+  priceVariations?: ProductPriceVariation[];
 }
 
 export interface BasketItem {
@@ -57,6 +89,8 @@ interface AppState {
   user: User | null;
   basket: BasketItem[];
   authOpen: boolean;
+  authInitialTab: 'login' | 'signup';
+  authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   pendingProduct: Product | null;
 }
 
@@ -73,6 +107,8 @@ class App extends React.Component<Record<string, never>, AppState> {
     user: null,
     basket: [],
     authOpen: false,
+    authInitialTab: 'login',
+    authInitialSignupEntityType: 'INDIVIDUAL',
     pendingProduct: null,
   };
 
@@ -128,12 +164,19 @@ class App extends React.Component<Record<string, never>, AppState> {
   addToBasket = (product: Product) => {
     this.setState((prevState) => {
       const existing = prevState.basket.find(
-        (i) => i.product.id === product.id
+        (i) =>
+          i.product.id === product.id &&
+          i.product.selectedVariationLabel === product.selectedVariationLabel &&
+          i.product.selectedWeightGrams === product.selectedWeightGrams
       );
       if (existing) {
         return {
           basket: prevState.basket.map((i) =>
-            i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i
+            i.product.id === product.id &&
+              i.product.selectedVariationLabel === product.selectedVariationLabel &&
+              i.product.selectedWeightGrams === product.selectedWeightGrams
+              ? { ...i, qty: i.qty + 1 }
+              : i
           ),
         };
       }
@@ -146,11 +189,25 @@ class App extends React.Component<Record<string, never>, AppState> {
 
   handleAddToBasket = (product: Product) => {
     if (!this.state.user) {
-      this.setState({ pendingProduct: product, authOpen: true });
+      this.setState({
+        pendingProduct: product,
+        authOpen: true,
+        authInitialTab: 'login',
+        authInitialSignupEntityType: 'INDIVIDUAL',
+      });
       return;
     }
 
     this.addToBasket(product);
+  };
+
+  handleLegalEntityCtaClick = () => {
+    this.setState({
+      authOpen: true,
+      pendingProduct: null,
+      authInitialTab: 'signup',
+      authInitialSignupEntityType: 'LEGAL_ENTITY',
+    });
   };
 
   handleAuthSuccess = (loggedInUser: User) => {
@@ -158,6 +215,8 @@ class App extends React.Component<Record<string, never>, AppState> {
       () => ({
         user: loggedInUser,
         authOpen: false,
+        authInitialTab: 'login',
+        authInitialSignupEntityType: 'INDIVIDUAL',
       }),
       () => {
         if (this.state.pendingProduct) {
@@ -170,7 +229,12 @@ class App extends React.Component<Record<string, never>, AppState> {
   };
 
   handleCloseAuth = () => {
-    this.setState({ authOpen: false, pendingProduct: null });
+    this.setState({
+      authOpen: false,
+      pendingProduct: null,
+      authInitialTab: 'login',
+      authInitialSignupEntityType: 'INDIVIDUAL',
+    });
   };
 
   render() {
@@ -180,15 +244,26 @@ class App extends React.Component<Record<string, never>, AppState> {
     }
 
     const { dictionary } = i18n;
-    const { user, basket, authOpen, pendingProduct } = this.state;
+    const {
+      user,
+      basket,
+      authOpen,
+      authInitialTab,
+      authInitialSignupEntityType,
+      pendingProduct,
+    } = this.state;
     const basketCount = basket.reduce((sum, i) => sum + i.qty, 0);
 
     return (
       <div className="app">
         <Navbar user={user} basketCount={basketCount} />
         <main>
-          <Home />
-          <Products onAddToBasket={this.handleAddToBasket} />
+          <Home onLegalEntityCtaClick={this.handleLegalEntityCtaClick} />
+          <Products
+            onAddToBasket={this.handleAddToBasket}
+            onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
+            userEntityType={user?.entityType ?? null}
+          />
           <Delivery />
           <Contacts />
           <About />
@@ -202,6 +277,8 @@ class App extends React.Component<Record<string, never>, AppState> {
             onSuccess={this.handleAuthSuccess}
             onClose={this.handleCloseAuth}
             pendingProductName={pendingProduct?.name ?? null}
+            initialTab={authInitialTab}
+            initialSignupEntityType={authInitialSignupEntityType}
           />
         )}
       </div>

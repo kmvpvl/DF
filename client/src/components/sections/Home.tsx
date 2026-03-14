@@ -1,12 +1,21 @@
 import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 
-class Home extends React.Component {
+interface HomeProps {
+  onLegalEntityCtaClick: () => void;
+}
+
+class Home extends React.Component<HomeProps> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
   scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  handleFreeTestBatchClick = () => {
+    window.localStorage.setItem('dolceforte.contactRequestType', 'FREE_TEST_BATCH');
+    this.scrollTo('contacts');
   };
 
   render() {
@@ -33,6 +42,18 @@ class Home extends React.Component {
             onClick={() => this.scrollTo('products')}
           >
             {dictionary.home.shopNow}
+          </button>
+          <button
+            className="btn-primary"
+            onClick={this.props.onLegalEntityCtaClick}
+          >
+            {dictionary.products.legalEntityCta}
+          </button>
+          <button
+            className="btn-primary"
+            onClick={this.handleFreeTestBatchClick}
+          >
+            {dictionary.home.orderTestBatchFree}
           </button>
           <button
             className="btn-outline"
