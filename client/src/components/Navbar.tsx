@@ -7,6 +7,12 @@ interface NavbarProps {
   basketCount: number;
 }
 
+const LANGUAGE_FLAGS: Record<string, string> = {
+  en: '🇬🇧',
+  ru: '🇷🇺',
+  sr: '🇷🇸',
+};
+
 class Navbar extends React.Component<NavbarProps> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
@@ -34,7 +40,14 @@ class Navbar extends React.Component<NavbarProps> {
 
     return (
       <nav className="navbar">
-        <div className="navbar-brand">{dictionary.common.brand}</div>
+        <div className="navbar-brand">
+          <img
+            className="navbar-brand-logo"
+            src="/assets/brand/logos/logo.png"
+            alt={dictionary.common.brand}
+          />
+          <span className="navbar-brand-text">{dictionary.common.brand}</span>
+        </div>
 
         <ul className="navbar-links">
           {sections.map(({ id, label }) => (
@@ -48,18 +61,18 @@ class Navbar extends React.Component<NavbarProps> {
 
         <div className="navbar-right">
           <label className="language-select-wrap">
-            <span className="language-label">{dictionary.nav.languageLabel}</span>
+            <span className="language-label">
+              {dictionary.nav.languageLabel}
+            </span>
             <select
               className="language-select"
               value={language}
-              onChange={e => setLanguage(e.target.value)}
+              onChange={(e) => setLanguage(e.target.value)}
               aria-label={dictionary.nav.languageLabel}
             >
-              {languages.map(code => (
+              {languages.map((code) => (
                 <option key={code} value={code}>
-                  {dictionary.common.languageNames[
-                    code as keyof typeof dictionary.common.languageNames
-                  ] ?? code.toUpperCase()}
+                  {LANGUAGE_FLAGS[code] ?? '🌐'}
                 </option>
               ))}
             </select>

@@ -138,10 +138,8 @@ export const dictionaries = {
     about: {
       label: 'Our Story',
       title: 'A Family Recipe Since 1985',
-      p1:
-        "Dolceforte was born in a small Milan kitchen where Nonna Rosa perfected her mother's tiramisu recipe. Four decades later we still follow her handwritten notes, the same butter, the same patience, the same love.",
-      p2:
-        "Every morning our pastry chefs arrive before dawn. By the time the city wakes up, the ovens have already done their best work. We believe great desserts don't need shortcuts.",
+      p1: "Dolceforte was born in a small Milan kitchen where Nonna Rosa perfected her mother's tiramisu recipe. Four decades later we still follow her handwritten notes, the same butter, the same patience, the same love.",
+      p2: "Every morning our pastry chefs arrive before dawn. By the time the city wakes up, the ovens have already done their best work. We believe great desserts don't need shortcuts.",
       stats: [
         { value: '1985', label: 'Founded' },
         { value: '40+', label: 'Years of craft' },
@@ -308,10 +306,8 @@ export const dictionaries = {
     about: {
       label: 'Наша история',
       title: 'Семейный рецепт с 1985 года',
-      p1:
-        'Dolceforte родился на маленькой кухне в Милане, где Нонна Роза довела до совершенства рецепт тирамису своей мамы. Спустя сорок лет мы все так же следуем ее записям.',
-      p2:
-        'Каждое утро наши кондитеры приходят до рассвета. Когда город просыпается, печи уже сделали свою лучшую работу.',
+      p1: 'Dolceforte родился на маленькой кухне в Милане, где Нонна Роза довела до совершенства рецепт тирамису своей мамы. Спустя сорок лет мы все так же следуем ее записям.',
+      p2: 'Каждое утро наши кондитеры приходят до рассвета. Когда город просыпается, печи уже сделали свою лучшую работу.',
       stats: [
         { value: '1985', label: 'Основано' },
         { value: '40+', label: 'Лет мастерства' },
@@ -478,10 +474,8 @@ export const dictionaries = {
     about: {
       label: 'Nasa prica',
       title: 'Porodicni recept od 1985.',
-      p1:
-        'Dolceforte je nastao u maloj milanskoj kuhinji gde je Nonna Rosa usavrsila recept za tiramisu. Cetiri decenije kasnije i dalje sledimo iste beleznice.',
-      p2:
-        'Nasi poslasticari svako jutro dolaze pre svitanja. Dok se grad budi, rerne su vec odradile svoj najbolji posao.',
+      p1: 'Dolceforte je nastao u maloj milanskoj kuhinji gde je Nonna Rosa usavrsila recept za tiramisu. Cetiri decenije kasnije i dalje sledimo iste beleznice.',
+      p2: 'Nasi poslasticari svako jutro dolaze pre svitanja. Dok se grad budi, rerne su vec odradile svoj najbolji posao.',
       stats: [
         { value: '1985', label: 'Osnovano' },
         { value: '40+', label: 'Godina zanata' },

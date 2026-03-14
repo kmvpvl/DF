@@ -21,16 +21,23 @@ class Home extends React.Component {
       <div id="home" className="hero">
         <p className="section-label">{dictionary.home.label}</p>
         <h1 className="hero-title">
-          {dictionary.home.titleStart} <span>{dictionary.home.titleAccent}</span>,
+          {dictionary.home.titleStart}{' '}
+          <span>{dictionary.home.titleAccent}</span>,
           <br />
           {dictionary.home.titleEnd}
         </h1>
         <p className="hero-subtitle">{dictionary.home.subtitle}</p>
         <div className="hero-cta">
-          <button className="btn-primary" onClick={() => this.scrollTo('products')}>
+          <button
+            className="btn-primary"
+            onClick={() => this.scrollTo('products')}
+          >
             {dictionary.home.shopNow}
           </button>
-          <button className="btn-outline" onClick={() => this.scrollTo('about')}>
+          <button
+            className="btn-outline"
+            onClick={() => this.scrollTo('about')}
+          >
             {dictionary.home.ourStory}
           </button>
         </div>
