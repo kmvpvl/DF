@@ -1,14 +1,22 @@
 /* ── Layout ─────────────────────────────────────── */
 .app {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
 
+main {
+  padding-top: 64px;
+}
+
 /* ── Navbar ─────────────────────────────────────── */
 .navbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 100;
   background: rgba(253, 250, 245, 0.95);
   backdrop-filter: blur(12px);
@@ -20,11 +28,26 @@
   gap: 2rem;
 }
 .navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--primary);
   letter-spacing: -0.03em;
   flex-shrink: 0;
+}
+.navbar-brand-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.navbar-brand-text {
+  font-family: 'Cinzel', serif;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 .navbar-links {
   display: flex;
@@ -43,7 +66,9 @@
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
   font-family: inherit;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .nav-link:hover {
   color: var(--primary);
@@ -145,7 +170,9 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition:
+    background 0.15s,
+    transform 0.1s;
 }
 .btn-primary:hover {
   background: var(--primary-dark);
@@ -161,7 +188,9 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .btn-outline:hover {
   background: var(--primary);
@@ -223,7 +252,9 @@
   flex-direction: column;
   gap: 0.75rem;
   box-shadow: var(--shadow);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 .product-card:hover {
   box-shadow: 0 8px 32px rgba(44, 24, 16, 0.14);
@@ -536,8 +567,31 @@ textarea.form-input {
 
 /* ── Responsive ─────────────────────────────────── */
 @media (max-width: 768px) {
+  .navbar {
+    padding: 0 0.75rem;
+    gap: 0.75rem;
+  }
+  .navbar-brand {
+    gap: 0.45rem;
+  }
+  .navbar-brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+  .navbar-brand-text {
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+  }
   .navbar-links {
     display: none;
+  }
+  .navbar-right {
+    gap: 0.5rem;
+  }
+  .language-select {
+    font-size: 0.8rem;
+    padding: 0.24rem 0.4rem;
+    max-width: 96px;
   }
   .language-label {
     display: none;

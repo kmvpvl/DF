@@ -63,7 +63,9 @@ describe('App', () => {
       </I18nProvider>
     );
 
-    expect((await screen.findAllByText('Dolceforte')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Dolceforte')).length).toBeGreaterThan(
+      0
+    );
     expect(screen.queryByText('Hi, Marco')).not.toBeInTheDocument();
   });
 });

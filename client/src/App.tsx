@@ -126,11 +126,13 @@ class App extends React.Component<Record<string, never>, AppState> {
   };
 
   addToBasket = (product: Product) => {
-    this.setState(prevState => {
-      const existing = prevState.basket.find(i => i.product.id === product.id);
+    this.setState((prevState) => {
+      const existing = prevState.basket.find(
+        (i) => i.product.id === product.id
+      );
       if (existing) {
         return {
-          basket: prevState.basket.map(i =>
+          basket: prevState.basket.map((i) =>
             i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i
           ),
         };
@@ -192,8 +194,8 @@ class App extends React.Component<Record<string, never>, AppState> {
           <About />
         </main>
         <footer className="footer">
-          <strong>{dictionary.common.brand}</strong> &copy; {new Date().getFullYear()}{' '}
-          - {dictionary.footer.text}
+          <strong>{dictionary.common.brand}</strong> &copy;{' '}
+          {new Date().getFullYear()} - {dictionary.footer.text}
         </footer>
         {authOpen && (
           <AuthModal

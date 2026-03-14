@@ -21,7 +21,7 @@ class Delivery extends React.Component {
           <p className="section-desc">{dictionary.delivery.description}</p>
 
           <div className="delivery-cards">
-            {dictionary.delivery.cards.map(card => (
+            {dictionary.delivery.cards.map((card) => (
               <div key={card.title} className="delivery-card">
                 <div className="delivery-icon">{card.icon}</div>
                 <div className="delivery-card-title">{card.title}</div>

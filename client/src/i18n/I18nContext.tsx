@@ -14,13 +14,16 @@ const configuredLanguages: string[] = (import.meta.env.VITE_LANGUAGES ?? 'en')
 
 const dedupedConfiguredLanguages: string[] = [...new Set(configuredLanguages)];
 
-const defaultLanguage =
-  (import.meta.env.VITE_DEFAULT_LANGUAGE ?? dedupedConfiguredLanguages[0] ?? 'en')
-    .trim()
-    .toLowerCase();
+const defaultLanguage = (
+  import.meta.env.VITE_DEFAULT_LANGUAGE ??
+  dedupedConfiguredLanguages[0] ??
+  'en'
+)
+  .trim()
+  .toLowerCase();
 
 function normalizeLanguage(code: string): string {
-  if (!code) return 'en';
+  if (!code) return '';
   return code.trim().toLowerCase();
 }
 
@@ -120,7 +123,9 @@ class I18nProviderClass extends React.Component<
     };
 
     return (
-      <I18nContext.Provider value={value}>{this.props.children}</I18nContext.Provider>
+      <I18nContext.Provider value={value}>
+        {this.props.children}
+      </I18nContext.Provider>
     );
   }
 }

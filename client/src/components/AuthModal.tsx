@@ -25,7 +25,10 @@ interface AuthModalState {
   signupPassword: string;
 }
 
-async function gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+async function gql<T>(
+  query: string,
+  variables: Record<string, unknown>
+): Promise<T> {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -128,7 +131,8 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       onSuccess(data.createUser);
     } catch (err: unknown) {
       this.setState({
-        error: err instanceof Error ? err.message : dictionary.auth.signupFailed,
+        error:
+          err instanceof Error ? err.message : dictionary.auth.signupFailed,
       });
     } finally {
       this.setState({ loading: false });
@@ -163,131 +167,141 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     return (
       <div
         className="modal-overlay"
-        onClick={e => e.target === e.currentTarget && onClose()}
+        onClick={(e) => e.target === e.currentTarget && onClose()}
       >
-      <div className="modal" role="dialog" aria-modal="true">
-        <div className="modal-header">
-          <div className="modal-header-text">
-            <h2>
-              {tab === 'login'
-                ? dictionary.auth.welcomeBack
-                : dictionary.auth.createAccount}
-            </h2>
-            {pendingProductName && (
-              <p>
-                {dictionary.auth.addToBasketPrompt.replace(
-                  '{product}',
-                  pendingProductName
-                )}
-              </p>
-            )}
-          </div>
-          <button
-            className="modal-close"
-            onClick={onClose}
-            aria-label={dictionary.auth.close}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="modal-tabs">
-          <button
-            className={`modal-tab ${tab === 'login' ? 'active' : ''}`}
-            onClick={() => this.switchTab('login')}
-          >
-            {dictionary.auth.loginTab}
-          </button>
-          <button
-            className={`modal-tab ${tab === 'signup' ? 'active' : ''}`}
-            onClick={() => this.switchTab('signup')}
-          >
-            {dictionary.auth.signupTab}
-          </button>
-        </div>
-
-        {tab === 'login' ? (
-          <form className="modal-form" onSubmit={this.handleLogin}>
-            <input
-              className="form-input"
-              type="email"
-              placeholder={dictionary.auth.email}
-              value={loginEmail}
-              onChange={e => this.setState({ loginEmail: e.target.value })}
-              required
-              autoComplete="email"
-            />
-            <input
-              className="form-input"
-              type="password"
-              placeholder={dictionary.auth.password}
-              value={loginPassword}
-              onChange={e => this.setState({ loginPassword: e.target.value })}
-              required
-              autoComplete="current-password"
-            />
-            {error && <div className="modal-error">{error}</div>}
-            <button className="btn-primary" type="submit" disabled={loading}>
-              {loading
-                ? dictionary.auth.submitLoginLoading
-                : dictionary.auth.submitLogin}
+        <div className="modal" role="dialog" aria-modal="true">
+          <div className="modal-header">
+            <div className="modal-header-text">
+              <h2>
+                {tab === 'login'
+                  ? dictionary.auth.welcomeBack
+                  : dictionary.auth.createAccount}
+              </h2>
+              {pendingProductName && (
+                <p>
+                  {dictionary.auth.addToBasketPrompt.replace(
+                    '{product}',
+                    pendingProductName
+                  )}
+                </p>
+              )}
+            </div>
+            <button
+              className="modal-close"
+              onClick={onClose}
+              aria-label={dictionary.auth.close}
+            >
+              ✕
             </button>
-          </form>
-        ) : (
-          <form className="modal-form" onSubmit={this.handleSignup}>
-            <div className="form-row">
+          </div>
+
+          <div className="modal-tabs">
+            <button
+              className={`modal-tab ${tab === 'login' ? 'active' : ''}`}
+              onClick={() => this.switchTab('login')}
+            >
+              {dictionary.auth.loginTab}
+            </button>
+            <button
+              className={`modal-tab ${tab === 'signup' ? 'active' : ''}`}
+              onClick={() => this.switchTab('signup')}
+            >
+              {dictionary.auth.signupTab}
+            </button>
+          </div>
+
+          {tab === 'login' ? (
+            <form className="modal-form" onSubmit={this.handleLogin}>
+              <input
+                className="form-input"
+                type="email"
+                placeholder={dictionary.auth.email}
+                value={loginEmail}
+                onChange={(e) => this.setState({ loginEmail: e.target.value })}
+                required
+                autoComplete="email"
+              />
+              <input
+                className="form-input"
+                type="password"
+                placeholder={dictionary.auth.password}
+                value={loginPassword}
+                onChange={(e) =>
+                  this.setState({ loginPassword: e.target.value })
+                }
+                required
+                autoComplete="current-password"
+              />
+              {error && <div className="modal-error">{error}</div>}
+              <button className="btn-primary" type="submit" disabled={loading}>
+                {loading
+                  ? dictionary.auth.submitLoginLoading
+                  : dictionary.auth.submitLogin}
+              </button>
+            </form>
+          ) : (
+            <form className="modal-form" onSubmit={this.handleSignup}>
+              <div className="form-row">
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder={dictionary.auth.username}
+                  value={signupName}
+                  onChange={(e) =>
+                    this.setState({ signupName: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  className="form-input"
+                  type="tel"
+                  placeholder={dictionary.auth.phoneOptional}
+                  value={signupPhone}
+                  onChange={(e) =>
+                    this.setState({ signupPhone: e.target.value })
+                  }
+                />
+              </div>
               <input
                 className="form-input"
                 type="text"
-                placeholder={dictionary.auth.username}
-                value={signupName}
-                onChange={e => this.setState({ signupName: e.target.value })}
+                placeholder={dictionary.auth.fullName}
+                value={signupFullName}
+                onChange={(e) =>
+                  this.setState({ signupFullName: e.target.value })
+                }
                 required
               />
               <input
                 className="form-input"
-                type="tel"
-                placeholder={dictionary.auth.phoneOptional}
-                value={signupPhone}
-                onChange={e => this.setState({ signupPhone: e.target.value })}
+                type="email"
+                placeholder={dictionary.auth.email}
+                value={signupEmail}
+                onChange={(e) => this.setState({ signupEmail: e.target.value })}
+                required
+                autoComplete="email"
               />
-            </div>
-            <input
-              className="form-input"
-              type="text"
-              placeholder={dictionary.auth.fullName}
-              value={signupFullName}
-              onChange={e => this.setState({ signupFullName: e.target.value })}
-              required
-            />
-            <input
-              className="form-input"
-              type="email"
-              placeholder={dictionary.auth.email}
-              value={signupEmail}
-              onChange={e => this.setState({ signupEmail: e.target.value })}
-              required
-              autoComplete="email"
-            />
-            <input
-              className="form-input"
-              type="password"
-              placeholder={dictionary.auth.password}
-              value={signupPassword}
-              onChange={e => this.setState({ signupPassword: e.target.value })}
-              required
-              autoComplete="new-password"
-              minLength={8}
-            />
-            {error && <div className="modal-error">{error}</div>}
-            <button className="btn-primary" type="submit" disabled={loading}>
-              {loading
-                ? dictionary.auth.submitSignupLoading
-                : dictionary.auth.submitSignup}
-            </button>
-          </form>
-        )}
-      </div>
+              <input
+                className="form-input"
+                type="password"
+                placeholder={dictionary.auth.password}
+                value={signupPassword}
+                onChange={(e) =>
+                  this.setState({ signupPassword: e.target.value })
+                }
+                required
+                autoComplete="new-password"
+                minLength={8}
+              />
+              {error && <div className="modal-error">{error}</div>}
+              <button className="btn-primary" type="submit" disabled={loading}>
+                {loading
+                  ? dictionary.auth.submitSignupLoading
+                  : dictionary.auth.submitSignup}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     );
   }

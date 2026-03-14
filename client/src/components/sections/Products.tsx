@@ -27,13 +27,15 @@ class Products extends React.Component<ProductsProps> {
           <p className="section-desc">{dictionary.products.description}</p>
 
           <div className="products-grid">
-            {products.map(product => (
+            {products.map((product) => (
               <div key={product.id} className="product-card">
                 <div className="product-emoji">{product.emoji}</div>
                 <div className="product-name">{product.name}</div>
                 <div className="product-desc">{product.description}</div>
                 <div className="product-footer">
-                  <span className="product-price">€{product.price.toFixed(2)}</span>
+                  <span className="product-price">
+                    €{product.price.toFixed(2)}
+                  </span>
                   <button
                     className="add-btn"
                     onClick={() => this.props.onAddToBasket(product)}

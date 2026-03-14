@@ -1,21 +1,33 @@
-*, *::before, *::after {
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&display=swap');
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 :root {
-  --primary: #c2543a;
-  --primary-dark: #9e3e28;
+  --white: #ffffff;
+  --tiramisu-cream: #f5ece0;
+  --cacao: #2c1810;
+  --walnut: #5d4037;
+  --cherry: #9e3e28;
+  --cherries: #c2543a;
+  --prunes: #6b4a6b;
+
+  --primary: var(--cherries);
+  --primary-dark: var(--cherry);
   --accent: #e8b86d;
-  --bg: #fdfaf5;
-  --bg-alt: #f5ece0;
+  --bg: var(--white);
+  --bg-alt: var(--tiramisu-cream);
   --bg-alt2: #eddcc8;
-  --dark: #2c1810;
-  --text: #3d2b1f;
+  --dark: var(--cacao);
+  --text: var(--cacao);
   --text-light: #8a6655;
   --border: #e8d5c4;
-  --shadow: 0 4px 24px rgba(44, 24, 16, 0.10);
+  --shadow: 0 4px 24px rgba(44, 24, 16, 0.1);
   --radius: 12px;
 
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -26,6 +38,14 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {

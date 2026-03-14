@@ -27,7 +27,7 @@ class About extends React.Component {
               <p>{dictionary.about.p2}</p>
 
               <div className="about-stats">
-                {dictionary.about.stats.map(s => (
+                {dictionary.about.stats.map((s) => (
                   <div key={s.label} className="stat">
                     <div className="stat-value">{s.value}</div>
                     <div className="stat-label">{s.label}</div>
