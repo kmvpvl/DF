@@ -210,6 +210,87 @@ describe('GraphQL createUser Mutation', () => {
   });
 });
 
+describe('GraphQL updateSessionUser Mutation', () => {
+  const createUserMutation = `
+    mutation CreateUser($input: CreateUserInput!) {
+      createUser(input: $input) {
+        id
+      }
+    }
+  `;
+
+  const updateSessionUserMutation = `
+    mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
+      updateSessionUser(input: $input) {
+        id
+        name
+        fullName
+        entityType
+        email
+        phone
+        pib
+        mbr
+        account
+        bank
+      }
+    }
+  `;
+
+  it('should update the authenticated user profile', async () => {
+    const agent = request.agent(app);
+    const timestamp = Date.now();
+
+    await agent
+      .post('/graphql')
+      .send({
+        query: createUserMutation,
+        variables: {
+          input: {
+            name: `profile${timestamp}`,
+            fullName: 'Profile User',
+            email: `profile${timestamp}@example.com`,
+            password: 'password123',
+          },
+        },
+      })
+      .set('Content-Type', 'application/json');
+
+    const response = await agent
+      .post('/graphql')
+      .send({
+        query: updateSessionUserMutation,
+        variables: {
+          input: {
+            name: `updated${timestamp}`,
+            fullName: 'Updated User',
+            entityType: 'LEGAL_ENTITY',
+            email: `updated${timestamp}@example.com`,
+            phone: '+381600000000',
+            pib: `10${timestamp}`,
+            mbr: `20${timestamp}`,
+            account: `160-12345${timestamp % 1000}-12`,
+            bank: 'Banca Intesa',
+          },
+        },
+      })
+      .set('Content-Type', 'application/json');
+
+    expect(response.status).toBe(200);
+    expect(response.body.errors).toBeUndefined();
+    expect(response.body.data.updateSessionUser).toMatchObject({
+      name: `updated${timestamp}`,
+      fullName: 'Updated User',
+      entityType: 'LEGAL_ENTITY',
+      email: `updated${timestamp}@example.com`,
+      phone: '+381600000000',
+      pib: `10${timestamp}`,
+      mbr: `20${timestamp}`,
+      account: `160-12345${timestamp % 1000}-12`,
+      bank: 'Banca Intesa',
+    });
+  });
+});
+
 describe('GraphQL userInfo Query', () => {
   const createUserMutation = `
     mutation CreateUser($input: CreateUserInput!) {

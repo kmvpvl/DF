@@ -183,6 +183,27 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     return normalize(variation.label) !== normalize(formattedWeight);
   };
 
+  private getDiscountLabels = (product: Product) => {
+    if (product.chapter === 'related') {
+      return [] as string[];
+    }
+
+    const { dictionary } = this.context as I18nContextValue;
+
+    if (this.props.userEntityType === 'LEGAL_ENTITY') {
+      return [
+        dictionary.products.legalEntityDiscountFrom2kg,
+        dictionary.products.legalEntityDiscountFrom3kg,
+      ];
+    }
+
+    if (product.discounts?.length) {
+      return [dictionary.products.individualDiscountFrom1000g];
+    }
+
+    return [] as string[];
+  };
+
   private getProductForBasket = (product: Product) => {
     const isRelatedProduct = product.chapter === 'related';
     const selectedVariation = this.getSelectedVariation(product);
@@ -315,13 +336,26 @@ class Products extends React.Component<ProductsProps, ProductsState> {
           <p className="section-label">{dictionary.products.label}</p>
           <h2 className="section-title">{dictionary.products.title}</h2>
           <p className="section-desc">{dictionary.products.description}</p>
-          <button
-            type="button"
-            className="btn-primary products-legal-cta"
-            onClick={this.props.onLegalEntityCtaClick}
-          >
-            {dictionary.products.legalEntityCta}
-          </button>
+          {this.props.userEntityType === 'LEGAL_ENTITY' ? (
+            <div className="products-legal-entity-banner">
+              {dictionary.products.legalEntityLoggedInBannerPre}
+              <a
+                href={`tel:${dictionary.contacts.phoneValue.replace(/\s+/g, '')}`}
+                className="products-legal-entity-banner-link"
+              >
+                {dictionary.products.legalEntityLoggedInBannerCallUs}
+              </a>
+              {dictionary.products.legalEntityLoggedInBannerPost}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary products-legal-cta"
+              onClick={this.props.onLegalEntityCtaClick}
+            >
+              {dictionary.products.legalEntityCta}
+            </button>
+          )}
 
           {chapterOrder.map((chapterId) => {
             const items = products.filter((p) => p.chapter === chapterId);
@@ -377,12 +411,13 @@ class Products extends React.Component<ProductsProps, ProductsState> {
                         )}
                         <div className="product-name">{product.name}</div>
                         <div className="product-desc">{product.description}</div>
-                        {product.chapter !== 'related' &&
-                          (this.props.userEntityType !== 'LEGAL_ENTITY' || !this.props.userEntityType) && (
+                        {this.getDiscountLabels(product).length > 0 && (
                           <ul className="product-discounts">
-                            <li className="product-discount-tier">
-                              <strong>{dictionary.products.individualDiscountFrom1000g}</strong>
-                            </li>
+                            {this.getDiscountLabels(product).map((discountLabel) => (
+                              <li key={discountLabel} className="product-discount-tier">
+                                <strong>{discountLabel}</strong>
+                              </li>
+                            ))}
                           </ul>
                         )}
                         {product.priceVariations && product.priceVariations.length > 0 && (

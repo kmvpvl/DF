@@ -47,6 +47,18 @@ interface CreateUserInput {
   password: string;
 }
 
+interface UpdateSessionUserInput {
+  name: string;
+  fullName: string;
+  entityType?: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  phone?: string | null;
+  email: string;
+  pib?: string | null;
+  mbr?: string | null;
+  account?: string | null;
+  bank?: string | null;
+}
+
 interface SendContactMessageInput {
   type: 'FEEDBACK' | 'FREE_TEST_BATCH';
   name: string;
@@ -147,6 +159,18 @@ const typeDefs = `
     message: String!
   }
 
+  input UpdateSessionUserInput {
+    name: String!
+    fullName: String!
+    entityType: EntityType
+    phone: String
+    email: String!
+    pib: String
+    mbr: String
+    account: String
+    bank: String
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -157,6 +181,7 @@ const typeDefs = `
   type Mutation {
     createUser(input: CreateUserInput!): User!
     login(email: String!, password: String!): User!
+    updateSessionUser(input: UpdateSessionUserInput!): User!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
   }
 `;
@@ -285,6 +310,52 @@ const resolvers = {
       });
 
       return user;
+    },
+    updateSessionUser: async (
+      _: unknown,
+      { input }: { input: UpdateSessionUserInput },
+      { req }: GraphQLContext
+    ) => {
+      const userId = req.session.userId;
+      if (!userId) {
+        throw new Error('Not authenticated');
+      }
+
+      const entityType = input.entityType ?? 'INDIVIDUAL';
+      const requiredLegalEntityFields: Array<keyof Pick<
+        UpdateSessionUserInput,
+        'pib' | 'mbr' | 'account' | 'bank'
+      >> = ['pib', 'mbr', 'account', 'bank'];
+
+      if (entityType === 'LEGAL_ENTITY') {
+        const missing = requiredLegalEntityFields.filter(field => {
+          const value = input[field];
+          return !value || value.trim().length === 0;
+        });
+
+        if (missing.length > 0) {
+          throw new Error(
+            `Missing required legal entity fields: ${missing.join(', ')}`
+          );
+        }
+      }
+
+      const updateData = {
+        name: input.name,
+        fullName: input.fullName,
+        entityType,
+        email: input.email,
+        phone: input.phone || null,
+        pib: entityType === 'LEGAL_ENTITY' ? input.pib || null : null,
+        mbr: entityType === 'LEGAL_ENTITY' ? input.mbr || null : null,
+        account: entityType === 'LEGAL_ENTITY' ? input.account || null : null,
+        bank: entityType === 'LEGAL_ENTITY' ? input.bank || null : null,
+      } as unknown as Parameters<typeof prisma.user.update>[0]['data'];
+
+      return await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
     },
     sendContactMessage: async (
       _: unknown,

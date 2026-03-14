@@ -91,6 +91,7 @@ interface AppState {
   authOpen: boolean;
   authInitialTab: 'login' | 'signup';
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  authEditingUser: User | null;
   pendingProduct: Product | null;
 }
 
@@ -109,6 +110,7 @@ class App extends React.Component<Record<string, never>, AppState> {
     authOpen: false,
     authInitialTab: 'login',
     authInitialSignupEntityType: 'INDIVIDUAL',
+    authEditingUser: null,
     pendingProduct: null,
   };
 
@@ -194,6 +196,7 @@ class App extends React.Component<Record<string, never>, AppState> {
         authOpen: true,
         authInitialTab: 'login',
         authInitialSignupEntityType: 'INDIVIDUAL',
+        authEditingUser: null,
       });
       return;
     }
@@ -207,6 +210,21 @@ class App extends React.Component<Record<string, never>, AppState> {
       pendingProduct: null,
       authInitialTab: 'signup',
       authInitialSignupEntityType: 'LEGAL_ENTITY',
+      authEditingUser: null,
+    });
+  };
+
+  handleUserEditClick = () => {
+    if (!this.state.user) {
+      return;
+    }
+
+    this.setState({
+      authOpen: true,
+      pendingProduct: null,
+      authInitialTab: 'signup',
+      authInitialSignupEntityType: this.state.user.entityType,
+      authEditingUser: this.state.user,
     });
   };
 
@@ -217,6 +235,7 @@ class App extends React.Component<Record<string, never>, AppState> {
         authOpen: false,
         authInitialTab: 'login',
         authInitialSignupEntityType: 'INDIVIDUAL',
+        authEditingUser: null,
       }),
       () => {
         if (this.state.pendingProduct) {
@@ -234,6 +253,7 @@ class App extends React.Component<Record<string, never>, AppState> {
       pendingProduct: null,
       authInitialTab: 'login',
       authInitialSignupEntityType: 'INDIVIDUAL',
+      authEditingUser: null,
     });
   };
 
@@ -250,15 +270,20 @@ class App extends React.Component<Record<string, never>, AppState> {
       authOpen,
       authInitialTab,
       authInitialSignupEntityType,
+      authEditingUser,
       pendingProduct,
     } = this.state;
     const basketCount = basket.reduce((sum, i) => sum + i.qty, 0);
 
     return (
       <div className="app">
-        <Navbar user={user} basketCount={basketCount} />
+        <Navbar
+          user={user}
+          basketCount={basketCount}
+          onUserClick={this.handleUserEditClick}
+        />
         <main>
-          <Home onLegalEntityCtaClick={this.handleLegalEntityCtaClick} />
+          <Home onLegalEntityCtaClick={this.handleLegalEntityCtaClick} userEntityType={user?.entityType ?? null} />
           <Products
             onAddToBasket={this.handleAddToBasket}
             onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
@@ -279,6 +304,7 @@ class App extends React.Component<Record<string, never>, AppState> {
             pendingProductName={pendingProduct?.name ?? null}
             initialTab={authInitialTab}
             initialSignupEntityType={authInitialSignupEntityType}
+            editingUser={authEditingUser}
           />
         )}
       </div>

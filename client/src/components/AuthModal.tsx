@@ -10,6 +10,7 @@ interface AuthModalProps {
   pendingProductName: string | null;
   initialTab?: Tab;
   initialSignupEntityType?: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  editingUser?: User | null;
 }
 
 type Tab = 'login' | 'signup';
@@ -63,6 +64,14 @@ const SIGNUP_MUTATION = `
   }
 `;
 
+const UPDATE_SESSION_USER_MUTATION = `
+  mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
+    updateSessionUser(input: $input) {
+      id name fullName entityType email phone pib mbr account bank
+    }
+  }
+`;
+
 class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
@@ -74,20 +83,51 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
   componentDidUpdate(prevProps: AuthModalProps) {
     if (
       prevProps.initialTab !== this.props.initialTab ||
-      prevProps.initialSignupEntityType !== this.props.initialSignupEntityType
+      prevProps.initialSignupEntityType !== this.props.initialSignupEntityType ||
+      prevProps.editingUser !== this.props.editingUser
     ) {
       this.applyInitialAuthMode();
     }
   }
 
   private applyInitialAuthMode = () => {
+    if (this.props.editingUser) {
+      const { editingUser } = this.props;
+
+      this.setState({
+        tab: 'signup',
+        error: null,
+        signupName: editingUser.name,
+        signupFullName: editingUser.fullName,
+        signupEntityType: editingUser.entityType,
+        signupPib: editingUser.pib ?? '',
+        signupMbr: editingUser.mbr ?? '',
+        signupAccount: editingUser.account ?? '',
+        signupBank: editingUser.bank ?? '',
+        signupEmail: editingUser.email,
+        signupPhone: editingUser.phone ?? '',
+        signupPassword: '',
+      });
+      return;
+    }
+
     const tab = this.props.initialTab ?? 'login';
     const signupEntityType =
       this.props.initialSignupEntityType ?? 'INDIVIDUAL';
 
     this.setState({
       tab,
+      error: null,
       signupEntityType,
+      signupName: '',
+      signupFullName: '',
+      signupPib: '',
+      signupMbr: '',
+      signupAccount: '',
+      signupBank: '',
+      signupEmail: '',
+      signupPhone: '',
+      signupPassword: '',
     });
   };
 
@@ -200,6 +240,75 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     }
   };
 
+  handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const i18n = this.context;
+    if (!i18n) {
+      throw new Error('AuthModal must be used within I18nProvider');
+    }
+
+    if (!this.props.editingUser) {
+      return;
+    }
+
+    const { onSuccess } = this.props;
+    const { dictionary } = i18n;
+    const {
+      signupName,
+      signupFullName,
+      signupEntityType,
+      signupPib,
+      signupMbr,
+      signupAccount,
+      signupBank,
+      signupEmail,
+      signupPhone,
+    } = this.state;
+
+    if (
+      signupEntityType === 'LEGAL_ENTITY' &&
+      (!signupPib.trim() ||
+        !signupMbr.trim() ||
+        !signupAccount.trim() ||
+        !signupBank.trim())
+    ) {
+      this.setState({
+        loading: false,
+        error: dictionary.auth.legalEntityFieldsRequired,
+      });
+      return;
+    }
+
+    this.setState({ error: null, loading: true });
+    try {
+      const data = await gql<{ updateSessionUser: User }>(
+        UPDATE_SESSION_USER_MUTATION,
+        {
+          input: {
+            name: signupName,
+            fullName: signupFullName,
+            entityType: signupEntityType,
+            email: signupEmail,
+            phone: signupPhone || undefined,
+            pib: signupEntityType === 'LEGAL_ENTITY' ? signupPib : null,
+            mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : null,
+            account: signupEntityType === 'LEGAL_ENTITY' ? signupAccount : null,
+            bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : null,
+          },
+        }
+      );
+
+      onSuccess(data.updateSessionUser);
+    } catch (err: unknown) {
+      this.setState({
+        error:
+          err instanceof Error ? err.message : dictionary.auth.updateFailed,
+      });
+    } finally {
+      this.setState({ loading: false });
+    }
+  };
+
   switchTab = (tab: Tab) => {
     this.setState({ tab, error: null });
   };
@@ -211,7 +320,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     }
 
     const { dictionary } = i18n;
-    const { onClose, pendingProductName } = this.props;
+    const { onClose, pendingProductName, editingUser } = this.props;
     const {
       tab,
       loading,
@@ -231,6 +340,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     } = this.state;
 
     const isLegalEntity = signupEntityType === 'LEGAL_ENTITY';
+    const isEditMode = Boolean(editingUser);
 
     return (
       <div
@@ -241,11 +351,15 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
           <div className="modal-header">
             <div className="modal-header-text">
               <h2>
-                {tab === 'login'
+                {isEditMode
+                  ? dictionary.auth.editProfile
+                  : tab === 'login'
                   ? dictionary.auth.welcomeBack
                   : dictionary.auth.createAccount}
               </h2>
-              {pendingProductName && (
+              {isEditMode ? (
+                <p>{dictionary.auth.editProfileDescription}</p>
+              ) : pendingProductName && (
                 <p>
                   {dictionary.auth.addToBasketPrompt.replace(
                     '{product}',
@@ -263,22 +377,24 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
             </button>
           </div>
 
-          <div className="modal-tabs">
-            <button
-              className={`modal-tab ${tab === 'login' ? 'active' : ''}`}
-              onClick={() => this.switchTab('login')}
-            >
-              {dictionary.auth.loginTab}
-            </button>
-            <button
-              className={`modal-tab ${tab === 'signup' ? 'active' : ''}`}
-              onClick={() => this.switchTab('signup')}
-            >
-              {dictionary.auth.signupTab}
-            </button>
-          </div>
+          {!isEditMode && (
+            <div className="modal-tabs">
+              <button
+                className={`modal-tab ${tab === 'login' ? 'active' : ''}`}
+                onClick={() => this.switchTab('login')}
+              >
+                {dictionary.auth.loginTab}
+              </button>
+              <button
+                className={`modal-tab ${tab === 'signup' ? 'active' : ''}`}
+                onClick={() => this.switchTab('signup')}
+              >
+                {dictionary.auth.signupTab}
+              </button>
+            </div>
+          )}
 
-          {tab === 'login' ? (
+          {!isEditMode && tab === 'login' ? (
             <form className="modal-form" onSubmit={this.handleLogin}>
               <input
                 className="form-input"
@@ -308,7 +424,10 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
               </button>
             </form>
           ) : (
-            <form className="modal-form" onSubmit={this.handleSignup}>
+            <form
+              className="modal-form"
+              onSubmit={isEditMode ? this.handleProfileUpdate : this.handleSignup}
+            >
               <div className="form-row">
                 <input
                   className="form-input"
@@ -412,23 +531,29 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
                 required
                 autoComplete="email"
               />
-              <input
-                className="form-input"
-                type="password"
-                placeholder={dictionary.auth.password}
-                value={signupPassword}
-                onChange={(e) =>
-                  this.setState({ signupPassword: e.target.value })
-                }
-                required
-                autoComplete="new-password"
-                minLength={8}
-              />
+              {!isEditMode && (
+                <input
+                  className="form-input"
+                  type="password"
+                  placeholder={dictionary.auth.password}
+                  value={signupPassword}
+                  onChange={(e) =>
+                    this.setState({ signupPassword: e.target.value })
+                  }
+                  required
+                  autoComplete="new-password"
+                  minLength={8}
+                />
+              )}
               {error && <div className="modal-error">{error}</div>}
               <button className="btn-primary" type="submit" disabled={loading}>
-                {loading
-                  ? dictionary.auth.submitSignupLoading
-                  : dictionary.auth.submitSignup}
+                {isEditMode
+                  ? loading
+                    ? dictionary.auth.submitProfileUpdateLoading
+                    : dictionary.auth.submitProfileUpdate
+                  : loading
+                    ? dictionary.auth.submitSignupLoading
+                    : dictionary.auth.submitSignup}
               </button>
             </form>
           )}

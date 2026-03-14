@@ -112,4 +112,37 @@ describe('App', () => {
 
     expect(screen.getByTestId('product-price-15')).toHaveTextContent('60 din');
   });
+
+  it('opens profile editing when the logged-in user name is clicked', async () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({
+        data: {
+          sessionUser: {
+            id: '1',
+            name: 'Marco',
+            fullName: 'Marco Rossi',
+            entityType: 'INDIVIDUAL',
+            email: 'marco@example.com',
+            phone: '+381600000000',
+            pib: null,
+            mbr: null,
+            account: null,
+            bank: null,
+          },
+        },
+      }),
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Hi, Marco' }));
+
+    expect(await screen.findByText('Edit profile')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Marco')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Marco Rossi')).toBeInTheDocument();
+  });
 });

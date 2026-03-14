@@ -5,6 +5,7 @@ import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 interface NavbarProps {
   user: User | null;
   basketCount: number;
+  onUserClick: () => void;
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -28,7 +29,7 @@ class Navbar extends React.Component<NavbarProps> {
     }
 
     const { dictionary, language, languages, setLanguage } = i18n;
-    const { user, basketCount } = this.props;
+    const { user, basketCount, onUserClick } = this.props;
 
     const sections = [
       { id: 'home', label: dictionary.nav.home },
@@ -78,9 +79,11 @@ class Navbar extends React.Component<NavbarProps> {
             </select>
           </label>
           {user && (
-            <span className="nav-user">
-              {dictionary.nav.hi}, {user.name}
-            </span>
+            <button className="nav-user-button" onClick={onUserClick}>
+              <span className="nav-user">
+                {dictionary.nav.hi}, {user.name}
+              </span>
+            </button>
           )}
           <button className="basket-btn" aria-label={dictionary.nav.basketAria}>
             🛒

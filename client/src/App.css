@@ -102,6 +102,21 @@ main {
   font-size: 0.85rem;
   color: var(--text-light);
 }
+.nav-user-button {
+  background: none;
+  border: none;
+  padding: 0.2rem 0.35rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-user-button:hover {
+  background: var(--bg-alt);
+}
+.nav-user-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 .basket-btn {
   position: relative;
   display: flex;
@@ -260,7 +275,8 @@ main {
   margin-top: 3rem;
 }
 .products-legal-cta {
-  margin-top: 1.4rem;
+  display: block;
+  margin: 1.4rem auto 0;
   width: 100%;
   max-width: 720px;
   min-height: 56px;
@@ -269,6 +285,24 @@ main {
   padding: 0.95rem 1.5rem;
   border-radius: 12px;
   text-align: center;
+}
+.products-legal-entity-banner {
+  margin: 1.4rem auto 0;
+  width: 100%;
+  max-width: 720px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1.08rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.5;
+}
+.products-legal-entity-banner-link {
+  color: #fff;
+  text-decoration: underline;
+  font-weight: 800;
 }
 .product-card {
   background: #fff;

@@ -3,6 +3,7 @@ import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 
 interface HomeProps {
   onLegalEntityCtaClick: () => void;
+  userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
 }
 
 class Home extends React.Component<HomeProps> {
@@ -43,12 +44,14 @@ class Home extends React.Component<HomeProps> {
           >
             {dictionary.home.shopNow}
           </button>
-          <button
-            className="btn-primary"
-            onClick={this.props.onLegalEntityCtaClick}
-          >
-            {dictionary.products.legalEntityCta}
-          </button>
+          {this.props.userEntityType !== 'LEGAL_ENTITY' && (
+            <button
+              className="btn-primary"
+              onClick={this.props.onLegalEntityCtaClick}
+            >
+              {dictionary.products.legalEntityCta}
+            </button>
+          )}
           <button
             className="btn-primary"
             onClick={this.handleFreeTestBatchClick}
