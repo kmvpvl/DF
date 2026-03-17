@@ -1,3 +1,4 @@
+import { dictionaries } from '../../i18n/dictionaries';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 import Proto from '../../proto';
 
@@ -10,8 +11,6 @@ class Delivery extends Proto<{}, {}> {
     if (!i18n) {
       throw new Error('Delivery must be used within I18nProvider');
     }
-
-    const { dictionary } = i18n;
 
     return (
       <div id="delivery" className="delivery-section">
@@ -27,11 +26,11 @@ class Delivery extends Proto<{}, {}> {
           </p>
 
           <div className="delivery-cards">
-            {dictionary.delivery.cards.map((card) => (
+            {dictionaries.en.delivery.cards.map((card: any) => (
               <div key={card.title} className="delivery-card">
                 <div className="delivery-icon">{card.icon}</div>
-                <div className="delivery-card-title">{card.title}</div>
-                <p className="delivery-card-text">{card.text}</p>
+                <div className="delivery-card-title">{this.ML(card.title).toString()}</div>
+                <p className="delivery-card-text">{this.ML(card.text).toString()}</p>
               </div>
             ))}
           </div>

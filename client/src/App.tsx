@@ -4,7 +4,7 @@ import Home from './components/sections/Home';
 import Products from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
-import About from './components/sections/About';
+//import About from './components/sections/About';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
 import Proto from './proto';
@@ -294,7 +294,6 @@ class App extends Proto<Record<string, never>, AppState> {
           />
           <Delivery />
           <Contacts />
-          <About />
         </main>
         <footer className="footer">
           <strong>DolceForte</strong> &copy; {new Date().getFullYear()} -{' '}

@@ -69,12 +69,12 @@ class Home extends Proto<HomeProps, {}> {
           >
             {this.ML('Order a test batch for free').toString()}
           </button>
-          <button
+          {/*<button
             className="btn-outline"
             onClick={() => this.scrollTo('about')}
           >
             {this.ML('Our Story').toString()}
-          </button>
+          </button>*/}
         </div>
       </div>
     );

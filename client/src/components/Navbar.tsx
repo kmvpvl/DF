@@ -36,7 +36,7 @@ class Navbar extends Proto<NavbarProps, {}> {
       { id: 'products', label: this.ML('Products').toString() },
       { id: 'delivery', label: this.ML('Delivery').toString() },
       { id: 'contacts', label: this.ML('Contacts').toString() },
-      { id: 'about', label: this.ML('About').toString() },
+      //{ id: 'about', label: this.ML('About').toString() },
     ];
 
     return (
