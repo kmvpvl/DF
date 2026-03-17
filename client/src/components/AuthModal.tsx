@@ -83,7 +83,8 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
   componentDidUpdate(prevProps: AuthModalProps) {
     if (
       prevProps.initialTab !== this.props.initialTab ||
-      prevProps.initialSignupEntityType !== this.props.initialSignupEntityType ||
+      prevProps.initialSignupEntityType !==
+        this.props.initialSignupEntityType ||
       prevProps.editingUser !== this.props.editingUser
     ) {
       this.applyInitialAuthMode();
@@ -112,8 +113,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     }
 
     const tab = this.props.initialTab ?? 'login';
-    const signupEntityType =
-      this.props.initialSignupEntityType ?? 'INDIVIDUAL';
+    const signupEntityType = this.props.initialSignupEntityType ?? 'INDIVIDUAL';
 
     this.setState({
       tab,
@@ -354,18 +354,20 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
                 {isEditMode
                   ? dictionary.auth.editProfile
                   : tab === 'login'
-                  ? dictionary.auth.welcomeBack
-                  : dictionary.auth.createAccount}
+                    ? dictionary.auth.welcomeBack
+                    : dictionary.auth.createAccount}
               </h2>
               {isEditMode ? (
                 <p>{dictionary.auth.editProfileDescription}</p>
-              ) : pendingProductName && (
-                <p>
-                  {dictionary.auth.addToBasketPrompt.replace(
-                    '{product}',
-                    pendingProductName
-                  )}
-                </p>
+              ) : (
+                pendingProductName && (
+                  <p>
+                    {dictionary.auth.addToBasketPrompt.replace(
+                      '{product}',
+                      pendingProductName
+                    )}
+                  </p>
+                )
               )}
             </div>
             <button
@@ -426,7 +428,9 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
           ) : (
             <form
               className="modal-form"
-              onSubmit={isEditMode ? this.handleProfileUpdate : this.handleSignup}
+              onSubmit={
+                isEditMode ? this.handleProfileUpdate : this.handleSignup
+              }
             >
               <div className="form-row">
                 <input
@@ -471,9 +475,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
                 }
                 aria-label={dictionary.auth.buyerType}
               >
-                <option value="INDIVIDUAL">
-                  {dictionary.auth.individual}
-                </option>
+                <option value="INDIVIDUAL">{dictionary.auth.individual}</option>
                 <option value="LEGAL_ENTITY">
                   {dictionary.auth.legalEntity}
                 </option>

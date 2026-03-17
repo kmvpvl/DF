@@ -1,12 +1,12 @@
-import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
+import Proto from '../../proto';
 
 interface HomeProps {
   onLegalEntityCtaClick: () => void;
   userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
 }
 
-class Home extends React.Component<HomeProps> {
+class Home extends Proto<HomeProps, {}> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -15,7 +15,10 @@ class Home extends React.Component<HomeProps> {
   };
 
   handleFreeTestBatchClick = () => {
-    window.localStorage.setItem('dolceforte.contactRequestType', 'FREE_TEST_BATCH');
+    window.localStorage.setItem(
+      'dolceforte.contactRequestType',
+      'FREE_TEST_BATCH'
+    );
     this.scrollTo('contacts');
   };
 
@@ -25,44 +28,52 @@ class Home extends React.Component<HomeProps> {
       throw new Error('Home must be used within I18nProvider');
     }
 
-    const { dictionary } = i18n;
-
     return (
       <div id="home" className="hero">
-        <p className="section-label">{dictionary.home.label}</p>
+        <p className="section-label">
+          {this.ML(
+            'Production of Italian and Russian desserts, cheese and cottage cheese'
+          ).toString()}
+        </p>
         <h1 className="hero-title">
-          {dictionary.home.titleStart}{' '}
-          <span>{dictionary.home.titleAccent}</span>,
+          {this.ML('Crafted with').toString()}{' '}
+          <span>{this.ML('Love').toString()}</span>,
           <br />
-          {dictionary.home.titleEnd}
+          {this.ML('Baked to Perfection').toString()}
         </h1>
-        <p className="hero-subtitle">{dictionary.home.subtitle}</p>
+        <p className="hero-subtitle">
+          {this.ML(
+            'We produce desserts and cheeses for end consumers, stores, restaurants and catering. Delivery to Pančevo, Belgrade and surrounding areas'
+          ).toString()}
+        </p>
         <div className="hero-cta">
           <button
             className="btn-primary"
             onClick={() => this.scrollTo('products')}
           >
-            {dictionary.home.shopNow}
+            {this.ML('Shop Now').toString()}
           </button>
           {this.props.userEntityType !== 'LEGAL_ENTITY' && (
             <button
               className="btn-primary"
               onClick={this.props.onLegalEntityCtaClick}
             >
-              {dictionary.products.legalEntityCta}
+              {this.ML(
+                'Login as a legal entity to get great prices'
+              ).toString()}
             </button>
           )}
           <button
             className="btn-primary"
             onClick={this.handleFreeTestBatchClick}
           >
-            {dictionary.home.orderTestBatchFree}
+            {this.ML('Order a test batch for free').toString()}
           </button>
           <button
             className="btn-outline"
             onClick={() => this.scrollTo('about')}
           >
-            {dictionary.home.ourStory}
+            {this.ML('Our Story').toString()}
           </button>
         </div>
       </div>

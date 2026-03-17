@@ -1,7 +1,7 @@
-import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
+import Proto from '../../proto';
 
-class Delivery extends React.Component {
+class Delivery extends Proto<{}, {}> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -16,9 +16,15 @@ class Delivery extends React.Component {
     return (
       <div id="delivery" className="delivery-section">
         <div className="section-inner">
-          <p className="section-label">{dictionary.delivery.label}</p>
-          <h2 className="section-title">{dictionary.delivery.title}</h2>
-          <p className="section-desc">{dictionary.delivery.description}</p>
+          <p className="section-label">{this.ML('Delivery').toString()}</p>
+          <h2 className="section-title">
+            {this.ML('Pickup or Straight to Your Door').toString()}
+          </h2>
+          <p className="section-desc">
+            {this.ML(
+              'We handle every detail so your desserts arrive as beautiful as they left our kitchen. Delivery to Pančevo, Belgrade and surrounding areas.'
+            ).toString()}
+          </p>
 
           <div className="delivery-cards">
             {dictionary.delivery.cards.map((card) => (

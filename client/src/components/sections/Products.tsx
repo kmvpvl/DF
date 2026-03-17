@@ -1,6 +1,7 @@
-import React from 'react';
 import { Product, ProductPriceVariation } from '../../App';
+import { dictionaries } from '../../i18n/dictionaries';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
+import Proto from '../../proto';
 
 const INDIVIDUAL_DISCOUNT_MIN_GRAMS = 1000;
 const INDIVIDUAL_DISCOUNT_RATE = 0.1;
@@ -19,7 +20,7 @@ interface ProductsState {
   cheeseWeightErrorByProductId: Record<number, boolean>;
 }
 
-class Products extends React.Component<ProductsProps, ProductsState> {
+class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -32,17 +33,19 @@ class Products extends React.Component<ProductsProps, ProductsState> {
 
   private isCheeseProduct = (product: Product) => product.chapter === 'cheeses';
 
-  private isWeightBasedProduct = (product: Product) => WEIGHT_BASED_PRODUCT_IDS.has(product.id);
+  private isWeightBasedProduct = (product: Product) =>
+    WEIGHT_BASED_PRODUCT_IDS.has(product.id);
 
   private usesWeightInput = (product: Product) =>
     this.isWeightBasedProduct(product) ||
-    (this.isCheeseProduct(product) && !(product.priceVariations && product.priceVariations.length > 0));
+    (this.isCheeseProduct(product) &&
+      !(product.priceVariations && product.priceVariations.length > 0));
 
   private hasSyncedPhotoAndVariation = (product: Product) =>
     Boolean(
       product.photos?.length &&
-        product.priceVariations?.length &&
-        product.photos.length === product.priceVariations.length
+      product.priceVariations?.length &&
+      product.photos.length === product.priceVariations.length
     );
 
   private getDefaultVariationIndex = (product: Product) => {
@@ -64,7 +67,10 @@ class Products extends React.Component<ProductsProps, ProductsState> {
       return 0;
     }
 
-    return this.state.activeVariationByProductId[product.id] ?? this.getDefaultVariationIndex(product);
+    return (
+      this.state.activeVariationByProductId[product.id] ??
+      this.getDefaultVariationIndex(product)
+    );
   };
 
   private getSelectedVariation = (product: Product) => {
@@ -72,7 +78,9 @@ class Products extends React.Component<ProductsProps, ProductsState> {
       return null;
     }
 
-    return product.priceVariations[this.getActiveVariationIndex(product)] ?? null;
+    return (
+      product.priceVariations[this.getActiveVariationIndex(product)] ?? null
+    );
   };
 
   private getActivePhotoIndex = (product: Product) => {
@@ -83,12 +91,13 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     const defaultIndex = this.hasSyncedPhotoAndVariation(product)
       ? this.getDefaultVariationIndex(product)
       : 0;
-    const activeIndex = this.state.activePhotoByProductId[product.id] ?? defaultIndex;
+    const activeIndex =
+      this.state.activePhotoByProductId[product.id] ?? defaultIndex;
     return Math.min(activeIndex, product.photos.length - 1);
   };
 
   private setActivePhoto = (productId: number, photoIndex: number) => {
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       activePhotoByProductId: {
         ...prevState.activePhotoByProductId,
         [productId]: photoIndex,
@@ -127,7 +136,9 @@ class Products extends React.Component<ProductsProps, ProductsState> {
 
   private formatPrice = (price: number, unit?: string) => {
     if (unit) {
-      const normalizedPrice = Number.isInteger(price) ? price.toString() : price.toFixed(2);
+      const normalizedPrice = Number.isInteger(price)
+        ? price.toString()
+        : price.toFixed(2);
       return `${normalizedPrice} ${unit}`;
     }
 
@@ -148,17 +159,36 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     return individualPrice;
   };
 
-  private applyIndividualWeightDiscount = (
+  private applyWeightDiscount = (
+    product: Product,
     price: number,
     weightInGrams?: number,
     isRelatedProduct = false
   ) => {
-    if (
-      isRelatedProduct ||
-      this.props.userEntityType === 'LEGAL_ENTITY' ||
-      !weightInGrams ||
-      weightInGrams < INDIVIDUAL_DISCOUNT_MIN_GRAMS
-    ) {
+    if (isRelatedProduct || !weightInGrams) {
+      return price;
+    }
+
+    if (this.props.userEntityType === 'LEGAL_ENTITY') {
+      if (!product.discounts?.length) {
+        return price;
+      }
+
+      const weightInKg = weightInGrams / 1000;
+      const matchedTier = product.discounts
+        .slice()
+        .sort((a, b) => a.threshold - b.threshold)
+        .filter((tier) => weightInKg >= tier.threshold)
+        .pop();
+
+      if (!matchedTier) {
+        return price;
+      }
+
+      return Number((price * (1 - matchedTier.discount / 100)).toFixed(2));
+    }
+
+    if (weightInGrams < INDIVIDUAL_DISCOUNT_MIN_GRAMS) {
       return price;
     }
 
@@ -174,12 +204,16 @@ class Products extends React.Component<ProductsProps, ProductsState> {
   };
 
   private shouldShowVariationWeight = (variation: ProductPriceVariation) => {
-    const formattedWeight = this.formatWeight(variation.weight, variation.weightUnit);
+    const formattedWeight = this.formatWeight(
+      variation.weight,
+      variation.weightUnit
+    );
     if (!formattedWeight) {
       return false;
     }
 
-    const normalize = (value: string) => value.replace(/\s+/g, '').toLowerCase();
+    const normalize = (value: string) =>
+      value.replace(/\s+/g, '').toLowerCase();
     return normalize(variation.label) !== normalize(formattedWeight);
   };
 
@@ -188,17 +222,28 @@ class Products extends React.Component<ProductsProps, ProductsState> {
       return [] as string[];
     }
 
-    const { dictionary } = this.context as I18nContextValue;
+    const { language } = this.context as I18nContextValue;
 
     if (this.props.userEntityType === 'LEGAL_ENTITY') {
-      return [
-        dictionary.products.legalEntityDiscountFrom2kg,
-        dictionary.products.legalEntityDiscountFrom3kg,
-      ];
+      if (!product.discounts?.length) {
+        return [] as string[];
+      }
+
+      const weightUnit = language === 'ru' ? 'кг' : 'kg';
+      const orderPrefix =
+        language === 'ru'
+          ? 'Заказ'
+          : language === 'sr'
+            ? 'Porudzbina'
+            : 'Order';
+      return product.discounts.map(
+        (tier) =>
+          `${orderPrefix} ${tier.threshold}${weightUnit}+ → -${tier.discount}%`
+      );
     }
 
     if (product.discounts?.length) {
-      return [dictionary.products.individualDiscountFrom1000g];
+      return ['1000g+ → -10%'];
     }
 
     return [] as string[];
@@ -209,14 +254,19 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     const selectedVariation = this.getSelectedVariation(product);
 
     if (this.usesWeightInput(product)) {
-      const weightValue = this.state.cheeseWeightByProductId[product.id] ?? '1000';
+      const weightValue =
+        this.state.cheeseWeightByProductId[product.id] ?? '1000';
       const weightInGrams = Number.parseFloat(weightValue);
       if (!Number.isFinite(weightInGrams) || weightInGrams <= 0) {
         return null;
       }
 
-      const unitPrice = this.getEffectivePrice(product.price, product.legalEntityPrice);
-      const discountedUnitPrice = this.applyIndividualWeightDiscount(
+      const unitPrice = this.getEffectivePrice(
+        product.price,
+        product.legalEntityPrice
+      );
+      const discountedUnitPrice = this.applyWeightDiscount(
+        product,
         unitPrice,
         weightInGrams,
         isRelatedProduct
@@ -227,7 +277,9 @@ class Products extends React.Component<ProductsProps, ProductsState> {
         name: selectedVariation
           ? `${product.name} (${selectedVariation.label}, ${weightInGrams}g)`
           : `${product.name} (${weightInGrams}g)`,
-        price: Number(((discountedUnitPrice * weightInGrams) / 1000).toFixed(2)),
+        price: Number(
+          ((discountedUnitPrice * weightInGrams) / 1000).toFixed(2)
+        ),
         selectedWeightGrams: weightInGrams,
         selectedVariationLabel: selectedVariation?.label,
       };
@@ -240,7 +292,8 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     return {
       ...product,
       name: `${product.name} (${selectedVariation.label})`,
-      price: this.applyIndividualWeightDiscount(
+      price: this.applyWeightDiscount(
+        product,
         this.getEffectivePrice(
           selectedVariation.price,
           selectedVariation.legalEntityPrice
@@ -272,7 +325,8 @@ class Products extends React.Component<ProductsProps, ProductsState> {
     if (!this.usesWeightInput(product)) {
       const selectedVariation = this.getSelectedVariation(product);
       if (selectedVariation) {
-        return this.applyIndividualWeightDiscount(
+        return this.applyWeightDiscount(
+          product,
           this.getEffectivePrice(
             selectedVariation.price,
             selectedVariation.legalEntityPrice
@@ -282,21 +336,27 @@ class Products extends React.Component<ProductsProps, ProductsState> {
         );
       }
 
-      return this.applyIndividualWeightDiscount(
+      return this.applyWeightDiscount(
+        product,
         this.getEffectivePrice(product.price, product.legalEntityPrice),
         undefined,
         isRelatedProduct
       );
     }
 
-    const weightValue = this.state.cheeseWeightByProductId[product.id] ?? '1000';
+    const weightValue =
+      this.state.cheeseWeightByProductId[product.id] ?? '1000';
     const weightInGrams = Number.parseFloat(weightValue);
     if (!Number.isFinite(weightInGrams) || weightInGrams <= 0) {
       return this.getEffectivePrice(product.price, product.legalEntityPrice);
     }
 
-    const unitPrice = this.getEffectivePrice(product.price, product.legalEntityPrice);
-    const discountedUnitPrice = this.applyIndividualWeightDiscount(
+    const unitPrice = this.getEffectivePrice(
+      product.price,
+      product.legalEntityPrice
+    );
+    const discountedUnitPrice = this.applyWeightDiscount(
+      product,
       unitPrice,
       weightInGrams,
       isRelatedProduct
@@ -325,27 +385,38 @@ class Products extends React.Component<ProductsProps, ProductsState> {
       throw new Error('Products must be used within I18nProvider');
     }
 
-    const { dictionary } = i18n;
-    const products = dictionary.products.items as unknown as Product[];
-    const chapterLabels = dictionary.products.chapterLabels as Record<string, string>;
-    const chapterOrder = dictionary.products.chapterOrder as string[];
+    //const { dictionary } = dictionaries.en as I18nContextValue;
+    const products = dictionaries.en.products.items as unknown as Product[];
+    const chapterLabels = dictionaries.en.products.chapterLabels as Record<
+      string,
+      string
+    >;
+    const chapterOrder = dictionaries.en.products.chapterOrder as string[];
 
     return (
       <div id="products" className="products-section">
         <div className="section-inner">
-          <p className="section-label">{dictionary.products.label}</p>
-          <h2 className="section-title">{dictionary.products.title}</h2>
-          <p className="section-desc">{dictionary.products.description}</p>
+          <p className="section-label">{this.ML('Our Menu').toString()}</p>
+          <h2 className="section-title">
+            {this.ML('Fresh Every Day').toString()}
+          </h2>
+          <p className="section-desc">
+            {this.ML(
+              'Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.'
+            ).toString()}
+          </p>
           {this.props.userEntityType === 'LEGAL_ENTITY' ? (
             <div className="products-legal-entity-banner">
-              {dictionary.products.legalEntityLoggedInBannerPre}
+              {this.ML(
+                'You are logged in as a legal entity and we guarantee you have the best prices.'
+              ).toString()}
+              {'\n '}
               <a
-                href={`tel:${dictionary.contacts.phoneValue.replace(/\s+/g, '')}`}
+                href={`tel:${'062 1478 438'.replace(/\s+/g, '')}`}
                 className="products-legal-entity-banner-link"
               >
-                {dictionary.products.legalEntityLoggedInBannerCallUs}
+                {this.ML('Call us to get an even bigger discount').toString()}
               </a>
-              {dictionary.products.legalEntityLoggedInBannerPost}
             </div>
           ) : (
             <button
@@ -353,7 +424,9 @@ class Products extends React.Component<ProductsProps, ProductsState> {
               className="btn-primary products-legal-cta"
               onClick={this.props.onLegalEntityCtaClick}
             >
-              {dictionary.products.legalEntityCta}
+              {this.ML(
+                'Login as a legal entity to get great prices'
+              ).toString()}
             </button>
           )}
 
@@ -362,7 +435,7 @@ class Products extends React.Component<ProductsProps, ProductsState> {
             return (
               <div key={chapterId} className="products-chapter">
                 <h3 className="products-chapter-title">
-                  {chapterLabels[chapterId] ?? chapterId}
+                  {this.ML(chapterLabels[chapterId]).toString() ?? chapterId}
                 </h3>
                 {items.length > 0 ? (
                   <div className="products-grid">
@@ -379,12 +452,19 @@ class Products extends React.Component<ProductsProps, ProductsState> {
                               <div className="product-media">
                                 <img
                                   className="product-photo"
-                                  src={product.photos[this.getActivePhotoIndex(product)]}
+                                  src={
+                                    product.photos[
+                                      this.getActivePhotoIndex(product)
+                                    ]
+                                  }
                                   alt={product.name}
                                 />
                               </div>
                             </button>
-                            <div className="product-photo-dots" aria-label={`${product.name} photos`}>
+                            <div
+                              className="product-photo-dots"
+                              aria-label={`${product.name} photos`}
+                            >
                               {product.photos.map((photo, index) => (
                                 <button
                                   key={photo}
@@ -396,12 +476,19 @@ class Products extends React.Component<ProductsProps, ProductsState> {
                                   }
                                   onClick={() => {
                                     this.setActivePhoto(product.id, index);
-                                    if (this.hasSyncedPhotoAndVariation(product)) {
-                                      this.setActiveVariation(product.id, index);
+                                    if (
+                                      this.hasSyncedPhotoAndVariation(product)
+                                    ) {
+                                      this.setActiveVariation(
+                                        product.id,
+                                        index
+                                      );
                                     }
                                   }}
                                   aria-label={`Show photo ${index + 1} for ${product.name}`}
-                                  aria-pressed={index === this.getActivePhotoIndex(product)}
+                                  aria-pressed={
+                                    index === this.getActivePhotoIndex(product)
+                                  }
                                 />
                               ))}
                             </div>
@@ -409,74 +496,111 @@ class Products extends React.Component<ProductsProps, ProductsState> {
                         ) : (
                           <div className="product-emoji">{product.emoji}</div>
                         )}
-                        <div className="product-name">{product.name}</div>
-                        <div className="product-desc">{product.description}</div>
+                        <div className="product-name">
+                          {this.ML(product.name).toString()}
+                        </div>
+                        <div className="product-desc">
+                          {this.ML(product.description).toString()}
+                        </div>
                         {this.getDiscountLabels(product).length > 0 && (
                           <ul className="product-discounts">
-                            {this.getDiscountLabels(product).map((discountLabel) => (
-                              <li key={discountLabel} className="product-discount-tier">
-                                <strong>{discountLabel}</strong>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {product.priceVariations && product.priceVariations.length > 0 && (
-                          <ul className="product-price-variations">
-                            {(product.priceVariations as ProductPriceVariation[]).map((variation) => (
-                              <li key={variation.label} className="product-price-variation-row">
-                                <button
-                                  type="button"
-                                  className={
-                                    this.getSelectedVariation(product)?.label === variation.label
-                                      ? 'product-price-variation-button is-active'
-                                      : 'product-price-variation-button'
-                                  }
-                                  onClick={() =>
-                                    this.selectVariation(
-                                      product,
-                                      product.priceVariations?.findIndex(
-                                        (candidate) => candidate.label === variation.label
-                                      ) ?? 0
-                                    )
-                                  }
-                                  aria-label={`Select ${variation.label} option for ${product.name}`}
-                                  aria-pressed={this.getSelectedVariation(product)?.label === variation.label}
+                            {this.getDiscountLabels(product).map(
+                              (discountLabel) => (
+                                <li
+                                  key={discountLabel}
+                                  className="product-discount-tier"
                                 >
-                                  <span className="product-price-variation-label-group">
-                                    <span className="product-price-variation-label">{variation.label}</span>
-                                    {this.shouldShowVariationWeight(variation) && (
-                                      <span className="product-price-variation-weight">
-                                        {this.formatWeight(variation.weight, variation.weightUnit)}
-                                      </span>
-                                    )}
-                                  </span>
-                                  <strong className="product-price-variation-value">
-                                    {this.formatPrice(
-                                      this.applyIndividualWeightDiscount(
-                                        this.getEffectivePrice(
-                                          variation.price,
-                                          variation.legalEntityPrice
-                                        ),
-                                        variation.weight,
-                                        product.chapter === 'related'
-                                      ),
-                                      variation.unit
-                                    )}
-                                  </strong>
-                                </button>
-                              </li>
-                            ))}
+                                  <strong>{discountLabel}</strong>
+                                </li>
+                              )
+                            )}
                           </ul>
                         )}
+                        {product.priceVariations &&
+                          product.priceVariations.length > 0 && (
+                            <ul className="product-price-variations">
+                              {(
+                                product.priceVariations as ProductPriceVariation[]
+                              ).map((variation) => (
+                                <li
+                                  key={variation.label}
+                                  className="product-price-variation-row"
+                                >
+                                  <button
+                                    type="button"
+                                    className={
+                                      this.getSelectedVariation(product)
+                                        ?.label === variation.label
+                                        ? 'product-price-variation-button is-active'
+                                        : 'product-price-variation-button'
+                                    }
+                                    onClick={() =>
+                                      this.selectVariation(
+                                        product,
+                                        product.priceVariations?.findIndex(
+                                          (candidate) =>
+                                            candidate.label === variation.label
+                                        ) ?? 0
+                                      )
+                                    }
+                                    aria-label={`Select ${variation.label} option for ${product.name}`}
+                                    aria-pressed={
+                                      this.getSelectedVariation(product)
+                                        ?.label === variation.label
+                                    }
+                                  >
+                                    <span className="product-price-variation-label-group">
+                                      <span className="product-price-variation-label">
+                                        {(variation.label as string).includes(
+                                          'g'
+                                        )
+                                          ? variation.label
+                                          : this.ML(variation.label).toString()}
+                                      </span>
+                                      {this.shouldShowVariationWeight(
+                                        variation
+                                      ) && (
+                                        <span className="product-price-variation-weight">
+                                          {this.formatWeight(
+                                            variation.weight,
+                                            variation.weightUnit
+                                          )}
+                                        </span>
+                                      )}
+                                    </span>
+                                    <strong className="product-price-variation-value">
+                                      {this.formatPrice(
+                                        this.applyWeightDiscount(
+                                          product,
+                                          this.getEffectivePrice(
+                                            variation.price,
+                                            variation.legalEntityPrice
+                                          ),
+                                          variation.weight,
+                                          product.chapter === 'related'
+                                        ),
+                                        variation.unit
+                                      )}
+                                    </strong>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         {this.usesWeightInput(product) && (
                           <div className="product-weight-block">
-                            <label className="product-weight-label" htmlFor={`weight-${product.id}`}>
-                              {dictionary.products.cheeseWeightLabel}
+                            <label
+                              className="product-weight-label"
+                              htmlFor={`weight-${product.id}`}
+                            >
+                              {this.ML('Weight (g)').toString()}
                             </label>
                             <input
                               id={`weight-${product.id}`}
                               className={
-                                this.state.cheeseWeightErrorByProductId[product.id]
+                                this.state.cheeseWeightErrorByProductId[
+                                  product.id
+                                ]
                                   ? 'product-weight-input is-invalid'
                                   : 'product-weight-input'
                               }
@@ -484,27 +608,46 @@ class Products extends React.Component<ProductsProps, ProductsState> {
                               min="1"
                               step="1"
                               inputMode="numeric"
-                              value={this.state.cheeseWeightByProductId[product.id] ?? '1000'}
-                              onChange={(e) => this.onCheeseWeightChange(product.id, e.target.value)}
-                              placeholder={dictionary.products.cheeseWeightPlaceholder}
+                              value={
+                                this.state.cheeseWeightByProductId[
+                                  product.id
+                                ] ?? '1000'
+                              }
+                              onChange={(e) =>
+                                this.onCheeseWeightChange(
+                                  product.id,
+                                  e.target.value
+                                )
+                              }
+                              placeholder={this.ML('Type grams').toString()}
                             />
-                            {this.state.cheeseWeightErrorByProductId[product.id] && (
-                              <div className="product-weight-error">{dictionary.products.cheeseWeightRequired}</div>
+                            {this.state.cheeseWeightErrorByProductId[
+                              product.id
+                            ] && (
+                              <div className="product-weight-error">
+                                {this.ML(
+                                  'Weight in grams is required'
+                                ).toString()}
+                              </div>
                             )}
                           </div>
                         )}
                         <div className="product-footer">
-                          <span className="product-price" data-testid={`product-price-${product.id}`}>
+                          <span
+                            className="product-price"
+                            data-testid={`product-price-${product.id}`}
+                          >
                             {this.formatPrice(
                               this.getDisplayedPrice(product),
-                              this.getSelectedVariation(product)?.unit ?? product.priceUnit
+                              this.getSelectedVariation(product)?.unit ??
+                                product.priceUnit
                             )}
                           </span>
                           <button
                             className="add-btn"
                             onClick={() => this.handleAddClick(product)}
                           >
-                            {dictionary.products.addToBasket}
+                            {this.ML('Add to basket').toString()}
                           </button>
                         </div>
                       </div>

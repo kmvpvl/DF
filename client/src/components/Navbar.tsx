@@ -1,6 +1,6 @@
-import React from 'react';
 import { User } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
+import Proto from '../proto';
 
 interface NavbarProps {
   user: User | null;
@@ -14,7 +14,7 @@ const LANGUAGE_FLAGS: Record<string, string> = {
   sr: '🇷🇸',
 };
 
-class Navbar extends React.Component<NavbarProps> {
+class Navbar extends Proto<NavbarProps, {}> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -28,15 +28,15 @@ class Navbar extends React.Component<NavbarProps> {
       throw new Error('Navbar must be used within I18nProvider');
     }
 
-    const { dictionary, language, languages, setLanguage } = i18n;
+    const { language, languages, setLanguage } = i18n;
     const { user, basketCount, onUserClick } = this.props;
 
     const sections = [
-      { id: 'home', label: dictionary.nav.home },
-      { id: 'products', label: dictionary.nav.products },
-      { id: 'delivery', label: dictionary.nav.delivery },
-      { id: 'contacts', label: dictionary.nav.contacts },
-      { id: 'about', label: dictionary.nav.about },
+      { id: 'home', label: this.ML('Home').toString() },
+      { id: 'products', label: this.ML('Products').toString() },
+      { id: 'delivery', label: this.ML('Delivery').toString() },
+      { id: 'contacts', label: this.ML('Contacts').toString() },
+      { id: 'about', label: this.ML('About').toString() },
     ];
 
     return (
@@ -45,9 +45,9 @@ class Navbar extends React.Component<NavbarProps> {
           <img
             className="navbar-brand-logo"
             src="/assets/brand/logos/logo.png"
-            alt={dictionary.common.brand}
+            alt="DolceForte"
           />
-          <span className="navbar-brand-text">{dictionary.common.brand}</span>
+          <span className="navbar-brand-text">DolceForte</span>
         </div>
 
         <ul className="navbar-links">
@@ -63,13 +63,13 @@ class Navbar extends React.Component<NavbarProps> {
         <div className="navbar-right">
           <label className="language-select-wrap">
             <span className="language-label">
-              {dictionary.nav.languageLabel}
+              {this.ML('Language').toString()}:
             </span>
             <select
               className="language-select"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              aria-label={dictionary.nav.languageLabel}
+              aria-label={this.ML('Language').toString()}
             >
               {languages.map((code) => (
                 <option key={code} value={code}>
@@ -81,11 +81,14 @@ class Navbar extends React.Component<NavbarProps> {
           {user && (
             <button className="nav-user-button" onClick={onUserClick}>
               <span className="nav-user">
-                {dictionary.nav.hi}, {user.name}
+                {this.ML('Hi').toString()}, {user.name}
               </span>
             </button>
           )}
-          <button className="basket-btn" aria-label={dictionary.nav.basketAria}>
+          <button
+            className="basket-btn"
+            aria-label={this.ML('Basket').toString()}
+          >
             🛒
             {basketCount > 0 && (
               <span className="basket-badge">{basketCount}</span>

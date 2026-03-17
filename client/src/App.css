@@ -170,7 +170,7 @@ main {
 .section-desc {
   font-size: 1.05rem;
   color: var(--text-light);
-  max-width: 520px;
+  --max-width: 520px;
   line-height: 1.7;
 }
 
@@ -412,7 +412,11 @@ main {
   padding: 0.75rem 0.85rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(245, 236, 224, 0.45), rgba(255, 255, 255, 0.95));
+  background: linear-gradient(
+    180deg,
+    rgba(245, 236, 224, 0.45),
+    rgba(255, 255, 255, 0.95)
+  );
 }
 .product-price-variation-row {
   list-style: none;

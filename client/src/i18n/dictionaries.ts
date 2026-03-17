@@ -1,53 +1,6 @@
 export const dictionaries = {
   en: {
-    common: {
-      brand: 'DolceForte',
-      languageNames: {
-        en: 'English',
-        ru: 'Russian',
-        sr: 'Serbian',
-      },
-    },
-    nav: {
-      home: 'Home',
-      products: 'Products',
-      delivery: 'Delivery',
-      contacts: 'Contacts',
-      about: 'About',
-      basketAria: 'Basket',
-      hi: 'Hi',
-      languageLabel: 'Language',
-    },
-    footer: {
-      text: 'Production of Italian and Russian desserts, cheese and cottage cheese',
-    },
-    home: {
-      label: 'Production of Italian and Russian desserts, cheese and cottage cheese',
-      titleStart: 'Crafted with',
-      titleAccent: 'Love',
-      titleEnd: 'Baked to Perfection',
-      subtitle:
-        'We produce desserts and cheeses for end consumers, stores, restaurants and catering. Delivery to Pancevo, Belgrade and surrounding areas',
-      shopNow: 'Shop Now',
-      orderTestBatchFree: 'Order a test batch for free',
-      ourStory: 'Our Story',
-    },
     products: {
-      label: 'Our Menu',
-      title: 'Fresh Every Day',
-      description:
-        'Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.',
-      legalEntityCta: 'Login as a legal entity to get great prices',
-      legalEntityLoggedInBannerPre: 'You are logged in as a legal entity and we guarantee you have the best prices. ',
-      legalEntityLoggedInBannerCallUs: 'Call us',
-      legalEntityLoggedInBannerPost: ' to get an even bigger discount',
-      individualDiscountFrom1000g: '1000g+ → -10%',
-      legalEntityDiscountFrom2kg: 'Order 2kg+ → -5%',
-      legalEntityDiscountFrom3kg: 'Order 3kg+ → -7%',
-      addToBasket: 'Add to basket',
-      cheeseWeightLabel: 'Weight (g)',
-      cheeseWeightPlaceholder: 'Type grams',
-      cheeseWeightRequired: 'Weight in grams is required.',
       chapterLabels: {
         desserts: 'Desserts',
         cheeses: 'Cheeses',
@@ -88,16 +41,15 @@ export const dictionaries = {
             },
           ],
           discounts: [
-            { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
           id: 7,
           name: 'Pasterita',
           description:
-            'A sphere of wonderful savoyardi, mascarpone, and almond taste.',
+            'A sphere of wonderful savoyardi, mascarpone, and almond tastes. The perfect balance of sweetness and bitterness, with a hint of almond.',
           price: 25,
           legalEntityPrice: 20,
           priceUnit: 'din',
@@ -119,11 +71,7 @@ export const dictionaries = {
               weightUnit: 'g',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
-          ],
+          discounts: [{ threshold: 3, discount: 5 }],
         },
         {
           id: 8,
@@ -143,6 +91,7 @@ export const dictionaries = {
             {
               label: '45g',
               price: 59,
+              legalEntityPrice: 44,
               unit: 'din',
               weight: 45,
               weightUnit: 'g',
@@ -150,6 +99,7 @@ export const dictionaries = {
             {
               label: '650g',
               price: 949,
+              legalEntityPrice: 585,
               unit: 'din',
               weight: 650,
               weightUnit: 'g',
@@ -157,16 +107,13 @@ export const dictionaries = {
             {
               label: '1000g',
               price: 1460,
+              legalEntityPrice: 879,
               unit: 'din',
               weight: 1000,
               weightUnit: 'g',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
-          ],
+          discounts: [{ threshold: 2, discount: 5 }],
         },
         {
           id: 9,
@@ -180,32 +127,31 @@ export const dictionaries = {
           photos: ['/assets/images/products/panakota.jpg'],
           priceVariations: [
             {
-              label: 'Orange sause',
+              label: 'Orange sauce',
               price: 159,
+              legalEntityPrice: 112,
               unit: 'din',
               weight: 150,
               weightUnit: 'g',
             },
             {
-              label: 'Apple sause',
+              label: 'Apple sauce',
               price: 159,
+              legalEntityPrice: 112,
               unit: 'din',
               weight: 150,
               weightUnit: 'g',
             },
             {
-              label: 'Fruit sause',
+              label: 'Fruit sauce',
               price: 159,
+              legalEntityPrice: 112,
               unit: 'din',
               weight: 150,
               weightUnit: 'g',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
-          ],
+          discounts: [{ threshold: 3, discount: 5 }],
         },
         {
           id: 13,
@@ -214,6 +160,7 @@ export const dictionaries = {
             'Tender prunes and crunchy walnuts coated in smooth milk chocolate for a rich balanced bite.',
           price: 2500,
           priceUnit: 'din',
+          legalEntityPrice: 1600,
           emoji: '🍫',
           chapter: 'desserts',
           photos: [
@@ -226,24 +173,24 @@ export const dictionaries = {
             {
               label: 'White chocolade',
               price: 2500,
+              legalEntityPrice: 1600,
               unit: 'din',
             },
             {
               label: 'Milk chokolade',
               price: 2500,
+              legalEntityPrice: 1600,
+
               unit: 'din',
             },
             {
               label: 'Dark chokolade (Lenten)',
               price: 2500,
+              legalEntityPrice: 1600,
               unit: 'din',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
-          ],
+          discounts: [{ threshold: 3, discount: 5 }],
         },
         {
           id: 15,
@@ -260,21 +207,40 @@ export const dictionaries = {
             '/assets/images/products/ts-klass.jpg',
           ],
           priceVariations: [
-            { label: 'Cube', price: 50, unit: 'din', weight: 20, weightUnit: 'g' },
-            { label: 'Star', price: 60, unit: 'din', weight: 25, weightUnit: 'g' },
-            { label: 'Classic', price: 209, unit: 'din', weight: 85, weightUnit: 'g' },
+            {
+              label: 'Cube',
+              price: 50,
+              legalEntityPrice: 39,
+              unit: 'din',
+              weight: 20,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Star',
+              price: 60,
+              legalEntityPrice: 45,
+              unit: 'din',
+              weight: 25,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Classic',
+              price: 209,
+              legalEntityPrice: 159,
+              unit: 'din',
+              weight: 85,
+              weightUnit: 'g',
+            },
           ],
           discounts: [
             { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
           ],
         },
         {
           id: 16,
           name: 'Kordiale',
           description:
-            'Biscuit dessert with cream, mascarpone, and lemon or rum.',
+            'Biscuit dessert with cream, mascarpone, and lemon or rum. A refreshing treat with a zesty twist, perfect for any occasion.',
           price: 219,
           priceUnit: 'din',
           emoji: '🍫',
@@ -288,6 +254,7 @@ export const dictionaries = {
             {
               label: 'Lemon',
               price: 219,
+              legalEntityPrice: 169,
               unit: 'din',
               weight: 150,
               weightUnit: 'g',
@@ -295,6 +262,7 @@ export const dictionaries = {
             {
               label: 'Rum',
               price: 219,
+              legalEntityPrice: 169,
               unit: 'din',
               weight: 150,
               weightUnit: 'g',
@@ -302,13 +270,11 @@ export const dictionaries = {
           ],
           discounts: [
             { threshold: 3, discount: 5 },
-            { threshold: 6, discount: 10 },
-            { threshold: 12, discount: 15 },
           ],
         },
         {
           id: 10,
-          name: 'Postcard Male is wating',
+          name: 'Postcard Male is waiting',
           description:
             'Decorative postcard for gift orders with an elegant masculine visual style and personalized message area.',
           price: 59,
@@ -345,6 +311,7 @@ export const dictionaries = {
           description:
             'Rich Italian cream cheese with a silky texture, ideal for desserts, fillings and breakfast spreads.',
           price: 1440,
+          legalEntityPrice: 1120,
           priceUnit: 'din',
           emoji: '🧀',
           chapter: 'cheeses',
@@ -353,9 +320,8 @@ export const dictionaries = {
             '/assets/images/products/maskarpone-2.jpg',
           ],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -364,14 +330,14 @@ export const dictionaries = {
           description:
             'Fresh, delicate whey cheese with a light milky flavour for pastries, pasta and savoury plates.',
           price: 860,
+          legalEntityPrice: 670,
           priceUnit: 'din',
           emoji: '🥛',
           chapter: 'cheeses',
           photos: ['/assets/images/products/rikota-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -380,13 +346,13 @@ export const dictionaries = {
           description:
             'Smooth cream cheese with a balanced tang, perfect for cheesecakes, dips and sandwiches.',
           price: 1560,
+          legalEntityPrice: 1120,
           priceUnit: 'din',
           emoji: '🧈',
           chapter: 'cheeses',
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -395,14 +361,14 @@ export const dictionaries = {
           description:
             'Soft curds with a clean, creamy taste, well suited for breakfast bowls and light desserts.',
           price: 1840,
+          legalEntityPrice: 1120,
           priceUnit: 'din',
           emoji: '🥣',
           chapter: 'cheeses',
           photos: ['/assets/images/products/cottage-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -411,23 +377,23 @@ export const dictionaries = {
           description:
             'Generous curds with a hearty dairy character, excellent for baking, pancakes and family breakfasts.',
           price: 1840,
+          legalEntityPrice: 1230,
           priceUnit: 'din',
           emoji: '🍶',
           chapter: 'cheeses',
           photos: ['/assets/images/products/largecurd-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
       ],
     },
     delivery: {
       label: 'Delivery',
-      title: 'Straight to Your Door',
+      title: 'Pikap or Straight to Your Door',
       description:
-        'We handle every detail so your pastries arrive as beautiful as they left our kitchen. Delivery to Pancevo, Belgrade and surrounding areas',
+        'We handle every detail so your desserts arrive as beautiful as they left our kitchen. Delivery to Pančevo, Belgrade and surrounding areas',
       cards: [
         {
           icon: '🚀',
@@ -525,38 +491,6 @@ export const dictionaries = {
     },
   },
   ru: {
-    common: {
-      brand: 'DolceForte',
-      languageNames: {
-        en: 'Английский',
-        ru: 'Русский',
-        sr: 'Сербский',
-      },
-    },
-    nav: {
-      home: 'Главная',
-      products: 'Товары',
-      delivery: 'Доставка',
-      contacts: 'Контакты',
-      about: 'О нас',
-      basketAria: 'Корзина',
-      hi: 'Привет',
-      languageLabel: 'Язык',
-    },
-    footer: {
-      text: 'Ремесленная кондитерская',
-    },
-    home: {
-      label: 'Ремесленная кондитерская',
-      titleStart: 'Создано с',
-      titleAccent: 'Любовью',
-      titleEnd: 'Испечено идеально',
-      subtitle:
-        'Мы производим десерты и сыры для конечных потребителей, магазинов, ресторанов и кейтеринга. Доставка в Панчево, Белград и окрестности',
-      shopNow: 'Купить',
-      orderTestBatchFree: 'Заказать бесплатную тестовую партию',
-      ourStory: 'Наша история',
-    },
     products: {
       label: 'Наше меню',
       title: 'Свежесть каждый день',
@@ -564,7 +498,8 @@ export const dictionaries = {
         'Все готовится небольшими партиями из лучших ингредиентов. Закажите до полудня для доставки в тот же день.',
       legalEntityCta:
         'Войдите как юридическое лицо, чтобы получить отличные цены',
-      legalEntityLoggedInBannerPre: 'Вы вошли как юридическое лицо и мы гарантируем вам лучшие цены. ',
+      legalEntityLoggedInBannerPre:
+        'Вы вошли как юридическое лицо и мы гарантируем вам лучшие цены. ',
       legalEntityLoggedInBannerCallUs: 'Позвоните нам',
       legalEntityLoggedInBannerPost: ', чтобы получить ещё большую скидку',
       individualDiscountFrom1000g: '1000г+ → -10%',
@@ -786,9 +721,27 @@ export const dictionaries = {
             '/assets/images/products/ts-klass.jpg',
           ],
           priceVariations: [
-            { label: 'Кубик', price: 50, unit: 'din', weight: 20, weightUnit: 'g' },
-            { label: 'Звезда', price: 60, unit: 'din', weight: 25, weightUnit: 'g' },
-            { label: 'Классический', price: 209, unit: 'din', weight: 85, weightUnit: 'g' },
+            {
+              label: 'Кубик',
+              price: 50,
+              unit: 'din',
+              weight: 20,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Звезда',
+              price: 60,
+              unit: 'din',
+              weight: 25,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Классический',
+              price: 209,
+              unit: 'din',
+              weight: 85,
+              weightUnit: 'g',
+            },
           ],
           discounts: [
             { threshold: 3, discount: 5 },
@@ -871,6 +824,7 @@ export const dictionaries = {
           description:
             'Насыщенный итальянский сливочный сыр с шелковистой текстурой для десертов, начинок и завтраков.',
           price: 1440,
+          legalEntityPrice: 1120,
           priceUnit: 'din',
           emoji: '🧀',
           chapter: 'cheeses',
@@ -879,9 +833,8 @@ export const dictionaries = {
             '/assets/images/products/maskarpone-2.jpg',
           ],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -895,9 +848,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/rikota-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -910,9 +862,8 @@ export const dictionaries = {
           emoji: '🧈',
           chapter: 'cheeses',
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -926,9 +877,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/cottage-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -942,9 +892,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/largecurd-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
       ],
@@ -1051,46 +1000,14 @@ export const dictionaries = {
     },
   },
   sr: {
-    common: {
-      brand: 'DolceForte',
-      languageNames: {
-        en: 'Engleski',
-        ru: 'Ruski',
-        sr: 'Srpski',
-      },
-    },
-    nav: {
-      home: 'Pocetna',
-      products: 'Proizvodi',
-      delivery: 'Dostava',
-      contacts: 'Kontakti',
-      about: 'O nama',
-      basketAria: 'Korpa',
-      hi: 'Zdravo',
-      languageLabel: 'Jezik',
-    },
-    footer: {
-      text: 'Zanatska poslasticarnica',
-    },
-    home: {
-      label: 'Zanatska poslasticarnica',
-      titleStart: 'Napravljeno sa',
-      titleAccent: 'Ljubavlju',
-      titleEnd: 'Peceno do savrsenstva',
-      subtitle:
-        'Proizvodimo deserte i sireve za krajnje potrosace, prodavnice, restorane i ketering. Dostava za Pancevo, Beograd i okolinu',
-      shopNow: 'Kupi sada',
-      orderTestBatchFree: 'Narucite besplatnu test seriju',
-      ourStory: 'Nasa prica',
-    },
     products: {
       label: 'Nas meni',
       title: 'Sveze svakog dana',
       description:
         'Sve se priprema u malim serijama od najboljih sastojaka. Narucite pre podneva za dostavu istog dana.',
-      legalEntityCta:
-        'Prijavite se kao pravno lice da dobijete odlicne cene',
-      legalEntityLoggedInBannerPre: 'Prijavljeni ste kao pravno lice i garantujemo vam najbolje cene. ',
+      legalEntityCta: 'Prijavite se kao pravno lice da dobijete odlicne cene',
+      legalEntityLoggedInBannerPre:
+        'Prijavljeni ste kao pravno lice i garantujemo vam najbolje cene. ',
       legalEntityLoggedInBannerCallUs: 'Pozovite nas',
       legalEntityLoggedInBannerPost: ' za jos veci popust',
       individualDiscountFrom1000g: '1000g+ → -10%',
@@ -1312,9 +1229,27 @@ export const dictionaries = {
             '/assets/images/products/ts-klass.jpg',
           ],
           priceVariations: [
-            { label: 'Kocka', price: 50, unit: 'din', weight: 20, weightUnit: 'g' },
-            { label: 'Zvezda', price: 60, unit: 'din', weight: 25, weightUnit: 'g' },
-            { label: 'Klasik', price: 209, unit: 'din', weight: 85, weightUnit: 'g' },
+            {
+              label: 'Kocka',
+              price: 50,
+              unit: 'din',
+              weight: 20,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Zvezda',
+              price: 60,
+              unit: 'din',
+              weight: 25,
+              weightUnit: 'g',
+            },
+            {
+              label: 'Klasik',
+              price: 209,
+              unit: 'din',
+              weight: 85,
+              weightUnit: 'g',
+            },
           ],
           discounts: [
             { threshold: 3, discount: 5 },
@@ -1397,6 +1332,7 @@ export const dictionaries = {
           description:
             'Bogati italijanski krem sir sa svilenkastom teksturom, odlican za deserte, filove i dorucak.',
           price: 1440,
+          legalEntityPrice: 1120,
           priceUnit: 'din',
           emoji: '🧀',
           chapter: 'cheeses',
@@ -1405,9 +1341,8 @@ export const dictionaries = {
             '/assets/images/products/maskarpone-2.jpg',
           ],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -1421,9 +1356,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/rikota-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -1436,9 +1370,8 @@ export const dictionaries = {
           emoji: '🧈',
           chapter: 'cheeses',
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -1452,9 +1385,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/cottage-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
         {
@@ -1468,9 +1400,8 @@ export const dictionaries = {
           chapter: 'cheeses',
           photos: ['/assets/images/products/largecurd-1.jpg'],
           discounts: [
-            { threshold: 2, discount: 4 },
-            { threshold: 5, discount: 8 },
-            { threshold: 10, discount: 12 },
+            { threshold: 2, discount: 5 },
+            { threshold: 3, discount: 7 },
           ],
         },
       ],
@@ -1479,7 +1410,7 @@ export const dictionaries = {
       label: 'Dostava',
       title: 'Pravo do vaseg doma',
       description:
-        'Brinemo o svakom detalju kako bi vasa porudzbina stigla savrseno. Dostava za Pancevo, Beograd i okolinu',
+        'Brinemo o svakom detalju kako bi vasa porudzbina stigla savrseno. Dostava za Pančevo, Beograd i okolinu',
       cards: [
         {
           icon: '🚀',

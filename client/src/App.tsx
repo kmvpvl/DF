@@ -1,4 +1,3 @@
-import React from 'react';
 import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import Home from './components/sections/Home';
@@ -8,6 +7,7 @@ import Contacts from './components/sections/Contacts';
 import About from './components/sections/About';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
+import Proto from './proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 const SESSION_DURATION_MINUTES = Number.parseInt(
@@ -99,7 +99,7 @@ interface SessionUserQueryData {
   sessionUser: User | null;
 }
 
-class App extends React.Component<Record<string, never>, AppState> {
+class App extends Proto<Record<string, never>, AppState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
   private sessionSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -175,8 +175,9 @@ class App extends React.Component<Record<string, never>, AppState> {
         return {
           basket: prevState.basket.map((i) =>
             i.product.id === product.id &&
-              i.product.selectedVariationLabel === product.selectedVariationLabel &&
-              i.product.selectedWeightGrams === product.selectedWeightGrams
+            i.product.selectedVariationLabel ===
+              product.selectedVariationLabel &&
+            i.product.selectedWeightGrams === product.selectedWeightGrams
               ? { ...i, qty: i.qty + 1 }
               : i
           ),
@@ -263,7 +264,6 @@ class App extends React.Component<Record<string, never>, AppState> {
       throw new Error('App must be used within I18nProvider');
     }
 
-    const { dictionary } = i18n;
     const {
       user,
       basket,
@@ -283,7 +283,10 @@ class App extends React.Component<Record<string, never>, AppState> {
           onUserClick={this.handleUserEditClick}
         />
         <main>
-          <Home onLegalEntityCtaClick={this.handleLegalEntityCtaClick} userEntityType={user?.entityType ?? null} />
+          <Home
+            onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
+            userEntityType={user?.entityType ?? null}
+          />
           <Products
             onAddToBasket={this.handleAddToBasket}
             onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
@@ -294,8 +297,10 @@ class App extends React.Component<Record<string, never>, AppState> {
           <About />
         </main>
         <footer className="footer">
-          <strong>{dictionary.common.brand}</strong> &copy;{' '}
-          {new Date().getFullYear()} - {dictionary.footer.text}
+          <strong>DolceForte</strong> &copy; {new Date().getFullYear()} -{' '}
+          {this.ML(
+            'Production of Italian and Russian desserts, cheese and cottage cheese'
+          ).toString()}
         </footer>
         {authOpen && (
           <AuthModal

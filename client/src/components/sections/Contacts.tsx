@@ -1,5 +1,6 @@
 import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
+import Proto from '../../proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 const CONTACT_REQUEST_TYPE_KEY = 'dolceforte.contactRequestType';
@@ -38,7 +39,7 @@ interface ContactsState {
   requestType: 'FEEDBACK' | 'FREE_TEST_BATCH';
 }
 
-class Contacts extends React.Component<Record<string, never>, ContactsState> {
+class Contacts extends Proto<Record<string, never>, ContactsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -113,16 +114,19 @@ class Contacts extends React.Component<Record<string, never>, ContactsState> {
     this.setState({ loading: true, validationError: '' });
 
     try {
-      await gql<{ sendContactMessage: boolean }>(SEND_CONTACT_MESSAGE_MUTATION, {
-        input: {
-          type: this.state.requestType,
-          name,
-          email: email || undefined,
-          phone: phone || undefined,
-          subject,
-          message,
-        },
-      });
+      await gql<{ sendContactMessage: boolean }>(
+        SEND_CONTACT_MESSAGE_MUTATION,
+        {
+          input: {
+            type: this.state.requestType,
+            name,
+            email: email || undefined,
+            phone: phone || undefined,
+            subject,
+            message,
+          },
+        }
+      );
 
       this.setState({
         sent: true,
@@ -247,7 +251,9 @@ class Contacts extends React.Component<Record<string, never>, ContactsState> {
             </div>
 
             <div className="contact-form-column">
-              <h2 className="section-title contact-form-title">{dictionary.contacts.title}</h2>
+              <h2 className="section-title contact-form-title">
+                {dictionary.contacts.title}
+              </h2>
               {this.state.sent ? (
                 <p
                   style={{
@@ -303,11 +309,15 @@ class Contacts extends React.Component<Record<string, never>, ContactsState> {
                   {this.state.validationError && (
                     <p className="modal-error">{this.state.validationError}</p>
                   )}
-                  <button className="btn-primary" type="submit" disabled={loading}>
+                  <button
+                    className="btn-primary"
+                    type="submit"
+                    disabled={loading}
+                  >
                     {loading
                       ? `${dictionary.contacts.send}...`
                       : requestType === 'FREE_TEST_BATCH'
-                        ? dictionary.home.orderTestBatchFree
+                        ? this.ML('Order a test batch for free').toString()
                         : dictionary.contacts.send}
                   </button>
                   <p className="feedback-destination">
