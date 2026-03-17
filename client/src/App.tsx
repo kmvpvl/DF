@@ -1,5 +1,6 @@
 import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
+import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
 import Products from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
@@ -34,6 +35,12 @@ const SESSION_USER_QUERY = `
       account
       bank
     }
+  }
+`;
+
+const SEND_ORDER_BY_EMAIL_MUTATION = `
+  mutation SendOrderByEmail($input: SendOrderInput!) {
+    sendOrderByEmail(input: $input)
   }
 `;
 
@@ -88,6 +95,7 @@ export interface BasketItem {
 interface AppState {
   user: User | null;
   basket: BasketItem[];
+  basketOpen: boolean;
   authOpen: boolean;
   authInitialTab: 'login' | 'signup';
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -107,6 +115,7 @@ class App extends Proto<Record<string, never>, AppState> {
   state: AppState = {
     user: null,
     basket: [],
+    basketOpen: false,
     authOpen: false,
     authInitialTab: 'login',
     authInitialSignupEntityType: 'INDIVIDUAL',
@@ -208,6 +217,7 @@ class App extends Proto<Record<string, never>, AppState> {
   handleLegalEntityCtaClick = () => {
     this.setState({
       authOpen: true,
+      basketOpen: false,
       pendingProduct: null,
       authInitialTab: 'signup',
       authInitialSignupEntityType: 'LEGAL_ENTITY',
@@ -222,6 +232,7 @@ class App extends Proto<Record<string, never>, AppState> {
 
     this.setState({
       authOpen: true,
+      basketOpen: false,
       pendingProduct: null,
       authInitialTab: 'signup',
       authInitialSignupEntityType: this.state.user.entityType,
@@ -258,6 +269,70 @@ class App extends Proto<Record<string, never>, AppState> {
     });
   };
 
+  handleOpenBasket = () => {
+    this.setState({ basketOpen: true });
+  };
+
+  handleCloseBasket = () => {
+    this.setState({ basketOpen: false });
+  };
+
+  handleIncreaseBasketItemQty = (index: number) => {
+    this.setState((prevState) => ({
+      basket: prevState.basket.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, qty: item.qty + 1 } : item
+      ),
+    }));
+  };
+
+  handleDecreaseBasketItemQty = (index: number) => {
+    this.setState((prevState) => {
+      const targetItem = prevState.basket[index];
+      if (!targetItem) {
+        return null;
+      }
+
+      if (targetItem.qty <= 1) {
+        return {
+          basket: prevState.basket.filter((_, itemIndex) => itemIndex !== index),
+        };
+      }
+
+      return {
+        basket: prevState.basket.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, qty: item.qty - 1 } : item
+        ),
+      };
+    });
+  };
+
+  handleRemoveBasketItem = (index: number) => {
+    this.setState((prevState) => ({
+      basket: prevState.basket.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  handleSubmitOrder = async (payload: OrderPayload) => {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        query: SEND_ORDER_BY_EMAIL_MUTATION,
+        variables: {
+          input: payload,
+        },
+      }),
+    });
+
+    const json = await response.json();
+    if (json.errors?.length) {
+      throw new Error(json.errors[0].message);
+    }
+
+    this.setState({ basket: [] });
+  };
+
   render() {
     const i18n = this.context;
     if (!i18n) {
@@ -267,6 +342,7 @@ class App extends Proto<Record<string, never>, AppState> {
     const {
       user,
       basket,
+      basketOpen,
       authOpen,
       authInitialTab,
       authInitialSignupEntityType,
@@ -281,6 +357,7 @@ class App extends Proto<Record<string, never>, AppState> {
           user={user}
           basketCount={basketCount}
           onUserClick={this.handleUserEditClick}
+          onBasketClick={this.handleOpenBasket}
         />
         <main>
           <Home
@@ -311,6 +388,16 @@ class App extends Proto<Record<string, never>, AppState> {
             editingUser={authEditingUser}
           />
         )}
+        <BasketDrawer
+          isOpen={basketOpen}
+          user={user}
+          items={basket}
+          onClose={this.handleCloseBasket}
+          onIncreaseQty={this.handleIncreaseBasketItemQty}
+          onDecreaseQty={this.handleDecreaseBasketItemQty}
+          onRemoveItem={this.handleRemoveBasketItem}
+          onSubmitOrder={this.handleSubmitOrder}
+        />
       </div>
     );
   }

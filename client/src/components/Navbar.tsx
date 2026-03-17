@@ -6,6 +6,7 @@ interface NavbarProps {
   user: User | null;
   basketCount: number;
   onUserClick: () => void;
+  onBasketClick: () => void;
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -29,14 +30,14 @@ class Navbar extends Proto<NavbarProps, {}> {
     }
 
     const { language, languages, setLanguage } = i18n;
-    const { user, basketCount, onUserClick } = this.props;
+    const { user, basketCount, onUserClick, onBasketClick } = this.props;
 
     const sections = [
       { id: 'home', label: this.ML('Home').toString() },
       { id: 'products', label: this.ML('Products').toString() },
       { id: 'delivery', label: this.ML('Delivery').toString() },
       { id: 'contacts', label: this.ML('Contacts').toString() },
-      //{ id: 'about', label: this.ML('About').toString() },
+      //Impleme{ id: 'about', label: this.ML('About').toString() },
     ];
 
     return (
@@ -88,6 +89,7 @@ class Navbar extends Proto<NavbarProps, {}> {
           <button
             className="basket-btn"
             aria-label={this.ML('Basket').toString()}
+            onClick={onBasketClick}
           >
             🛒
             {basketCount > 0 && (

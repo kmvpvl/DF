@@ -68,6 +68,25 @@ interface SendContactMessageInput {
   message: string;
 }
 
+interface OrderItemInput {
+  productId: number;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  variationLabel?: string;
+  weightGrams?: number;
+}
+
+interface SendOrderInput {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  note?: string;
+  items: OrderItemInput[];
+  total: number;
+}
+
 let smtpTransporter: nodemailer.Transporter | null = null;
 
 function parseBoolean(value: string | undefined, fallback = false): boolean {
@@ -159,6 +178,25 @@ const typeDefs = `
     message: String!
   }
 
+  input OrderItemInput {
+    productId: Int!
+    name: String!
+    qty: Int!
+    unitPrice: Float!
+    lineTotal: Float!
+    variationLabel: String
+    weightGrams: Float
+  }
+
+  input SendOrderInput {
+    customerName: String!
+    customerEmail: String!
+    customerPhone: String!
+    note: String
+    items: [OrderItemInput!]!
+    total: Float!
+  }
+
   input UpdateSessionUserInput {
     name: String!
     fullName: String!
@@ -183,6 +221,7 @@ const typeDefs = `
     login(email: String!, password: String!): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
+    sendOrderByEmail(input: SendOrderInput!): Boolean!
   }
 `;
 
@@ -416,6 +455,104 @@ const resolvers = {
           `Phone: ${phone || '-'}`,
           '',
           message,
+        ].join('\n'),
+      });
+
+      return true;
+    },
+    sendOrderByEmail: async (
+      _: unknown,
+      { input }: { input: SendOrderInput },
+      { req }: GraphQLContext
+    ) => {
+      const customerName = input.customerName.trim();
+      const customerEmail = input.customerEmail.trim();
+      const customerPhone = input.customerPhone.trim();
+      const note = input.note?.trim();
+
+      if (!customerName || !customerEmail || !customerPhone) {
+        throw new Error('Customer name, email and phone are required');
+      }
+
+      if (!input.items.length) {
+        throw new Error('Order must contain at least one item');
+      }
+
+      const invalidItem = input.items.find(
+        item =>
+          !item.name.trim() ||
+          !Number.isFinite(item.qty) ||
+          item.qty <= 0 ||
+          !Number.isFinite(item.unitPrice) ||
+          item.unitPrice < 0 ||
+          !Number.isFinite(item.lineTotal) ||
+          item.lineTotal < 0
+      );
+
+      if (invalidItem) {
+        throw new Error('Order contains invalid item data');
+      }
+
+      if (!Number.isFinite(input.total) || input.total <= 0) {
+        throw new Error('Order total must be greater than 0');
+      }
+
+      const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+      const recipient = process.env.SMTP_TO_ORDER || 'sales@dolceforte.rs';
+
+      if (!fromAddress) {
+        throw new Error('SMTP sender is not configured. Set SMTP_FROM or SMTP_USER.');
+      }
+
+      const transporter = getSmtpTransporter();
+      const subjectPrefix = process.env.EMAIL_SUBJECT_PREFIX?.trim();
+      const subject = `${subjectPrefix ? `${subjectPrefix} ` : ''}[ORDER] ${customerName}`;
+
+      const sessionUserId = req.session.userId;
+      const sessionUser = sessionUserId
+        ? await prisma.user.findUnique({ where: { id: sessionUserId } })
+        : null;
+
+      const orderLines = input.items.map((item, index) => {
+        const attributes = [
+          item.variationLabel ? `variation: ${item.variationLabel}` : null,
+          typeof item.weightGrams === 'number' && Number.isFinite(item.weightGrams)
+            ? `weight: ${item.weightGrams}g`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(', ');
+
+        return [
+          `${index + 1}. ${item.name}`,
+          `   qty: ${item.qty}`,
+          `   unit price: ${item.unitPrice.toFixed(2)} din`,
+          `   line total: ${item.lineTotal.toFixed(2)} din`,
+          attributes ? `   ${attributes}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n');
+      });
+
+      await transporter.sendMail({
+        from: fromAddress,
+        to: recipient,
+        replyTo: customerEmail,
+        subject,
+        text: [
+          'New DolceForte order',
+          '',
+          `Customer name: ${customerName}`,
+          `Customer email: ${customerEmail}`,
+          `Customer phone: ${customerPhone}`,
+          `Session user id: ${sessionUser?.id ?? '-'}`,
+          `Session user entity type: ${sessionUser?.entityType ?? '-'}`,
+          '',
+          'Order items:',
+          ...orderLines,
+          '',
+          `Total: ${input.total.toFixed(2)} din`,
+          `Note: ${note || '-'}`,
         ].join('\n'),
       });
 
