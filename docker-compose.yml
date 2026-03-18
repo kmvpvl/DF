@@ -1,33 +1,38 @@
 services:
   df-client:
+    container_name: df-client
     build: ./client
     ports:
       - "3000:3000"
     depends_on:
       - df-server
+    env_file:
+      - client/.env
 
   df-server:
+    container_name: df-server
     build: ./server
+    env_file:
+      - server/.env
     ports:
       - "5000:5000"
     environment:
       - PORT=5000
-      - DATABASE_URL=mysql://user:${MYSQL_PASSWORD}@df-db:3306/df
-    depends_on:
-      - df-db
+#     depends_on:
+#       - df-db
 
-  df-db:
-    image: mysql:8.0
-    restart: always
-    env_file:
-      - .env
-    environment:
-      MYSQL_DATABASE: df
-      MYSQL_USER: user
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
+#   df-db:
+#     image: mysql:8.0
+#     restart: always
+#     env_file:
+#       - .env
+#     environment:
+#       MYSQL_DATABASE: df
+#       MYSQL_USER: user
+#     ports:
+#       - "3306:3306"
+#     volumes:
+#       - mysql_data:/var/lib/mysql
 
-volumes:
-  mysql_data:
+# volumes:
+#   mysql_data:

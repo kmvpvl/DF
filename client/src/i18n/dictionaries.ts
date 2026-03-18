@@ -691,5 +691,5 @@ export const dictionaries = {
   },
 };
 
-export type Dictionary = (typeof dictionaries)['en'];
+export type Dictionary = (typeof dictionaries)['sr' | 'en' | 'ru'];
 export type DictionaryLanguage = keyof typeof dictionaries;

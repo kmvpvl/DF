@@ -389,7 +389,7 @@ const resolvers = {
         mbr: entityType === 'LEGAL_ENTITY' ? input.mbr || null : null,
         account: entityType === 'LEGAL_ENTITY' ? input.account || null : null,
         bank: entityType === 'LEGAL_ENTITY' ? input.bank || null : null,
-      } as unknown as Parameters<typeof prisma.user.update>[0]['data'];
+      } as any;
 
       return await prisma.user.update({
         where: { id: userId },
@@ -585,6 +585,10 @@ const allowedOrigins =
         'http://127.0.0.1:3000',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
+        'http://www.dolceforte.rs',
+        'https://dolceforte.rs',
+        'http://dolceforte.local',
+        'http://www.dolceforte.local',
       ];
 
 const corsOptions: CorsOptions = {

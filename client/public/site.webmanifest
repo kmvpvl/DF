@@ -1,0 +1,22 @@
+{
+  "name": "DolceForte",
+  "short_name": "DolceForte",
+  "description": "Handcrafted desserts and cheeses from Pančevo.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c2543a",
+  "icons": [
+    {
+      "src": "/assets/brand/logos/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/brand/logos/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
