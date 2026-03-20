@@ -469,6 +469,7 @@ main {
   padding: 0;
   cursor: pointer;
   border-radius: 8px;
+  touch-action: pan-y;
 }
 .product-media-button:focus-visible {
   outline: 2px solid var(--primary);

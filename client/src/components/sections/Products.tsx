@@ -6,6 +6,7 @@ import Proto from '../../proto';
 const INDIVIDUAL_DISCOUNT_MIN_GRAMS = 1000;
 const INDIVIDUAL_DISCOUNT_RATE = 0.1;
 const WEIGHT_BASED_PRODUCT_IDS = new Set([13]);
+const SWIPE_THRESHOLD_PX = 30;
 
 interface ProductsProps {
   onAddToBasket: (product: Product) => void;
@@ -23,6 +24,8 @@ interface ProductsState {
 class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
+  private touchStartByProductId: Record<number, { x: number; y: number }> = {};
+  private suppressClickByProductId: Record<number, boolean> = {};
 
   state: ProductsState = {
     activePhotoByProductId: {},
@@ -125,6 +128,68 @@ class Products extends Proto<ProductsProps, ProductsState> {
     if (this.hasSyncedPhotoAndVariation(product)) {
       this.setActiveVariation(product.id, nextIndex);
     }
+  };
+
+  private showPreviousPhoto = (product: Product) => {
+    if (!product.photos?.length) {
+      return;
+    }
+
+    const currentIndex = this.getActivePhotoIndex(product);
+    const previousIndex =
+      (currentIndex - 1 + product.photos.length) % product.photos.length;
+    this.setActivePhoto(product.id, previousIndex);
+    if (this.hasSyncedPhotoAndVariation(product)) {
+      this.setActiveVariation(product.id, previousIndex);
+    }
+  };
+
+  private handleMediaClick = (product: Product) => {
+    if (this.suppressClickByProductId[product.id]) {
+      this.suppressClickByProductId[product.id] = false;
+      return;
+    }
+
+    this.showNextPhoto(product);
+  };
+
+  private handleMediaTouchStart = (
+    productId: number,
+    event: React.TouchEvent<HTMLButtonElement>
+  ) => {
+    const touch = event.changedTouches[0];
+    this.touchStartByProductId[productId] = { x: touch.clientX, y: touch.clientY };
+  };
+
+  private handleMediaTouchEnd = (
+    product: Product,
+    event: React.TouchEvent<HTMLButtonElement>
+  ) => {
+    const start = this.touchStartByProductId[product.id];
+    if (!start) {
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    delete this.touchStartByProductId[product.id];
+
+    if (
+      Math.abs(deltaX) < SWIPE_THRESHOLD_PX ||
+      Math.abs(deltaX) <= Math.abs(deltaY)
+    ) {
+      return;
+    }
+
+    this.suppressClickByProductId[product.id] = true;
+
+    if (deltaX < 0) {
+      this.showNextPhoto(product);
+      return;
+    }
+
+    this.showPreviousPhoto(product);
   };
 
   private selectVariation = (product: Product, variationIndex: number) => {
@@ -446,7 +511,13 @@ class Products extends Proto<ProductsProps, ProductsState> {
                             <button
                               type="button"
                               className="product-media-button"
-                              onClick={() => this.showNextPhoto(product)}
+                              onClick={() => this.handleMediaClick(product)}
+                              onTouchStart={(event) =>
+                                this.handleMediaTouchStart(product.id, event)
+                              }
+                              onTouchEnd={(event) =>
+                                this.handleMediaTouchEnd(product, event)
+                              }
                               aria-label={`Show next photo for ${product.name}`}
                             >
                               <div className="product-media">
