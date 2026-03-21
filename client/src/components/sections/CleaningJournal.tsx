@@ -257,7 +257,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
     const { reportActions, reportFrom, reportTo, reportType } = this.state;
     const headers = ['Date', 'Equipment #', 'Equipment', 'Type', 'Performer', 'Supervisor'];
     const rows = reportActions.map(a => [
-      new Date(a.createdAt).toLocaleDateString(),
+      new Date(a.createdAt).toLocaleString(["sr"], { dateStyle: 'short', timeStyle: 'short' }),
       String(a.equipment.numId),
       a.equipment.fullName,
       CLEANING_TYPE_LABELS[a.cleaningType] ?? a.cleaningType,
@@ -603,7 +603,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                   <tbody>
                     {reportActions.map(a => (
                       <tr key={a.id}>
-                        <td>{new Date(a.createdAt).toLocaleDateString()}</td>
+                        <td>{new Date(a.createdAt).toLocaleString(["sr"], { dateStyle: 'short', timeStyle: 'short' })}</td>
                         <td className="cj-num-cell">{a.equipment.numId}</td>
                         <td>{a.equipment.fullName}</td>
                         <td>
