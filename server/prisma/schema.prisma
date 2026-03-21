@@ -26,4 +26,25 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  cleanActions CleanAction[]
+}
+
+model Equipment {
+  id           String   @id @default(cuid())
+  numId        Int      @unique
+  fullName     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  cleanActions CleanAction[]
+}
+
+model CleanAction {
+  id           String   @id @default(cuid())
+  equipmend    Equipment @relation(fields: [equipmentId], references: [id])
+  equipmentId  String
+  performer    User @relation(fields: [performerId], references: [id])
+  performerId  String
+  cleaningType String 
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
