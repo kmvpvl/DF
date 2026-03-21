@@ -12,19 +12,19 @@ import './App.css';
 import Proto from './proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-console.log('Using API URL:', API_URL);
+//console.log('Using API URL:', API_URL);
 const STAFF_EMAILS_RAW =
   import.meta.env.VITE_STAFF_EMAILS ??
   ((import.meta as { env?: Record<string, string | undefined> }).env
     ?.STAFF_EMAILS ??
     '');
-console.log('Loaded staff emails:', STAFF_EMAILS_RAW);
+//console.log('Loaded staff emails:', STAFF_EMAILS_RAW);
 const STAFF_EMAILS = new Set(
   STAFF_EMAILS_RAW.split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean)
 );
-console.log('Parsed staff emails:', Array.from(STAFF_EMAILS));
+//console.log('Parsed staff emails:', Array.from(STAFF_EMAILS));
 const SESSION_DURATION_MINUTES = Number.parseInt(
   import.meta.env.VITE_SESSION_DURATION_MINUTES ?? '15',
   10

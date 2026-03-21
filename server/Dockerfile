@@ -14,7 +14,5 @@ RUN npm run prisma:generate
 
 RUN npm run build
 
-RUN npm run prisma:migrate
-
 EXPOSE 5000
 CMD ["npm", "start"]
