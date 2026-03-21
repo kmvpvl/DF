@@ -5,12 +5,23 @@ import Home from './components/sections/Home';
 import Products from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
+import Tool from './components/sections/Tool.tsx';
 //import About from './components/sections/About';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
 import Proto from './proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
+const STAFF_EMAILS_RAW =
+  import.meta.env.VITE_STAFF_EMAILS ??
+  ((import.meta as { env?: Record<string, string | undefined> }).env
+    ?.STAFF_EMAILS ??
+    '');
+const STAFF_EMAILS = new Set(
+  STAFF_EMAILS_RAW.split(',')
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)
+);
 const SESSION_DURATION_MINUTES = Number.parseInt(
   import.meta.env.VITE_SESSION_DURATION_MINUTES ?? '15',
   10
@@ -94,6 +105,8 @@ export interface BasketItem {
 
 interface AppState {
   user: User | null;
+  currentPage: 'home' | 'tool';
+  activeToolChapter: string;
   basket: BasketItem[];
   basketOpen: boolean;
   authOpen: boolean;
@@ -114,6 +127,11 @@ class App extends Proto<Record<string, never>, AppState> {
 
   state: AppState = {
     user: null,
+    currentPage:
+      typeof window !== 'undefined' && window.location.pathname === '/tool'
+        ? 'tool'
+        : 'home',
+    activeToolChapter: 'Cleaning',
     basket: [],
     basketOpen: false,
     authOpen: false,
@@ -126,11 +144,41 @@ class App extends Proto<Record<string, never>, AppState> {
   componentDidMount() {
     void this.restoreSessionFromServer();
     this.scheduleSessionSync();
+    window.addEventListener('popstate', this.syncPageFromLocation);
   }
 
   componentWillUnmount() {
     this.clearSessionSync();
+    window.removeEventListener('popstate', this.syncPageFromLocation);
   }
+
+  private isToolPath = (pathname: string) =>
+    pathname === '/tool' || pathname === '/tool/';
+
+  private syncPageFromLocation = () => {
+    const currentPage = this.isToolPath(window.location.pathname)
+      ? 'tool'
+      : 'home';
+
+    if (currentPage !== this.state.currentPage) {
+      this.setState({ currentPage });
+    }
+  };
+
+  private navigateTo = (path: '/tool' | '/') => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    this.syncPageFromLocation();
+  };
+
+  private isStaffUser = (user: User | null): boolean => {
+    if (!user?.email) {
+      return false;
+    }
+
+    return STAFF_EMAILS.has(user.email.trim().toLowerCase());
+  };
 
   private clearSessionSync = () => {
     if (this.sessionSyncTimeoutId) {
@@ -277,6 +325,27 @@ class App extends Proto<Record<string, never>, AppState> {
     this.setState({ basketOpen: false });
   };
 
+  handleOpenToolPage = () => {
+    this.navigateTo('/tool');
+  };
+
+  handleOpenHomePage = () => {
+    this.navigateTo('/');
+  };
+
+  handleToolChapterChange = (chapter: string) => {
+    this.setState({ activeToolChapter: chapter });
+  };
+
+  handleOpenLogin = () => {
+    this.setState({
+      authOpen: true,
+      authInitialTab: 'login',
+      authInitialSignupEntityType: 'INDIVIDUAL',
+      authEditingUser: null,
+    });
+  };
+
   handleIncreaseBasketItemQty = (index: number) => {
     this.setState((prevState) => ({
       basket: prevState.basket.map((item, itemIndex) =>
@@ -341,6 +410,8 @@ class App extends Proto<Record<string, never>, AppState> {
 
     const {
       user,
+      currentPage,
+      activeToolChapter,
       basket,
       basketOpen,
       authOpen,
@@ -350,27 +421,73 @@ class App extends Proto<Record<string, never>, AppState> {
       pendingProduct,
     } = this.state;
     const basketCount = basket.reduce((sum, i) => sum + i.qty, 0);
+    const isStaffUser = this.isStaffUser(user);
+    const isToolPage = currentPage === 'tool';
+    const canAccessTool = isToolPage && isStaffUser;
 
     return (
       <div className="app">
         <Navbar
           user={user}
+          isToolPage={isToolPage}
+          isStaffUser={isStaffUser}
           basketCount={basketCount}
           onUserClick={this.handleUserEditClick}
           onBasketClick={this.handleOpenBasket}
+          onToolClick={this.handleOpenToolPage}
+          onHomeClick={this.handleOpenHomePage}
+          activeToolChapter={activeToolChapter}
+          onToolChapterChange={this.handleToolChapterChange}
         />
         <main>
-          <Home
-            onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
-            userEntityType={user?.entityType ?? null}
-          />
-          <Products
-            onAddToBasket={this.handleAddToBasket}
-            onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
-            userEntityType={user?.entityType ?? null}
-          />
-          <Delivery />
-          <Contacts />
+          {isToolPage ? (
+            canAccessTool ? (
+              <Tool activeChapter={activeToolChapter} user={user} />
+            ) : (
+              <section className="tool-access-denied" aria-live="polite">
+                <div className="tool-access-denied-inner">
+                  <p className="section-label">Restricted</p>
+                  <h1 className="section-title">
+                    {this.ML('Tool').toString()} {this.ML('page').toString()}
+                  </h1>
+                  <p className="section-desc">
+                    This page is available only for staff users listed in
+                    STAFF_EMAILS.
+                  </p>
+                  <div className="tool-access-actions">
+                    {!user ? (
+                      <button
+                        className="btn-primary"
+                        onClick={this.handleOpenLogin}
+                      >
+                        {this.ML('Login').toString()}
+                      </button>
+                    ) : null}
+                    <button
+                      className="btn-primary"
+                      onClick={this.handleOpenHomePage}
+                    >
+                      {this.ML('Home').toString()}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )
+          ) : (
+            <>
+              <Home
+                onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
+                userEntityType={user?.entityType ?? null}
+              />
+              <Products
+                onAddToBasket={this.handleAddToBasket}
+                onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
+                userEntityType={user?.entityType ?? null}
+              />
+              <Delivery />
+              <Contacts />
+            </>
+          )}
         </main>
         <footer className="footer">
           <strong>DolceForte</strong> &copy; {new Date().getFullYear()} -{' '}

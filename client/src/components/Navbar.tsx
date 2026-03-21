@@ -4,9 +4,15 @@ import Proto from '../proto';
 
 interface NavbarProps {
   user: User | null;
+  isToolPage: boolean;
+  isStaffUser: boolean;
   basketCount: number;
+  activeToolChapter: string;
   onUserClick: () => void;
   onBasketClick: () => void;
+  onToolClick: () => void;
+  onHomeClick: () => void;
+  onToolChapterChange: (chapter: string) => void;
 }
 
 const LANGUAGE_FLAGS: Record<string, string> = {
@@ -30,7 +36,18 @@ class Navbar extends Proto<NavbarProps, {}> {
     }
 
     const { language, languages, setLanguage } = i18n;
-    const { user, basketCount, onUserClick, onBasketClick } = this.props;
+    const {
+      user,
+      isToolPage,
+      isStaffUser,
+      basketCount,
+      activeToolChapter,
+      onUserClick,
+      onBasketClick,
+      onToolClick,
+      onHomeClick,
+      onToolChapterChange,
+    } = this.props;
 
     const sections = [
       { id: 'home', label: this.ML('Home').toString() },
@@ -40,8 +57,11 @@ class Navbar extends Proto<NavbarProps, {}> {
       //Impleme{ id: 'about', label: this.ML('About').toString() },
     ];
 
+    const toolChapters = ['Cleaning', 'Products', 'Samples', 'Certificates'];
+    const navbarClassName = isToolPage ? 'navbar navbar-tool' : 'navbar';
+
     return (
-      <nav className="navbar">
+      <nav className={navbarClassName}>
         <div className="navbar-brand">
           <img
             className="navbar-brand-logo"
@@ -51,15 +71,34 @@ class Navbar extends Proto<NavbarProps, {}> {
           <span className="navbar-brand-text">DolceForte</span>
         </div>
 
-        <ul className="navbar-links">
-          {sections.map(({ id, label }) => (
-            <li key={id}>
-              <button className="nav-link" onClick={() => this.scrollTo(id)}>
-                {label}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {isToolPage ? (
+          <div className="navbar-tool-center" aria-live="polite">
+            <span className="navbar-tool-badge">Staff Area</span>
+            <ul className="navbar-tool-links" aria-label="Tool chapters">
+              {toolChapters.map((chapter) => (
+                <li key={chapter}>
+                  <button
+                    className={`nav-link nav-link-tool-chapter${activeToolChapter === chapter ? ' active' : ''}`}
+                    type="button"
+                    onClick={() => onToolChapterChange(chapter)}
+                  >
+                    {chapter}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <ul className="navbar-links">
+            {sections.map(({ id, label }) => (
+              <li key={id}>
+                <button className="nav-link" onClick={() => this.scrollTo(id)}>
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="navbar-right">
           <label className="language-select-wrap">
@@ -79,6 +118,20 @@ class Navbar extends Proto<NavbarProps, {}> {
               ))}
             </select>
           </label>
+          {isToolPage ? (
+            <button
+              className="nav-link nav-link-accent"
+              onClick={onHomeClick}
+            >
+              {this.ML('Home').toString()}
+            </button>
+          ) : (
+            isStaffUser && (
+              <button className="nav-link" onClick={onToolClick}>
+                {this.ML('Tool').toString()}
+              </button>
+            )
+          )}
           {user && (
             <button className="nav-user-button" onClick={onUserClick}>
               <span className="nav-user">
@@ -86,16 +139,18 @@ class Navbar extends Proto<NavbarProps, {}> {
               </span>
             </button>
           )}
-          <button
-            className="basket-btn"
-            aria-label={this.ML('Basket').toString()}
-            onClick={onBasketClick}
-          >
-            🛒
-            {basketCount > 0 && (
-              <span className="basket-badge">{basketCount}</span>
-            )}
-          </button>
+          {!isToolPage && (
+            <button
+              className="basket-btn"
+              aria-label={this.ML('Basket').toString()}
+              onClick={onBasketClick}
+            >
+              🛒
+              {basketCount > 0 && (
+                <span className="basket-badge">{basketCount}</span>
+              )}
+            </button>
+          )}
         </div>
       </nav>
     );

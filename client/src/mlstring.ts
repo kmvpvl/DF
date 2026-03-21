@@ -169,6 +169,39 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `Tool`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Инструмент'],
+      [`it`, undefined],
+      [`sr`, 'Alat'],
+    ]),
+  ],
+  [
+    `Login`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Войти'],
+      [`it`, undefined],
+      [`sr`, 'Prijava'],
+    ]),
+  ],
+  [
+    `page`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'страница'],
+      [`it`, undefined],
+      [`sr`, 'stranica'],
+    ]),
+  ],
+  [
     `Production of Italian and Russian desserts, cheese and cottage cheese`,
     new Map([
       [`de`, undefined],
