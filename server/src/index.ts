@@ -1,5 +1,6 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@as-integrations/express4';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import { PrismaClient } from '@prisma/client';
 import express, { type Request, type Response } from 'express';
 import bcrypt from 'bcrypt';
@@ -8,8 +9,44 @@ import session from 'express-session';
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
-const prisma = new PrismaClient();
-const DEFAULT_SESSION_DURATION_MINUTES = 15;
+function createPrismaAdapter(): PrismaMariaDb {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is not set');
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(databaseUrl);
+  } catch {
+    throw new Error('DATABASE_URL is not a valid URL');
+  }
+
+  if (!['mysql:', 'mariadb:'].includes(parsedUrl.protocol)) {
+    throw new Error(
+      `Unsupported database protocol "${parsedUrl.protocol}". Use mysql:// or mariadb://`
+    );
+  }
+
+  const databaseName = decodeURIComponent(parsedUrl.pathname.replace(/^\//, ''));
+  if (!databaseName) {
+    throw new Error('DATABASE_URL must include a database name');
+  }
+
+  return new PrismaMariaDb({
+    host: parsedUrl.hostname,
+    port: parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : 3306,
+    user: decodeURIComponent(parsedUrl.username),
+    password: decodeURIComponent(parsedUrl.password),
+    database: databaseName,
+  });
+}
+
+const prisma = new PrismaClient({
+  adapter: createPrismaAdapter(),
+  log: ['query', 'error', 'warn'],
+});
+const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
 function getSessionDurationMinutes(): number {
   const raw = process.env.SESSION_DURATION_MINUTES;
@@ -76,6 +113,23 @@ interface OrderItemInput {
   lineTotal: number;
   variationLabel?: string;
   weightGrams?: number;
+}
+
+interface CreateEquipmentInput {
+  numId: number;
+  fullName: string;
+}
+
+interface UpdateEquipmentInput {
+  numId?: number;
+  fullName?: string;
+}
+
+interface CreateCleanActionInput {
+  equipmentId: string;
+  performerId: string;
+  supervisorId: string;
+  cleaningType: 'GENERAL' | 'CURRENT' | 'DISINFECTION';
 }
 
 interface SendOrderInput {
@@ -209,11 +263,55 @@ const typeDefs = `
     bank: String
   }
 
+  enum CleaningType {
+    GENERAL
+    CURRENT
+    DISINFECTION
+  }
+
+  type Equipment {
+    id: ID!
+    numId: Int!
+    fullName: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type CleanAction {
+    id: ID!
+    equipment: Equipment!
+    performer: User!
+    supervisor: User!
+    cleaningType: CleaningType!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  input CreateEquipmentInput {
+    numId: Int!
+    fullName: String!
+  }
+
+  input UpdateEquipmentInput {
+    numId: Int
+    fullName: String
+  }
+
+  input CreateCleanActionInput {
+    equipmentId: ID!
+    performerId: ID!
+    supervisorId: ID!
+    cleaningType: CleaningType!
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
     userInfo(id: ID, email: String): User
     sessionUser: User
+    equipments: [Equipment!]!
+    users: [User!]!
+    cleanActions(cleaningType: CleaningType, fromDate: String, toDate: String): [CleanAction!]!
   }
 
   type Mutation {
@@ -222,6 +320,10 @@ const typeDefs = `
     updateSessionUser(input: UpdateSessionUserInput!): User!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
     sendOrderByEmail(input: SendOrderInput!): Boolean!
+    createEquipment(input: CreateEquipmentInput!): Equipment!
+    updateEquipment(id: ID!, input: UpdateEquipmentInput!): Equipment!
+    deleteEquipment(id: ID!): Boolean!
+    createCleanAction(input: CreateCleanActionInput!): CleanAction!
   }
 `;
 
@@ -248,6 +350,38 @@ const resolvers = {
       }
 
       return await prisma.user.findUnique({ where: { email: email! } });
+    },
+    equipments: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.equipment.findMany({ orderBy: { numId: 'asc' } });
+    },
+    users: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.user.findMany({ orderBy: { name: 'asc' } });
+    },
+    cleanActions: async (
+      _: unknown,
+      { cleaningType, fromDate, toDate }: { cleaningType?: string; fromDate?: string; toDate?: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      const where: Record<string, unknown> = {};
+      if (cleaningType) where.cleaningType = cleaningType;
+      if (fromDate || toDate) {
+        const dateFilter: Record<string, Date> = {};
+        if (fromDate) dateFilter.gte = new Date(fromDate);
+        if (toDate) {
+          const end = new Date(toDate);
+          end.setHours(23, 59, 59, 999);
+          dateFilter.lte = end;
+        }
+        where.createdAt = dateFilter;
+      }
+      return await prisma.cleanAction.findMany({
+        where,
+        include: { equipmend: true, performer: true, supervisor: true },
+        orderBy: { createdAt: 'desc' },
+      });
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -460,6 +594,50 @@ const resolvers = {
 
       return true;
     },
+    createEquipment: async (
+      _: unknown,
+      { input }: { input: CreateEquipmentInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.equipment.create({ data: input });
+    },
+    updateEquipment: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateEquipmentInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      const data: { numId?: number; fullName?: string } = {};
+      if (input.numId !== undefined) data.numId = input.numId;
+      if (input.fullName !== undefined) data.fullName = input.fullName;
+      return await prisma.equipment.update({ where: { id }, data });
+    },
+    deleteEquipment: async (
+      _: unknown,
+      { id }: { id: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      await prisma.equipment.delete({ where: { id } });
+      return true;
+    },
+    createCleanAction: async (
+      _: unknown,
+      { input }: { input: CreateCleanActionInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.cleanAction.create({
+        data: {
+          equipmentId: input.equipmentId,
+          performerId: input.performerId,
+          supervisorId: input.supervisorId,
+          cleaningType: input.cleaningType,
+        },
+        include: { equipmend: true, performer: true, supervisor: true },
+      });
+    },
     sendOrderByEmail: async (
       _: unknown,
       { input }: { input: SendOrderInput },
@@ -567,6 +745,17 @@ const resolvers = {
       return new Date(user.updatedAt).toISOString();
     },
   },
+  Equipment: {
+    createdAt: (e: { createdAt: Date | string }) => new Date(e.createdAt).toISOString(),
+    updatedAt: (e: { updatedAt: Date | string }) => new Date(e.updatedAt).toISOString(),
+  },
+  CleanAction: {
+    equipment: (parent: { equipmend: unknown }) => parent.equipmend,
+    performer: (parent: { performer: unknown }) => parent.performer,
+    supervisor: (parent: { supervisor: unknown }) => parent.supervisor,
+    createdAt: (parent: { createdAt: Date | string }) => new Date(parent.createdAt).toISOString(),
+    updatedAt: (parent: { updatedAt: Date | string }) => new Date(parent.updatedAt).toISOString(),
+  },
 };
 
 const app = express();
@@ -638,6 +827,15 @@ const server = new ApolloServer({
 });
 
 (async () => {
+  try {
+    await prisma.$connect();
+    console.log('Prisma connected');
+  } catch (error) {
+    console.error('Prisma failed to start. Check DATABASE_URL and DB availability.');
+    console.error(error);
+    process.exit(1);
+  }
+
   await server.start();
 
   app.use(

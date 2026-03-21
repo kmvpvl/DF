@@ -3,18 +3,22 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "library"
 }
-
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+}
+
+enum EntityType {
+  INDIVIDUAL
+  LEGAL_ENTITY
 }
 
 model User {
   id           String   @id @default(cuid())
   name         String
   fullName     String
-  entityType   String   @default("INDIVIDUAL")
+  entityType   EntityType @default(INDIVIDUAL)
   pib          String?
   mbr          String?
   account      String?
@@ -26,7 +30,8 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  cleanActions CleanAction[]
+  cleanActions CleanAction[] @relation(name: "PerformerRelation")
+  supervisedActions CleanAction[] @relation(name: "SupervisorRelation")
 }
 
 model Equipment {
@@ -35,16 +40,24 @@ model Equipment {
   fullName     String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  cleanActions CleanAction[]
+  cleanActions CleanAction[] @relation(name: "EquipmentRelation")
+}
+
+enum CleaningType {
+  GENERAL
+  CURRENT
+  DISINFECTION
 }
 
 model CleanAction {
   id           String   @id @default(cuid())
-  equipmend    Equipment @relation(fields: [equipmentId], references: [id])
+  equipmend    Equipment @relation(name: "EquipmentRelation", fields: [equipmentId], references: [id])
   equipmentId  String
-  performer    User @relation(fields: [performerId], references: [id])
+  performer    User @relation(name: "PerformerRelation", fields: [performerId], references: [id])
   performerId  String
-  cleaningType String 
+  supervisor   User @relation(name: "SupervisorRelation", fields: [supervisorId], references: [id])
+  supervisorId String
+  cleaningType CleaningType @default(CURRENT)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
