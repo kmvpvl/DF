@@ -142,7 +142,42 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
   componentDidMount() {
     void this.fetchEquipments();
     void this.fetchUsers();
+    this.applyLoggedInUserDefaults();
   }
+
+  componentDidUpdate(prevProps: CleaningJournalProps) {
+    if (prevProps.user?.id !== this.props.user?.id) {
+      this.applyLoggedInUserDefaults();
+    }
+  }
+
+  private applyLoggedInUserDefaults = () => {
+    const loggedInUserId = this.props.user?.id;
+    if (!loggedInUserId) {
+      return;
+    }
+
+    this.setState(prev => {
+      const shouldSetPerformer = !prev.actionForm.performerId;
+      const shouldSetSupervisor = !prev.actionForm.supervisorId;
+
+      if (!shouldSetPerformer && !shouldSetSupervisor) {
+        return null;
+      }
+
+      return {
+        actionForm: {
+          ...prev.actionForm,
+          performerId: shouldSetPerformer
+            ? loggedInUserId
+            : prev.actionForm.performerId,
+          supervisorId: shouldSetSupervisor
+            ? loggedInUserId
+            : prev.actionForm.supervisorId,
+        },
+      };
+    });
+  };
 
   private gql = async (query: string, variables: Record<string, unknown> = {}) => {
     const response = await fetch(API_URL, {
@@ -170,7 +205,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
     this.setState({ usersLoading: true });
     try {
       const data = await this.gql(USERS_QUERY);
-      this.setState({ users: data.users as UserData[], usersLoading: false });
+      this.setState(
+        { users: data.users as UserData[], usersLoading: false },
+        this.applyLoggedInUserDefaults
+      );
     } catch {
       this.setState({ usersLoading: false });
     }
