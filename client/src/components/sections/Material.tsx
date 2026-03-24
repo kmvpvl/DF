@@ -1,3 +1,4 @@
+import { type ChangeEvent, createRef } from 'react';
 import Proto from '../../proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
@@ -55,6 +56,22 @@ const DELETE_MATERIAL_MUTATION = `
   }
 `;
 
+const MATERIALS_CSV_QUERY = `
+  query {
+    materialsCsv
+  }
+`;
+
+const IMPORT_MATERIALS_CSV_MUTATION = `
+  mutation($csv: String!, $overwriteExisting: Boolean) {
+    importMaterialsCsv(csv: $csv, overwriteExisting: $overwriteExisting) {
+      importedCount
+      skippedCount
+      errors
+    }
+  }
+`;
+
 interface MaterialData {
   id: string;
   name: string;
@@ -98,11 +115,19 @@ interface MaterialForm {
   ratio: string;
 }
 
+interface ImportMaterialsCsvResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
+}
+
 interface MaterialState {
   materials: MaterialData[];
   loading: boolean;
   saving: boolean;
+  csvProcessing: boolean;
   error: string | null;
+  csvResult: string | null;
   adding: boolean;
   editingMaterial: MaterialData | null;
   form: MaterialForm;
@@ -129,11 +154,15 @@ const INITIAL_FORM: MaterialForm = {
 };
 
 class Material extends Proto<Record<string, never>, MaterialState> {
+  private readonly fileInputRef = createRef<HTMLInputElement>();
+
   state: MaterialState = {
     materials: [],
     loading: false,
     saving: false,
+    csvProcessing: false,
     error: null,
+    csvResult: null,
     adding: false,
     editingMaterial: null,
     form: { ...INITIAL_FORM },
@@ -174,6 +203,72 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
+    }
+  };
+
+  private exportMaterialsCsv = async () => {
+    this.setState({ csvProcessing: true, error: null, csvResult: null });
+
+    try {
+      const data = await this.gql(MATERIALS_CSV_QUERY);
+      const csv = String(data.materialsCsv ?? '');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `materials-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      this.setState({
+        csvProcessing: false,
+        csvResult: 'Materials exported to CSV.',
+      });
+    } catch (error) {
+      this.setState({
+        csvProcessing: false,
+        error: String(error),
+      });
+    }
+  };
+
+  private openImportPicker = () => {
+    this.fileInputRef.current?.click();
+  };
+
+  private importMaterialsCsv = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+
+    this.setState({ csvProcessing: true, error: null, csvResult: null });
+
+    try {
+      const csv = await file.text();
+      const data = await this.gql(IMPORT_MATERIALS_CSV_MUTATION, {
+        csv,
+        overwriteExisting: true,
+      });
+
+      const result = data.importMaterialsCsv as ImportMaterialsCsvResult;
+      await this.fetchMaterials();
+
+      const summary = `Imported ${result.importedCount}, skipped ${result.skippedCount}.`;
+      const details = result.errors.length > 0 ? ` Errors: ${result.errors.join(' | ')}` : '';
+
+      this.setState({
+        csvProcessing: false,
+        csvResult: `${summary}${details}`,
+      });
+    } catch (error) {
+      this.setState({
+        csvProcessing: false,
+        error: String(error),
+      });
     }
   };
 
@@ -335,7 +430,17 @@ class Material extends Proto<Record<string, never>, MaterialState> {
   };
 
   render() {
-    const { materials, loading, saving, error, adding, editingMaterial, form } =
+    const {
+      materials,
+      loading,
+      saving,
+      csvProcessing,
+      error,
+      csvResult,
+      adding,
+      editingMaterial,
+      form,
+    } =
       this.state;
 
     return (
@@ -348,14 +453,40 @@ class Material extends Proto<Record<string, never>, MaterialState> {
         <div className="cj-panel">
           <div className="cj-panel-header">
             <h2 className="cj-panel-title">Material list</h2>
-            {!adding && !editingMaterial && (
-              <button className="btn-primary cj-add-btn" onClick={this.openCreateForm}>
-                + Add material
+            <div className="material-panel-actions">
+              <button
+                className="btn-outline cj-add-btn"
+                onClick={() => void this.exportMaterialsCsv()}
+                disabled={csvProcessing}
+              >
+                {csvProcessing ? 'Processing...' : 'Export CSV'}
               </button>
-            )}
+              <button
+                className="btn-outline cj-add-btn"
+                onClick={this.openImportPicker}
+                disabled={csvProcessing}
+              >
+                {csvProcessing ? 'Processing...' : 'Import CSV'}
+              </button>
+              {!adding && !editingMaterial && (
+                <button className="btn-primary cj-add-btn" onClick={this.openCreateForm}>
+                  + Add material
+                </button>
+              )}
+            </div>
+            <input
+              ref={this.fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="material-file-input"
+              onChange={(event) => {
+                void this.importMaterialsCsv(event);
+              }}
+            />
           </div>
 
           {error && <div className="cj-error">{error}</div>}
+          {csvResult && <div className="cj-success">{csvResult}</div>}
 
           {(adding || editingMaterial) && (
             <form

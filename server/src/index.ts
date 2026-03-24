@@ -172,6 +172,12 @@ interface UpdateMaterialInput {
   ratio?: number;
 }
 
+interface ImportMaterialsCsvResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
+}
+
 interface SendOrderInput {
   customerName: string;
   customerEmail: string;
@@ -187,6 +193,153 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
   if (!value) return fallback;
   const normalized = value.trim().toLowerCase();
   return normalized === '1' || normalized === 'true' || normalized === 'yes';
+}
+
+const MATERIAL_CSV_HEADERS = [
+  'name',
+  'description',
+  'selfProduced',
+  'caloriesKcal',
+  'fatGrams',
+  'proteinGrams',
+  'carbohydratesGrams',
+  'sugarsGrams',
+  'fiberGrams',
+  'saltGrams',
+  'VAT',
+  'Price',
+  'purchaseUnit',
+  'purchaseUnitAmount',
+  'consumptionUnit',
+  'consumptionUnitAmount',
+  'ratio',
+] as const;
+
+type MaterialCsvHeader = (typeof MATERIAL_CSV_HEADERS)[number];
+
+function escapeCsvValue(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+function parseCsv(content: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentValue = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i += 1) {
+    const char = content[i];
+    const next = content[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        currentValue += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentValue);
+      currentValue = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') {
+        i += 1;
+      }
+
+      currentRow.push(currentValue);
+      const hasNonEmptyValue = currentRow.some(value => value.trim().length > 0);
+      if (hasNonEmptyValue) {
+        rows.push(currentRow);
+      }
+
+      currentRow = [];
+      currentValue = '';
+      continue;
+    }
+
+    currentValue += char;
+  }
+
+  if (inQuotes) {
+    throw new Error('CSV contains unclosed quoted value');
+  }
+
+  if (currentValue.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentValue);
+    const hasNonEmptyValue = currentRow.some(value => value.trim().length > 0);
+    if (hasNonEmptyValue) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+}
+
+function parseCsvBoolean(rawValue: string): boolean {
+  const normalized = rawValue.trim().toLowerCase();
+  if (['true', '1', 'yes'].includes(normalized)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', ''].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(`Invalid boolean value "${rawValue}"`);
+}
+
+function parseCsvNumber(rawValue: string): number {
+  const normalized = rawValue.trim();
+  if (!normalized) {
+    throw new Error('Value is required');
+  }
+
+  const decimalNormalized = /^-?\d+,\d+$/.test(normalized)
+    ? normalized.replace(',', '.')
+    : normalized;
+  const parsed = Number.parseFloat(decimalNormalized);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid number value "${rawValue}"`);
+  }
+
+  return parsed;
+}
+
+function buildMaterialCsvRows(
+  rows: string[][]
+): Array<Record<MaterialCsvHeader, string>> {
+  if (rows.length === 0) {
+    throw new Error('CSV is empty');
+  }
+
+  const headerRow = rows[0].map(header => header.trim());
+  const headerIndexes = new Map<string, number>();
+  headerRow.forEach((header, index) => {
+    headerIndexes.set(header.toLowerCase(), index);
+  });
+
+  const missingHeaders = MATERIAL_CSV_HEADERS.filter(
+    header => !headerIndexes.has(header.toLowerCase())
+  );
+  if (missingHeaders.length > 0) {
+    throw new Error(`Missing CSV headers: ${missingHeaders.join(', ')}`);
+  }
+
+  return rows.slice(1).map(row => {
+    const normalized = {} as Record<MaterialCsvHeader, string>;
+    MATERIAL_CSV_HEADERS.forEach(header => {
+      const index = headerIndexes.get(header.toLowerCase());
+      normalized[header] = index === undefined ? '' : (row[index] ?? '').trim();
+    });
+    return normalized;
+  });
 }
 
 
@@ -351,6 +504,12 @@ const typeDefs = `
     updatedAt: String!
   }
 
+  type ImportMaterialsCsvResult {
+    importedCount: Int!
+    skippedCount: Int!
+    errors: [String!]!
+  }
+
   input CreateEquipmentInput {
     numId: Int!
     fullName: String!
@@ -417,6 +576,7 @@ const typeDefs = `
     users: [User!]!
     cleanActions(cleaningType: CleaningType, fromDate: String, toDate: String): [CleanAction!]!
     materials: [Material!]!
+    materialsCsv: String!
   }
 
   type Mutation {
@@ -432,6 +592,7 @@ const typeDefs = `
     createMaterial(input: CreateMaterialInput!): Material!
     updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
     deleteMaterial(id: ID!): Boolean!
+    importMaterialsCsv(csv: String!, overwriteExisting: Boolean = true): ImportMaterialsCsvResult!
   }
 `;
 
@@ -494,6 +655,36 @@ const resolvers = {
     materials: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       if (!req.session.userId) throw new Error('Not authenticated');
       return await prisma.material.findMany({ orderBy: { name: 'asc' } });
+    },
+    materialsCsv: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const materials = await prisma.material.findMany({ orderBy: { name: 'asc' } });
+      const rows = materials.map(material =>
+        [
+          material.name,
+          material.description ?? '',
+          String(material.selfProduced),
+          material.caloriesKcal.toString(),
+          material.fatGrams.toString(),
+          material.proteinGrams.toString(),
+          material.carbohydratesGrams.toString(),
+          material.sugarsGrams.toString(),
+          material.fiberGrams.toString(),
+          material.saltGrams.toString(),
+          String(material.VAT),
+          String(material.Price),
+          material.purchaseUnit,
+          String(material.purchaseUnitAmount),
+          material.consumptionUnit,
+          String(material.consumptionUnitAmount),
+          String(material.ratio),
+        ]
+          .map(value => escapeCsvValue(String(value)))
+          .join(',')
+      );
+
+      return [MATERIAL_CSV_HEADERS.join(','), ...rows].join('\n');
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -841,6 +1032,96 @@ const resolvers = {
       if (!req.session.userId) throw new Error('Not authenticated');
       await prisma.material.delete({ where: { id } });
       return true;
+    },
+    importMaterialsCsv: async (
+      _: unknown,
+      {
+        csv,
+        overwriteExisting,
+      }: { csv: string; overwriteExisting?: boolean },
+      { req }: GraphQLContext
+    ): Promise<ImportMaterialsCsvResult> => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const rows = buildMaterialCsvRows(parseCsv(csv));
+      const result: ImportMaterialsCsvResult = {
+        importedCount: 0,
+        skippedCount: 0,
+        errors: [],
+      };
+
+      const shouldOverwrite = overwriteExisting ?? true;
+      const existingByName = new Map<string, { id: string }>();
+      if (shouldOverwrite) {
+        const existing = await prisma.material.findMany({
+          select: { id: true, name: true },
+        });
+        existing.forEach(material => {
+          existingByName.set(material.name.toLowerCase(), { id: material.id });
+        });
+      }
+
+      for (const [index, row] of rows.entries()) {
+        const csvLine = index + 2;
+        const hasAnyValue = MATERIAL_CSV_HEADERS.some(header => row[header].trim().length > 0);
+        if (!hasAnyValue) {
+          result.skippedCount += 1;
+          continue;
+        }
+
+        try {
+          if (!row.name.trim()) {
+            throw new Error('name is required');
+          }
+          if (!row.purchaseUnit.trim()) {
+            throw new Error('purchaseUnit is required');
+          }
+          if (!row.consumptionUnit.trim()) {
+            throw new Error('consumptionUnit is required');
+          }
+
+          const data = {
+            name: row.name.trim(),
+            description: row.description.trim() || null,
+            selfProduced: parseCsvBoolean(row.selfProduced),
+            caloriesKcal: parseCsvNumber(row.caloriesKcal),
+            fatGrams: parseCsvNumber(row.fatGrams),
+            proteinGrams: parseCsvNumber(row.proteinGrams),
+            carbohydratesGrams: parseCsvNumber(row.carbohydratesGrams),
+            sugarsGrams: parseCsvNumber(row.sugarsGrams),
+            fiberGrams: parseCsvNumber(row.fiberGrams),
+            saltGrams: parseCsvNumber(row.saltGrams),
+            VAT: parseCsvNumber(row.VAT),
+            Price: parseCsvNumber(row.Price),
+            purchaseUnit: row.purchaseUnit.trim(),
+            purchaseUnitAmount: parseCsvNumber(row.purchaseUnitAmount),
+            consumptionUnit: row.consumptionUnit.trim(),
+            consumptionUnitAmount: parseCsvNumber(row.consumptionUnitAmount),
+            ratio: parseCsvNumber(row.ratio),
+          };
+
+          const existingMaterial = shouldOverwrite
+            ? existingByName.get(data.name.toLowerCase())
+            : undefined;
+
+          if (existingMaterial) {
+            await prisma.material.update({ where: { id: existingMaterial.id }, data });
+          } else {
+            const created = await prisma.material.create({ data });
+            if (shouldOverwrite) {
+              existingByName.set(created.name.toLowerCase(), { id: created.id });
+            }
+          }
+
+          result.importedCount += 1;
+        } catch (error) {
+          result.skippedCount += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          result.errors.push(`Line ${csvLine}: ${message}`);
+        }
+      }
+
+      return result;
     },
     sendOrderByEmail: async (
       _: unknown,

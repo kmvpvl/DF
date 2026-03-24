@@ -683,6 +683,15 @@ main {
   border-radius: 12px;
   background: var(--bg-alt);
 }
+.material-panel-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.material-file-input {
+  display: none;
+}
 .material-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(180px, 1fr));
