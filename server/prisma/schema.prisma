@@ -1,46 +1,61 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "library"
 }
+
 datasource db {
   provider = "mysql"
+}
+
+model User {
+  id                String        @id @default(cuid())
+  name              String
+  fullName          String
+  entityType        EntityType    @default(INDIVIDUAL)
+  pib               String?
+  mbr               String?
+  account           String?
+  bank              String?
+  phone             String?
+  email             String        @unique
+  bio               String?
+  tgId              String?
+  passwordHash      String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  cleanActions      CleanAction[] @relation("PerformerRelation")
+  supervisedActions CleanAction[] @relation("SupervisorRelation")
+}
+
+model Equipment {
+  id           String        @id @default(cuid())
+  numId        Int           @unique
+  fullName     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  cleanActions CleanAction[] @relation("EquipmentRelation")
+}
+
+model CleanAction {
+  id           String       @id @default(cuid())
+  equipmentId  String
+  performerId  String
+  cleaningType CleaningType @default(CURRENT)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  supervisorId String
+  equipmend    Equipment    @relation("EquipmentRelation", fields: [equipmentId], references: [id])
+  performer    User         @relation("PerformerRelation", fields: [performerId], references: [id])
+  supervisor   User         @relation("SupervisorRelation", fields: [supervisorId], references: [id])
+
+  @@index([equipmentId], map: "CleanAction_equipmentId_fkey")
+  @@index([performerId], map: "CleanAction_performerId_fkey")
+  @@index([supervisorId], map: "CleanAction_supervisorId_fkey")
 }
 
 enum EntityType {
   INDIVIDUAL
   LEGAL_ENTITY
-}
-
-model User {
-  id           String   @id @default(cuid())
-  name         String
-  fullName     String
-  entityType   EntityType @default(INDIVIDUAL)
-  pib          String?
-  mbr          String?
-  account      String?
-  bank         String?
-  phone        String?
-  email        String   @unique
-  bio          String?
-  tgId         String?
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  cleanActions CleanAction[] @relation(name: "PerformerRelation")
-  supervisedActions CleanAction[] @relation(name: "SupervisorRelation")
-}
-
-model Equipment {
-  id           String   @id @default(cuid())
-  numId        Int      @unique
-  fullName     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  cleanActions CleanAction[] @relation(name: "EquipmentRelation")
 }
 
 enum CleaningType {
@@ -49,15 +64,121 @@ enum CleaningType {
   DISINFECTION
 }
 
-model CleanAction {
+model Material {
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  selfProduced          Boolean  @default(false)
+  caloriesKcal          Decimal  @default(0) @db.Decimal(10, 3)
+  fatGrams              Decimal  @default(0) @db.Decimal(10, 3)
+  proteinGrams          Decimal  @default(0) @db.Decimal(10, 3)
+  carbohydratesGrams    Decimal  @default(0) @db.Decimal(10, 3)
+  sugarsGrams           Decimal  @default(0) @db.Decimal(10, 3)
+  fiberGrams            Decimal  @default(0) @db.Decimal(10, 3)
+  saltGrams             Decimal  @default(0) @db.Decimal(10, 3)
+  VAT                   Float
+  Price                 Float
+  purchaseUnit          String
+  purchaseUnitAmount    Float
+  consumptionUnit       String
+  consumptionUnitAmount Float
+  ratio                 Float
+}
+
+model Product {
+  id                 String   @id @default(cuid())
+  name               String
+  batchPrefix        String   @unique
+  description        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  batches            Batch[]
+  processMaps        ProcessMap[]
+  orderProducts      OrderProduct[]
+  caloriesKcal       Decimal  @default(0) @db.Decimal(10, 3)
+  fatGrams           Decimal  @default(0) @db.Decimal(10, 3)
+  proteinGrams       Decimal  @default(0) @db.Decimal(10, 3)
+  carbohydratesGrams Decimal  @default(0) @db.Decimal(10, 3)
+  sugarsGrams        Decimal  @default(0) @db.Decimal(10, 3)
+  fiberGrams         Decimal  @default(0) @db.Decimal(10, 3)
+  saltGrams          Decimal  @default(0) @db.Decimal(10, 3)
+}
+
+model Batch {
+  id        String   @id @default(cuid())
+  productId String
+  nettoWeight Float
+  number    Int
+  numberStr String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+  storageDurationHours Int
+  storageConditionId String
+  storageCondition   StorageCondition @relation(fields: [storageConditionId], references: [id])
+  processMapId String
+  processMap   ProcessMap @relation(fields: [processMapId], references: [id])
+  processDeviations String?
+
+  @@index([productId], map: "Batch_productId_fkey")
+}
+
+model ProcessMap {
+  id        String   @id @default(cuid())
+  name      String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batches   Batch[]
+  parameters ProcessParameter[]
+}
+
+model ProcessParameter {
   id           String   @id @default(cuid())
-  equipmend    Equipment @relation(name: "EquipmentRelation", fields: [equipmentId], references: [id])
-  equipmentId  String
-  performer    User @relation(name: "PerformerRelation", fields: [performerId], references: [id])
-  performerId  String
-  supervisor   User @relation(name: "SupervisorRelation", fields: [supervisorId], references: [id])
-  supervisorId String
-  cleaningType CleaningType @default(CURRENT)
+  name         String
+  value        String
+  unit         String
+  processMapId String
+  processMap   ProcessMap @relation(fields: [processMapId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+model StorageCondition {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batches   Batch[]
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  orderNumber String   @unique
+  customerName String
+  customerUserId String?
+  orderDate   DateTime
+  orderDateReady DateTime?
+  products  OrderProduct[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderProduct {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Float
+  dateReady   DateTime?
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId], map: "OrderProduct_orderId_fkey")
+  @@index([productId], map: "OrderProduct_productId_fkey")
+}
+

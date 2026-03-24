@@ -132,6 +132,46 @@ interface CreateCleanActionInput {
   cleaningType: 'GENERAL' | 'CURRENT' | 'DISINFECTION';
 }
 
+interface CreateMaterialInput {
+  name: string;
+  description?: string;
+  selfProduced: boolean;
+  caloriesKcal: number;
+  fatGrams: number;
+  proteinGrams: number;
+  carbohydratesGrams: number;
+  sugarsGrams: number;
+  fiberGrams: number;
+  saltGrams: number;
+  VAT: number;
+  Price: number;
+  purchaseUnit: string;
+  purchaseUnitAmount: number;
+  consumptionUnit: string;
+  consumptionUnitAmount: number;
+  ratio: number;
+}
+
+interface UpdateMaterialInput {
+  name?: string;
+  description?: string;
+  selfProduced?: boolean;
+  caloriesKcal?: number;
+  fatGrams?: number;
+  proteinGrams?: number;
+  carbohydratesGrams?: number;
+  sugarsGrams?: number;
+  fiberGrams?: number;
+  saltGrams?: number;
+  VAT?: number;
+  Price?: number;
+  purchaseUnit?: string;
+  purchaseUnitAmount?: number;
+  consumptionUnit?: string;
+  consumptionUnitAmount?: number;
+  ratio?: number;
+}
+
 interface SendOrderInput {
   customerName: string;
   customerEmail: string;
@@ -148,6 +188,7 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
   const normalized = value.trim().toLowerCase();
   return normalized === '1' || normalized === 'true' || normalized === 'yes';
 }
+
 
 function getSmtpTransporter(): nodemailer.Transporter {
   if (smtpTransporter) {
@@ -287,6 +328,29 @@ const typeDefs = `
     updatedAt: String!
   }
 
+  type Material {
+    id: ID!
+    name: String!
+    description: String
+    selfProduced: Boolean!
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    VAT: Float!
+    Price: Float!
+    purchaseUnit: String!
+    purchaseUnitAmount: Float!
+    consumptionUnit: String!
+    consumptionUnitAmount: Float!
+    ratio: Float!
+    createdAt: String!
+    updatedAt: String!
+  }
+
   input CreateEquipmentInput {
     numId: Int!
     fullName: String!
@@ -304,6 +368,46 @@ const typeDefs = `
     cleaningType: CleaningType!
   }
 
+  input CreateMaterialInput {
+    name: String!
+    description: String
+    selfProduced: Boolean!
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    VAT: Float!
+    Price: Float!
+    purchaseUnit: String!
+    purchaseUnitAmount: Float!
+    consumptionUnit: String!
+    consumptionUnitAmount: Float!
+    ratio: Float!
+  }
+
+  input UpdateMaterialInput {
+    name: String
+    description: String
+    selfProduced: Boolean
+    caloriesKcal: Float
+    fatGrams: Float
+    proteinGrams: Float
+    carbohydratesGrams: Float
+    sugarsGrams: Float
+    fiberGrams: Float
+    saltGrams: Float
+    VAT: Float
+    Price: Float
+    purchaseUnit: String
+    purchaseUnitAmount: Float
+    consumptionUnit: String
+    consumptionUnitAmount: Float
+    ratio: Float
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -312,6 +416,7 @@ const typeDefs = `
     equipments: [Equipment!]!
     users: [User!]!
     cleanActions(cleaningType: CleaningType, fromDate: String, toDate: String): [CleanAction!]!
+    materials: [Material!]!
   }
 
   type Mutation {
@@ -324,6 +429,9 @@ const typeDefs = `
     updateEquipment(id: ID!, input: UpdateEquipmentInput!): Equipment!
     deleteEquipment(id: ID!): Boolean!
     createCleanAction(input: CreateCleanActionInput!): CleanAction!
+    createMaterial(input: CreateMaterialInput!): Material!
+    updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
+    deleteMaterial(id: ID!): Boolean!
   }
 `;
 
@@ -382,6 +490,10 @@ const resolvers = {
         include: { equipmend: true, performer: true, supervisor: true },
         orderBy: { createdAt: 'desc' },
       });
+    },
+    materials: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.material.findMany({ orderBy: { name: 'asc' } });
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -638,6 +750,98 @@ const resolvers = {
         include: { equipmend: true, performer: true, supervisor: true },
       });
     },
+    createMaterial: async (
+      _: unknown,
+      { input }: { input: CreateMaterialInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      return await prisma.material.create({
+        data: {
+          name: input.name.trim(),
+          description: input.description?.trim() || null,
+          selfProduced: input.selfProduced,
+          caloriesKcal: input.caloriesKcal,
+          fatGrams: input.fatGrams,
+          proteinGrams: input.proteinGrams,
+          carbohydratesGrams: input.carbohydratesGrams,
+          sugarsGrams: input.sugarsGrams,
+          fiberGrams: input.fiberGrams,
+          saltGrams: input.saltGrams,
+          VAT: input.VAT,
+          Price: input.Price,
+          purchaseUnit: input.purchaseUnit.trim(),
+          purchaseUnitAmount: input.purchaseUnitAmount,
+          consumptionUnit: input.consumptionUnit.trim(),
+          consumptionUnitAmount: input.consumptionUnitAmount,
+          ratio: input.ratio,
+        },
+      });
+    },
+    updateMaterial: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateMaterialInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const data: {
+        name?: string;
+        description?: string | null;
+        selfProduced?: boolean;
+        caloriesKcal?: number;
+        fatGrams?: number;
+        proteinGrams?: number;
+        carbohydratesGrams?: number;
+        sugarsGrams?: number;
+        fiberGrams?: number;
+        saltGrams?: number;
+        VAT?: number;
+        Price?: number;
+        purchaseUnit?: string;
+        purchaseUnitAmount?: number;
+        consumptionUnit?: string;
+        consumptionUnitAmount?: number;
+        ratio?: number;
+      } = {};
+      if (input.name !== undefined) data.name = input.name.trim();
+      if (input.description !== undefined) data.description = input.description.trim() || null;
+      if (input.selfProduced !== undefined) data.selfProduced = input.selfProduced;
+      if (input.caloriesKcal !== undefined) data.caloriesKcal = input.caloriesKcal;
+      if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;
+      if (input.proteinGrams !== undefined) data.proteinGrams = input.proteinGrams;
+      if (input.carbohydratesGrams !== undefined) {
+        data.carbohydratesGrams = input.carbohydratesGrams;
+      }
+      if (input.sugarsGrams !== undefined) data.sugarsGrams = input.sugarsGrams;
+      if (input.fiberGrams !== undefined) data.fiberGrams = input.fiberGrams;
+      if (input.saltGrams !== undefined) data.saltGrams = input.saltGrams;
+      if (input.VAT !== undefined) data.VAT = input.VAT;
+      if (input.Price !== undefined) data.Price = input.Price;
+      if (input.purchaseUnit !== undefined) data.purchaseUnit = input.purchaseUnit.trim();
+      if (input.purchaseUnitAmount !== undefined) data.purchaseUnitAmount = input.purchaseUnitAmount;
+      if (input.consumptionUnit !== undefined) data.consumptionUnit = input.consumptionUnit.trim();
+      if (input.consumptionUnitAmount !== undefined) {
+        data.consumptionUnitAmount = input.consumptionUnitAmount;
+      }
+      if (input.ratio !== undefined) data.ratio = input.ratio;
+
+      if (Object.keys(data).length === 0) {
+        throw new Error('No fields provided for update');
+      }
+
+      return await prisma.material.update({ where: { id }, data });
+    },
+    deleteMaterial: async (
+      _: unknown,
+      { id }: { id: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      await prisma.material.delete({ where: { id } });
+      return true;
+    },
     sendOrderByEmail: async (
       _: unknown,
       { input }: { input: SendOrderInput },
@@ -755,6 +959,12 @@ const resolvers = {
     supervisor: (parent: { supervisor: unknown }) => parent.supervisor,
     createdAt: (parent: { createdAt: Date | string }) => new Date(parent.createdAt).toISOString(),
     updatedAt: (parent: { updatedAt: Date | string }) => new Date(parent.updatedAt).toISOString(),
+  },
+  Material: {
+    createdAt: (material: { createdAt: Date | string }) =>
+      new Date(material.createdAt).toISOString(),
+    updatedAt: (material: { updatedAt: Date | string }) =>
+      new Date(material.updatedAt).toISOString(),
   },
 };
 

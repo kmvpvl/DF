@@ -269,7 +269,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
       this.setState({
         actionSaving: false,
         actionSuccess: true,
-        actionForm: { equipmentId: '', performerId: '', supervisorId: '', cleaningType: 'CURRENT' },
+        actionForm: { equipmentId: '', performerId: this.props.user?.id || '', supervisorId: this.props.user?.id || '', cleaningType: 'CURRENT' },
       });
     } catch (e) {
       this.setState({ actionError: String(e), actionSaving: false });

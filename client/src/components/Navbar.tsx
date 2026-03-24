@@ -57,7 +57,7 @@ class Navbar extends Proto<NavbarProps, {}> {
       //Impleme{ id: 'about', label: this.ML('About').toString() },
     ];
 
-    const toolChapters = ['Cleaning', 'Products', 'Samples', 'Certificates'];
+    const toolChapters = ['Cleaning', 'Material', 'Products', 'Samples', 'Certificates'];
     const navbarClassName = isToolPage ? 'navbar navbar-tool' : 'navbar';
 
     return (
