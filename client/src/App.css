@@ -740,6 +740,21 @@ main {
   font-size: 0.8rem;
   line-height: 1.4;
 }
+.batch-select {
+  width: 100%;
+}
+.batch-input-wide {
+  width: 100%;
+}
+.batch-preview-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  padding: 0.8rem 0.95rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
 
 @media (max-width: 860px) {
   .material-grid {

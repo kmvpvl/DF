@@ -198,6 +198,43 @@ interface UpdateProductInput {
   saltGrams?: number;
 }
 
+interface CreateBatchInput {
+  productId: string;
+  nettoWeight: number;
+  storageDurationHours: number;
+  storageConditionId?: string;
+  storageConditionName?: string;
+  processDeviations?: string;
+  processMapId?: string;
+  sampleCount?: number;
+}
+
+interface UpdateBatchInput {
+  nettoWeight?: number;
+  storageDurationHours?: number;
+  storageConditionId?: string;
+  storageConditionName?: string;
+  processDeviations?: string;
+  processMapId?: string | null;
+}
+
+interface CreateProcessParameterInput {
+  name: string;
+  value: string;
+  unit: string;
+}
+
+interface CreateProcessMapInput {
+  productId: string;
+  name: string;
+  parameters?: CreateProcessParameterInput[];
+}
+
+interface UpdateProcessMapInput {
+  name?: string;
+  parameters?: CreateProcessParameterInput[];
+}
+
 interface ImportMaterialsCsvResult {
   importedCount: number;
   skippedCount: number;
@@ -208,6 +245,11 @@ interface ImportProductsCsvResult {
   importedCount: number;
   skippedCount: number;
   errors: string[];
+}
+
+interface BatchNumberPreview {
+  number: number;
+  numberStr: string;
 }
 
 interface SendOrderInput {
@@ -418,6 +460,101 @@ function buildProductCsvRows(
   });
 }
 
+function getYearRange(date: Date): { start: Date; end: Date } {
+  const year = date.getFullYear();
+  return {
+    start: new Date(year, 0, 1, 0, 0, 0, 0),
+    end: new Date(year, 11, 31, 23, 59, 59, 999),
+  };
+}
+
+function formatBatchNumberString(date: Date, batchPrefix: string, batchNumber: number): string {
+  const shortYear = String(date.getFullYear()).slice(-2);
+  return `${shortYear}/${batchPrefix}/${batchNumber}`;
+}
+
+async function getNextBatchPreview(productId: string, date = new Date()): Promise<BatchNumberPreview> {
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) {
+    throw new Error('Product not found');
+  }
+
+  const { start, end } = getYearRange(date);
+  const aggregate = await prisma.batch.aggregate({
+    where: {
+      productId,
+      createdAt: {
+        gte: start,
+        lte: end,
+      },
+    },
+    _max: {
+      number: true,
+    },
+  });
+
+  const nextNumber = (aggregate._max.number ?? 0) + 1;
+  return {
+    number: nextNumber,
+    numberStr: formatBatchNumberString(date, product.batchPrefix, nextNumber),
+  };
+}
+
+async function getNextSampleNumber(date = new Date()): Promise<number> {
+  const { start, end } = getYearRange(date);
+  const aggregate = await prisma.sample.aggregate({
+    where: {
+      createdAt: {
+        gte: start,
+        lte: end,
+      },
+    },
+    _max: {
+      number: true,
+    },
+  });
+
+  return (aggregate._max.number ?? 0) + 1;
+}
+
+function formatSampleNumberString(date: Date, sampleNumber: number): string {
+  const shortYear = String(date.getFullYear()).slice(-2);
+  return `${shortYear}-${sampleNumber}`;
+}
+
+async function resolveStorageConditionId(
+  storageConditionId?: string,
+  storageConditionName?: string
+): Promise<string> {
+  const trimmedName = storageConditionName?.trim();
+
+  if (storageConditionId?.trim()) {
+    const existing = await prisma.storageCondition.findUnique({
+      where: { id: storageConditionId.trim() },
+    });
+    if (!existing) {
+      throw new Error('Storage condition not found');
+    }
+    return existing.id;
+  }
+
+  if (!trimmedName) {
+    throw new Error('Choose an existing storage condition or enter a new one');
+  }
+
+  const existingByName = await prisma.storageCondition.findFirst({
+    where: { name: trimmedName },
+  });
+  if (existingByName) {
+    return existingByName.id;
+  }
+
+  const created = await prisma.storageCondition.create({
+    data: { name: trimmedName },
+  });
+  return created.id;
+}
+
 
 function getSmtpTransporter(): nodemailer.Transporter {
   if (smtpTransporter) {
@@ -596,6 +733,59 @@ const typeDefs = `
     updatedAt: String!
   }
 
+  type StorageCondition {
+    id: ID!
+    name: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type ProcessParameter {
+    id: ID!
+    name: String!
+    value: String!
+    unit: String!
+  }
+
+  type ProcessMap {
+    id: ID!
+    name: String!
+    productId: ID!
+    parameters: [ProcessParameter!]!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type Sample {
+    id: ID!
+    number: Int!
+    numberStr: String!
+    createdAt: String!
+    updatedAt: String!
+    studyAt: String
+    result: String
+  }
+
+  type Batch {
+    id: ID!
+    product: Product!
+    nettoWeight: Float!
+    number: Int!
+    numberStr: String!
+    storageDurationHours: Int!
+    storageCondition: StorageCondition!
+    processMap: ProcessMap
+    samples: [Sample!]!
+    processDeviations: String
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  type BatchNumberPreview {
+    number: Int!
+    numberStr: String!
+  }
+
   type ImportMaterialsCsvResult {
     importedCount: Int!
     skippedCount: Int!
@@ -691,6 +881,43 @@ const typeDefs = `
     saltGrams: Float
   }
 
+  input CreateProcessParameterInput {
+    name: String!
+    value: String!
+    unit: String!
+  }
+
+  input CreateProcessMapInput {
+    productId: ID!
+    name: String!
+    parameters: [CreateProcessParameterInput!]
+  }
+
+  input UpdateProcessMapInput {
+    name: String
+    parameters: [CreateProcessParameterInput!]
+  }
+
+  input CreateBatchInput {
+    productId: ID!
+    nettoWeight: Float!
+    storageDurationHours: Int!
+    storageConditionId: ID
+    storageConditionName: String
+    processDeviations: String
+    processMapId: ID
+    sampleCount: Int
+  }
+
+  input UpdateBatchInput {
+    nettoWeight: Float
+    storageDurationHours: Int
+    storageConditionId: ID
+    storageConditionName: String
+    processDeviations: String
+    processMapId: ID
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -703,6 +930,10 @@ const typeDefs = `
     materialsCsv: String!
     products: [Product!]!
     productsCsv: String!
+    storageConditions: [StorageCondition!]!
+    processMaps(productId: ID!): [ProcessMap!]!
+    batches: [Batch!]!
+    nextBatchPreview(productId: ID!): BatchNumberPreview!
   }
 
   type Mutation {
@@ -722,6 +953,10 @@ const typeDefs = `
     createProduct(input: CreateProductInput!): Product!
     updateProduct(id: ID!, input: UpdateProductInput!): Product!
     importProductsCsv(csv: String!, overwriteExisting: Boolean = true): ImportProductsCsvResult!
+    createProcessMap(input: CreateProcessMapInput!): ProcessMap!
+    updateProcessMap(id: ID!, input: UpdateProcessMapInput!): ProcessMap!
+    createBatch(input: CreateBatchInput!): Batch!
+    updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
   }
 `;
 
@@ -841,6 +1076,41 @@ const resolvers = {
       );
 
       return [PRODUCT_CSV_HEADERS.join(','), ...rows].join('\n');
+    },
+    storageConditions: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.storageCondition.findMany({ orderBy: { name: 'asc' } });
+    },
+    processMaps: async (
+      _: unknown,
+      { productId }: { productId: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.processMap.findMany({
+        where: { productId },
+        include: { parameters: true },
+        orderBy: { name: 'asc' },
+      });
+    },
+    batches: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.batch.findMany({
+        include: {
+          product: true,
+          storageCondition: true,
+          processMap: { include: { parameters: true } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      });
+    },
+    nextBatchPreview: async (
+      _: unknown,
+      { productId }: { productId: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await getNextBatchPreview(productId);
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -1420,6 +1690,188 @@ const resolvers = {
 
       return result;
     },
+    createProcessMap: async (
+      _: unknown,
+      { input }: { input: CreateProcessMapInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      if (!input.name.trim()) throw new Error('Process map name is required');
+
+      return await prisma.processMap.create({
+        data: {
+          name: input.name.trim(),
+          product: { connect: { id: input.productId } },
+          parameters: input.parameters?.length
+            ? {
+                create: input.parameters.map(p => ({
+                  name: p.name.trim(),
+                  value: p.value.trim(),
+                  unit: p.unit.trim(),
+                })),
+              }
+            : undefined,
+        },
+        include: { parameters: true },
+      });
+    },
+    updateProcessMap: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateProcessMapInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      if (input.name !== undefined && !input.name.trim()) {
+        throw new Error('Process map name cannot be empty');
+      }
+
+      if (input.parameters !== undefined) {
+        await prisma.processParameter.deleteMany({ where: { processMapId: id } });
+      }
+
+      return await prisma.processMap.update({
+        where: { id },
+        data: {
+          ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.parameters !== undefined
+            ? {
+                parameters: {
+                  create: input.parameters.map(p => ({
+                    name: p.name.trim(),
+                    value: p.value.trim(),
+                    unit: p.unit.trim(),
+                  })),
+                },
+              }
+            : {}),
+        },
+        include: { parameters: true },
+      });
+    },
+    createBatch: async (
+      _: unknown,
+      { input }: { input: CreateBatchInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      if (!Number.isFinite(input.nettoWeight) || input.nettoWeight <= 0) {
+        throw new Error('Netto weight must be greater than 0');
+      }
+      if (!Number.isInteger(input.storageDurationHours) || input.storageDurationHours < 0) {
+        throw new Error('Storage duration must be a non-negative integer');
+      }
+      if (
+        input.sampleCount !== undefined &&
+        (!Number.isInteger(input.sampleCount) || input.sampleCount < 0)
+      ) {
+        throw new Error('Sample count must be a non-negative integer');
+      }
+
+      const storageConditionId = await resolveStorageConditionId(
+        input.storageConditionId,
+        input.storageConditionName
+      );
+      const now = new Date();
+      const preview = await getNextBatchPreview(input.productId, now);
+      const sampleCount = input.sampleCount ?? 0;
+      const sampleStartNumber = sampleCount > 0 ? await getNextSampleNumber(now) : 0;
+
+      return await prisma.batch.create({
+        data: {
+          product: { connect: { id: input.productId } },
+          nettoWeight: input.nettoWeight,
+          number: preview.number,
+          numberStr: preview.numberStr,
+          storageDurationHours: input.storageDurationHours,
+          storageCondition: { connect: { id: storageConditionId } },
+          processDeviations: input.processDeviations?.trim() || null,
+          ...(input.processMapId ? { processMap: { connect: { id: input.processMapId } } } : {}),
+          ...(sampleCount > 0
+            ? {
+                samples: {
+                  create: Array.from({ length: sampleCount }, (_, index) => {
+                    const number = sampleStartNumber + index;
+                    return {
+                      number,
+                      numberStr: formatSampleNumberString(now, number),
+                      studyAt: null,
+                      result: null,
+                    };
+                  }),
+                },
+              }
+            : {}),
+        },
+        include: {
+          product: true,
+          storageCondition: true,
+          processMap: { include: { parameters: true } },
+          samples: true,
+        },
+      });
+    },
+    updateBatch: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateBatchInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const data: {
+        nettoWeight?: number;
+        storageDurationHours?: number;
+        storageConditionId?: string;
+        processDeviations?: string | null;
+        processMapId?: string | null;
+      } = {};
+
+      if (input.nettoWeight !== undefined) {
+        if (!Number.isFinite(input.nettoWeight) || input.nettoWeight <= 0) {
+          throw new Error('Netto weight must be greater than 0');
+        }
+        data.nettoWeight = input.nettoWeight;
+      }
+
+      if (input.storageDurationHours !== undefined) {
+        if (
+          !Number.isInteger(input.storageDurationHours) ||
+          input.storageDurationHours < 0
+        ) {
+          throw new Error('Storage duration must be a non-negative integer');
+        }
+        data.storageDurationHours = input.storageDurationHours;
+      }
+
+      if (input.storageConditionId !== undefined || input.storageConditionName !== undefined) {
+        data.storageConditionId = await resolveStorageConditionId(
+          input.storageConditionId,
+          input.storageConditionName
+        );
+      }
+
+      if (input.processDeviations !== undefined) {
+        data.processDeviations = input.processDeviations.trim() || null;
+      }
+
+      if ('processMapId' in input) {
+        data.processMapId = input.processMapId ?? null;
+      }
+
+      if (Object.keys(data).length === 0) {
+        throw new Error('No fields provided for update');
+      }
+
+      return await prisma.batch.update({
+        where: { id },
+        data,
+        include: {
+          product: true,
+          storageCondition: true,
+          processMap: { include: { parameters: true } },
+        },
+      });
+    },
     sendOrderByEmail: async (
       _: unknown,
       { input }: { input: SendOrderInput },
@@ -1549,6 +2001,32 @@ const resolvers = {
       new Date(product.createdAt).toISOString(),
     updatedAt: (product: { updatedAt: Date | string }) =>
       new Date(product.updatedAt).toISOString(),
+  },
+  StorageCondition: {
+    createdAt: (storageCondition: { createdAt: Date | string }) =>
+      new Date(storageCondition.createdAt).toISOString(),
+    updatedAt: (storageCondition: { updatedAt: Date | string }) =>
+      new Date(storageCondition.updatedAt).toISOString(),
+  },
+  ProcessMap: {
+    createdAt: (pm: { createdAt: Date | string }) => new Date(pm.createdAt).toISOString(),
+    updatedAt: (pm: { updatedAt: Date | string }) => new Date(pm.updatedAt).toISOString(),
+  },
+  Batch: {
+    product: (batch: { product: unknown }) => batch.product,
+    storageCondition: (batch: { storageCondition: unknown }) => batch.storageCondition,
+    processMap: (batch: { processMap?: unknown }) => batch.processMap ?? null,
+    samples: (batch: { samples?: unknown[] }) => batch.samples ?? [],
+    createdAt: (batch: { createdAt: Date | string }) =>
+      new Date(batch.createdAt).toISOString(),
+    updatedAt: (batch: { updatedAt: Date | string }) =>
+      new Date(batch.updatedAt).toISOString(),
+  },
+  Sample: {
+    createdAt: (sample: { createdAt: Date | string }) => new Date(sample.createdAt).toISOString(),
+    updatedAt: (sample: { updatedAt: Date | string }) => new Date(sample.updatedAt).toISOString(),
+    studyAt: (sample: { studyAt?: Date | string | null }) =>
+      sample.studyAt ? new Date(sample.studyAt).toISOString() : null,
   },
 };
 

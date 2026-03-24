@@ -118,9 +118,10 @@ model Batch {
   storageDurationHours Int
   storageConditionId String
   storageCondition   StorageCondition @relation(fields: [storageConditionId], references: [id])
-  processMapId String
-  processMap   ProcessMap @relation(fields: [processMapId], references: [id])
+  processMapId String?
+  processMap   ProcessMap? @relation(fields: [processMapId], references: [id])
   processDeviations String?
+  samples Sample[]
 
   @@index([productId], map: "Batch_productId_fkey")
 }
@@ -180,5 +181,19 @@ model OrderProduct {
 
   @@index([orderId], map: "OrderProduct_orderId_fkey")
   @@index([productId], map: "OrderProduct_productId_fkey")
+}
+
+model Sample {
+  id        String   @id @default(cuid())
+  batchId   String
+  number    Int
+  numberStr String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch     Batch @relation(fields: [batchId], references: [id])
+  studyAt DateTime?
+  result String?
+
+  @@index([batchId], map: "Sample_batchId_fkey")
 }
 

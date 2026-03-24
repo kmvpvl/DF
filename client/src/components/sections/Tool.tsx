@@ -2,6 +2,7 @@ import Proto from '../../proto';
 import { type User } from '../../App';
 import CleaningJournal from './CleaningJournal';
 import Material from './Material';
+import StaffBatches from './StaffBatches';
 import StaffProducts from './StaffProducts';
 
 interface ToolProps {
@@ -19,6 +20,8 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
           <CleaningJournal user={user} />
         ) : activeChapter === 'Material' ? (
           <Material />
+        ) : activeChapter === 'Batches' ? (
+          <StaffBatches />
         ) : activeChapter === 'Products' ? (
           <StaffProducts />
         ) : (
