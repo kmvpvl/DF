@@ -100,6 +100,7 @@ main {
   align-items: center;
   gap: 0.65rem;
   flex: 1;
+  min-width: 0;
   justify-content: center;
 }
 .navbar-tool-links {
@@ -107,6 +108,7 @@ main {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  min-width: 0;
 }
 .nav-link-tool-chapter {
   cursor: default;
@@ -204,6 +206,7 @@ main {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  flex-shrink: 0;
   background: var(--bg-alt);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -226,6 +229,16 @@ main {
   padding: 1px 6px;
   min-width: 18px;
   text-align: center;
+}
+
+@media (max-width: 1024px) {
+  .language-select-wrap {
+    display: none;
+  }
+
+  .navbar-brand-text {
+    display: none;
+  }
 }
 
 .basket-overlay {
@@ -1561,8 +1574,36 @@ textarea.form-input {
   .navbar-tool-center {
     display: none;
   }
+  .navbar-tool .navbar-tool-center {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+  .navbar-tool .navbar-tool-badge {
+    display: none;
+  }
+  .navbar-tool .navbar-tool-links {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .navbar-tool .navbar-tool-links::-webkit-scrollbar {
+    display: none;
+  }
   .navbar-right {
     gap: 0.5rem;
+  }
+  .navbar-tool .nav-home-btn {
+    display: none;
+  }
+  .navbar-tool .nav-user {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .language-select {
     font-size: 0.8rem;

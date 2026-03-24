@@ -101,6 +101,18 @@ class Navbar extends Proto<NavbarProps, {}> {
         )}
 
         <div className="navbar-right">
+          {!isToolPage && (
+            <button
+              className="basket-btn"
+              aria-label={this.ML('Basket').toString()}
+              onClick={onBasketClick}
+            >
+              🛒
+              {basketCount > 0 && (
+                <span className="basket-badge">{basketCount}</span>
+              )}
+            </button>
+          )}
           <label className="language-select-wrap">
             <span className="language-label">
               {this.ML('Language').toString()}:
@@ -120,7 +132,7 @@ class Navbar extends Proto<NavbarProps, {}> {
           </label>
           {isToolPage ? (
             <button
-              className="nav-link nav-link-accent"
+              className="nav-link nav-link-accent nav-home-btn"
               onClick={onHomeClick}
             >
               {this.ML('Home').toString()}
@@ -137,18 +149,6 @@ class Navbar extends Proto<NavbarProps, {}> {
               <span className="nav-user">
                 {this.ML('Hi').toString()}, {user.name}
               </span>
-            </button>
-          )}
-          {!isToolPage && (
-            <button
-              className="basket-btn"
-              aria-label={this.ML('Basket').toString()}
-              onClick={onBasketClick}
-            >
-              🛒
-              {basketCount > 0 && (
-                <span className="basket-badge">{basketCount}</span>
-              )}
             </button>
           )}
         </div>
