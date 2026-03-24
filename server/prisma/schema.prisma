@@ -193,6 +193,7 @@ model Sample {
   batch     Batch @relation(fields: [batchId], references: [id])
   studyAt DateTime?
   result String?
+  note String?
 
   @@index([batchId], map: "Sample_batchId_fkey")
 }

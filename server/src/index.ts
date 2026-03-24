@@ -764,6 +764,8 @@ const typeDefs = `
     updatedAt: String!
     studyAt: String
     result: String
+    note: String
+    batch: Batch!
   }
 
   type Batch {
@@ -918,6 +920,18 @@ const typeDefs = `
     processMapId: ID
   }
 
+  input UpdateSampleInput {
+    result: String
+    note: String
+    studyAt: String
+  }
+
+  input SearchSamplesInput {
+    fromDate: String
+    toDate: String
+    sampleNumber: Int
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -934,6 +948,7 @@ const typeDefs = `
     processMaps(productId: ID!): [ProcessMap!]!
     batches: [Batch!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
+    searchSamples(input: SearchSamplesInput!): [Sample!]!
   }
 
   type Mutation {
@@ -957,6 +972,7 @@ const typeDefs = `
     updateProcessMap(id: ID!, input: UpdateProcessMapInput!): ProcessMap!
     createBatch(input: CreateBatchInput!): Batch!
     updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
+    updateSample(id: ID!, input: UpdateSampleInput!): Sample!
   }
 `;
 
@@ -1111,6 +1127,39 @@ const resolvers = {
     ) => {
       if (!req.session.userId) throw new Error('Not authenticated');
       return await getNextBatchPreview(productId);
+    },
+    searchSamples: async (
+      _: unknown,
+      { input }: { input: { fromDate?: string; toDate?: string; sampleNumber?: number } },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const where: Record<string, unknown> = {};
+
+      if (input.sampleNumber) {
+        where.number = input.sampleNumber;
+      }
+
+      if (input.fromDate || input.toDate) {
+        const dateFilter: Record<string, Date> = {};
+        if (input.fromDate) {
+          const start = new Date(input.fromDate);
+          dateFilter.gte = start;
+        }
+        if (input.toDate) {
+          const end = new Date(input.toDate);
+          end.setHours(23, 59, 59, 999);
+          dateFilter.lte = end;
+        }
+        where.createdAt = dateFilter;
+      }
+
+      return await prisma.sample.findMany({
+        where,
+        include: { batch: { include: { product: true } } },
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      });
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -1870,6 +1919,36 @@ const resolvers = {
           storageCondition: true,
           processMap: { include: { parameters: true } },
         },
+      });
+    },
+    updateSample: async (
+      _: unknown,
+      { id, input }: { id: string; input: { result?: string; note?: string; studyAt?: string } },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const data: Record<string, unknown> = {};
+
+      if (input.result !== undefined) {
+        data.result = input.result.trim() || null;
+      }
+
+      if (input.note !== undefined) {
+        data.note = input.note.trim() || null;
+      }
+
+      if (input.studyAt !== undefined) {
+        data.studyAt = input.studyAt ? new Date(input.studyAt) : null;
+      }
+
+      if (Object.keys(data).length === 0) {
+        throw new Error('No fields provided for update');
+      }
+
+      return await prisma.sample.update({
+        where: { id },
+        data,
       });
     },
     sendOrderByEmail: async (
