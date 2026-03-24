@@ -172,7 +172,39 @@ interface UpdateMaterialInput {
   ratio?: number;
 }
 
+interface CreateProductInput {
+  name: string;
+  batchPrefix: string;
+  description?: string;
+  caloriesKcal: number;
+  fatGrams: number;
+  proteinGrams: number;
+  carbohydratesGrams: number;
+  sugarsGrams: number;
+  fiberGrams: number;
+  saltGrams: number;
+}
+
+interface UpdateProductInput {
+  name?: string;
+  batchPrefix?: string;
+  description?: string;
+  caloriesKcal?: number;
+  fatGrams?: number;
+  proteinGrams?: number;
+  carbohydratesGrams?: number;
+  sugarsGrams?: number;
+  fiberGrams?: number;
+  saltGrams?: number;
+}
+
 interface ImportMaterialsCsvResult {
+  importedCount: number;
+  skippedCount: number;
+  errors: string[];
+}
+
+interface ImportProductsCsvResult {
   importedCount: number;
   skippedCount: number;
   errors: string[];
@@ -215,7 +247,21 @@ const MATERIAL_CSV_HEADERS = [
   'ratio',
 ] as const;
 
+const PRODUCT_CSV_HEADERS = [
+  'name',
+  'batchPrefix',
+  'description',
+  'caloriesKcal',
+  'fatGrams',
+  'proteinGrams',
+  'carbohydratesGrams',
+  'sugarsGrams',
+  'fiberGrams',
+  'saltGrams',
+] as const;
+
 type MaterialCsvHeader = (typeof MATERIAL_CSV_HEADERS)[number];
+type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
 
 function escapeCsvValue(value: string): string {
   const escaped = value.replace(/"/g, '""');
@@ -335,6 +381,36 @@ function buildMaterialCsvRows(
   return rows.slice(1).map(row => {
     const normalized = {} as Record<MaterialCsvHeader, string>;
     MATERIAL_CSV_HEADERS.forEach(header => {
+      const index = headerIndexes.get(header.toLowerCase());
+      normalized[header] = index === undefined ? '' : (row[index] ?? '').trim();
+    });
+    return normalized;
+  });
+}
+
+function buildProductCsvRows(
+  rows: string[][]
+): Array<Record<ProductCsvHeader, string>> {
+  if (rows.length === 0) {
+    throw new Error('CSV is empty');
+  }
+
+  const headerRow = rows[0].map(header => header.trim());
+  const headerIndexes = new Map<string, number>();
+  headerRow.forEach((header, index) => {
+    headerIndexes.set(header.toLowerCase(), index);
+  });
+
+  const missingHeaders = PRODUCT_CSV_HEADERS.filter(
+    header => !headerIndexes.has(header.toLowerCase())
+  );
+  if (missingHeaders.length > 0) {
+    throw new Error(`Missing CSV headers: ${missingHeaders.join(', ')}`);
+  }
+
+  return rows.slice(1).map(row => {
+    const normalized = {} as Record<ProductCsvHeader, string>;
+    PRODUCT_CSV_HEADERS.forEach(header => {
       const index = headerIndexes.get(header.toLowerCase());
       normalized[header] = index === undefined ? '' : (row[index] ?? '').trim();
     });
@@ -504,7 +580,29 @@ const typeDefs = `
     updatedAt: String!
   }
 
+  type Product {
+    id: ID!
+    name: String!
+    batchPrefix: String!
+    description: String
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    createdAt: String!
+    updatedAt: String!
+  }
+
   type ImportMaterialsCsvResult {
+    importedCount: Int!
+    skippedCount: Int!
+    errors: [String!]!
+  }
+
+  type ImportProductsCsvResult {
     importedCount: Int!
     skippedCount: Int!
     errors: [String!]!
@@ -567,6 +665,32 @@ const typeDefs = `
     ratio: Float
   }
 
+  input CreateProductInput {
+    name: String!
+    batchPrefix: String!
+    description: String
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+  }
+
+  input UpdateProductInput {
+    name: String
+    batchPrefix: String
+    description: String
+    caloriesKcal: Float
+    fatGrams: Float
+    proteinGrams: Float
+    carbohydratesGrams: Float
+    sugarsGrams: Float
+    fiberGrams: Float
+    saltGrams: Float
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -577,6 +701,8 @@ const typeDefs = `
     cleanActions(cleaningType: CleaningType, fromDate: String, toDate: String): [CleanAction!]!
     materials: [Material!]!
     materialsCsv: String!
+    products: [Product!]!
+    productsCsv: String!
   }
 
   type Mutation {
@@ -593,6 +719,9 @@ const typeDefs = `
     updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
     deleteMaterial(id: ID!): Boolean!
     importMaterialsCsv(csv: String!, overwriteExisting: Boolean = true): ImportMaterialsCsvResult!
+    createProduct(input: CreateProductInput!): Product!
+    updateProduct(id: ID!, input: UpdateProductInput!): Product!
+    importProductsCsv(csv: String!, overwriteExisting: Boolean = true): ImportProductsCsvResult!
   }
 `;
 
@@ -685,6 +814,33 @@ const resolvers = {
       );
 
       return [MATERIAL_CSV_HEADERS.join(','), ...rows].join('\n');
+    },
+    products: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.product.findMany({ orderBy: { name: 'asc' } });
+    },
+    productsCsv: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const products = await prisma.product.findMany({ orderBy: { name: 'asc' } });
+      const rows = products.map(product =>
+        [
+          product.name,
+          product.batchPrefix,
+          product.description ?? '',
+          product.caloriesKcal.toString(),
+          product.fatGrams.toString(),
+          product.proteinGrams.toString(),
+          product.carbohydratesGrams.toString(),
+          product.sugarsGrams.toString(),
+          product.fiberGrams.toString(),
+          product.saltGrams.toString(),
+        ]
+          .map(value => escapeCsvValue(String(value)))
+          .join(',')
+      );
+
+      return [PRODUCT_CSV_HEADERS.join(','), ...rows].join('\n');
     },
     sessionUser: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       const userId = req.session.userId;
@@ -1123,6 +1279,147 @@ const resolvers = {
 
       return result;
     },
+    createProduct: async (
+      _: unknown,
+      { input }: { input: CreateProductInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      return await prisma.product.create({
+        data: {
+          name: input.name.trim(),
+          batchPrefix: input.batchPrefix.trim(),
+          description: input.description?.trim() || null,
+          caloriesKcal: input.caloriesKcal,
+          fatGrams: input.fatGrams,
+          proteinGrams: input.proteinGrams,
+          carbohydratesGrams: input.carbohydratesGrams,
+          sugarsGrams: input.sugarsGrams,
+          fiberGrams: input.fiberGrams,
+          saltGrams: input.saltGrams,
+        },
+      });
+    },
+    updateProduct: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateProductInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const data: {
+        name?: string;
+        batchPrefix?: string;
+        description?: string | null;
+        caloriesKcal?: number;
+        fatGrams?: number;
+        proteinGrams?: number;
+        carbohydratesGrams?: number;
+        sugarsGrams?: number;
+        fiberGrams?: number;
+        saltGrams?: number;
+      } = {};
+
+      if (input.name !== undefined) data.name = input.name.trim();
+      if (input.batchPrefix !== undefined) data.batchPrefix = input.batchPrefix.trim();
+      if (input.description !== undefined) data.description = input.description.trim() || null;
+      if (input.caloriesKcal !== undefined) data.caloriesKcal = input.caloriesKcal;
+      if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;
+      if (input.proteinGrams !== undefined) data.proteinGrams = input.proteinGrams;
+      if (input.carbohydratesGrams !== undefined) {
+        data.carbohydratesGrams = input.carbohydratesGrams;
+      }
+      if (input.sugarsGrams !== undefined) data.sugarsGrams = input.sugarsGrams;
+      if (input.fiberGrams !== undefined) data.fiberGrams = input.fiberGrams;
+      if (input.saltGrams !== undefined) data.saltGrams = input.saltGrams;
+
+      if (Object.keys(data).length === 0) {
+        throw new Error('No fields provided for update');
+      }
+
+      return await prisma.product.update({ where: { id }, data });
+    },
+    importProductsCsv: async (
+      _: unknown,
+      {
+        csv,
+        overwriteExisting,
+      }: { csv: string; overwriteExisting?: boolean },
+      { req }: GraphQLContext
+    ): Promise<ImportProductsCsvResult> => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const rows = buildProductCsvRows(parseCsv(csv));
+      const result: ImportProductsCsvResult = {
+        importedCount: 0,
+        skippedCount: 0,
+        errors: [],
+      };
+
+      const shouldOverwrite = overwriteExisting ?? true;
+      const existingByBatchPrefix = new Map<string, { id: string }>();
+      if (shouldOverwrite) {
+        const existing = await prisma.product.findMany({
+          select: { id: true, batchPrefix: true },
+        });
+        existing.forEach(product => {
+          existingByBatchPrefix.set(product.batchPrefix.toLowerCase(), { id: product.id });
+        });
+      }
+
+      for (const [index, row] of rows.entries()) {
+        const csvLine = index + 2;
+        const hasAnyValue = PRODUCT_CSV_HEADERS.some(header => row[header].trim().length > 0);
+        if (!hasAnyValue) {
+          result.skippedCount += 1;
+          continue;
+        }
+
+        try {
+          if (!row.name.trim()) {
+            throw new Error('name is required');
+          }
+          if (!row.batchPrefix.trim()) {
+            throw new Error('batchPrefix is required');
+          }
+
+          const data = {
+            name: row.name.trim(),
+            batchPrefix: row.batchPrefix.trim(),
+            description: row.description.trim() || null,
+            caloriesKcal: parseCsvNumber(row.caloriesKcal),
+            fatGrams: parseCsvNumber(row.fatGrams),
+            proteinGrams: parseCsvNumber(row.proteinGrams),
+            carbohydratesGrams: parseCsvNumber(row.carbohydratesGrams),
+            sugarsGrams: parseCsvNumber(row.sugarsGrams),
+            fiberGrams: parseCsvNumber(row.fiberGrams),
+            saltGrams: parseCsvNumber(row.saltGrams),
+          };
+
+          const existingProduct = shouldOverwrite
+            ? existingByBatchPrefix.get(data.batchPrefix.toLowerCase())
+            : undefined;
+
+          if (existingProduct) {
+            await prisma.product.update({ where: { id: existingProduct.id }, data });
+          } else {
+            const created = await prisma.product.create({ data });
+            if (shouldOverwrite) {
+              existingByBatchPrefix.set(created.batchPrefix.toLowerCase(), { id: created.id });
+            }
+          }
+
+          result.importedCount += 1;
+        } catch (error) {
+          result.skippedCount += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          result.errors.push(`Line ${csvLine}: ${message}`);
+        }
+      }
+
+      return result;
+    },
     sendOrderByEmail: async (
       _: unknown,
       { input }: { input: SendOrderInput },
@@ -1246,6 +1543,12 @@ const resolvers = {
       new Date(material.createdAt).toISOString(),
     updatedAt: (material: { updatedAt: Date | string }) =>
       new Date(material.updatedAt).toISOString(),
+  },
+  Product: {
+    createdAt: (product: { createdAt: Date | string }) =>
+      new Date(product.createdAt).toISOString(),
+    updatedAt: (product: { updatedAt: Date | string }) =>
+      new Date(product.updatedAt).toISOString(),
   },
 };
 

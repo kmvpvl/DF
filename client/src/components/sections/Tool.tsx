@@ -2,6 +2,7 @@ import Proto from '../../proto';
 import { type User } from '../../App';
 import CleaningJournal from './CleaningJournal';
 import Material from './Material';
+import StaffProducts from './StaffProducts';
 
 interface ToolProps {
   activeChapter: string;
@@ -18,6 +19,8 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
           <CleaningJournal user={user} />
         ) : activeChapter === 'Material' ? (
           <Material />
+        ) : activeChapter === 'Products' ? (
+          <StaffProducts />
         ) : (
           <div className="section-inner tool-page-inner">
             <p className="section-label">Staff</p>
