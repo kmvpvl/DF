@@ -148,7 +148,6 @@ interface CreateMaterialInput {
   purchaseUnit: string;
   purchaseUnitAmount: number;
   consumptionUnit: string;
-  consumptionUnitAmount: number;
   ratio: number;
 }
 
@@ -168,7 +167,6 @@ interface UpdateMaterialInput {
   purchaseUnit?: string;
   purchaseUnitAmount?: number;
   consumptionUnit?: string;
-  consumptionUnitAmount?: number;
   ratio?: number;
 }
 
@@ -224,15 +222,25 @@ interface CreateProcessParameterInput {
   unit: string;
 }
 
+interface IngredientInput {
+  productId?: string;
+  materialId?: string;
+  amount: number;
+}
+
 interface CreateProcessMapInput {
   productId: string;
   name: string;
+  outcome: number;
   parameters?: CreateProcessParameterInput[];
+  ingredients?: IngredientInput[];
 }
 
 interface UpdateProcessMapInput {
   name?: string;
+  outcome?: number;
   parameters?: CreateProcessParameterInput[];
+  ingredients?: IngredientInput[];
 }
 
 interface ImportMaterialsCsvResult {
@@ -285,7 +293,6 @@ const MATERIAL_CSV_HEADERS = [
   'purchaseUnit',
   'purchaseUnitAmount',
   'consumptionUnit',
-  'consumptionUnitAmount',
   'ratio',
 ] as const;
 
@@ -330,7 +337,7 @@ function parseCsv(content: string): string[][] {
       continue;
     }
 
-    if (char === ',' && !inQuotes) {
+    if (char === ';' && !inQuotes) {
       currentRow.push(currentValue);
       currentValue = '';
       continue;
@@ -711,7 +718,6 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
-    consumptionUnitAmount: Float!
     ratio: Float!
     createdAt: String!
     updatedAt: String!
@@ -747,11 +753,21 @@ const typeDefs = `
     unit: String!
   }
 
+  type Ingredient {
+    id: ID!
+    product: Product
+    material: Material
+    amount: Float!
+    unit: String!
+  }
+
   type ProcessMap {
     id: ID!
     name: String!
+    outcome: Float!
     productId: ID!
     parameters: [ProcessParameter!]!
+    ingredients: [Ingredient!]!
     createdAt: String!
     updatedAt: String!
   }
@@ -833,7 +849,6 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
-    consumptionUnitAmount: Float!
     ratio: Float!
   }
 
@@ -853,7 +868,6 @@ const typeDefs = `
     purchaseUnit: String
     purchaseUnitAmount: Float
     consumptionUnit: String
-    consumptionUnitAmount: Float
     ratio: Float
   }
 
@@ -889,15 +903,25 @@ const typeDefs = `
     unit: String!
   }
 
+  input IngredientInput {
+    productId: ID
+    materialId: ID
+    amount: Float!
+  }
+
   input CreateProcessMapInput {
     productId: ID!
     name: String!
+    outcome: Float!
     parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
   }
 
   input UpdateProcessMapInput {
     name: String
+    outcome: Float
     parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
   }
 
   input CreateBatchInput {
@@ -976,7 +1000,21 @@ const typeDefs = `
   }
 `;
 
+type IngredientWithRefs = {
+  productId?: string | null;
+  materialId?: string | null;
+  amount: number;
+  product?: { consumptionUnit?: string } | null;
+  material?: { consumptionUnit: string } | null;
+};
+
 const resolvers = {
+  Ingredient: {
+    unit: (parent: IngredientWithRefs): string => {
+      if (parent.material) return parent.material.consumptionUnit;
+      return 'gram';
+    },
+  },
   Query: {
     hello: () => 'DolceForte API',
     userById: async (_: unknown, { id }: { id: string }) => {
@@ -1057,14 +1095,13 @@ const resolvers = {
           material.purchaseUnit,
           String(material.purchaseUnitAmount),
           material.consumptionUnit,
-          String(material.consumptionUnitAmount),
           String(material.ratio),
         ]
           .map(value => escapeCsvValue(String(value)))
-          .join(',')
+          .join(';')
       );
 
-      return [MATERIAL_CSV_HEADERS.join(','), ...rows].join('\n');
+      return [MATERIAL_CSV_HEADERS.join(';'), ...rows].join('\n');
     },
     products: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       if (!req.session.userId) throw new Error('Not authenticated');
@@ -1105,7 +1142,10 @@ const resolvers = {
       if (!req.session.userId) throw new Error('Not authenticated');
       return await prisma.processMap.findMany({
         where: { productId },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
         orderBy: { name: 'asc' },
       });
     },
@@ -1115,7 +1155,12 @@ const resolvers = {
         include: {
           product: true,
           storageCondition: true,
-          processMap: { include: { parameters: true } },
+          processMap: {
+            include: {
+              parameters: true,
+              ingredients: { include: { product: true, material: true } },
+            },
+          },
         },
         orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
       });
@@ -1440,7 +1485,6 @@ const resolvers = {
           purchaseUnit: input.purchaseUnit.trim(),
           purchaseUnitAmount: input.purchaseUnitAmount,
           consumptionUnit: input.consumptionUnit.trim(),
-          consumptionUnitAmount: input.consumptionUnitAmount,
           ratio: input.ratio,
         },
       });
@@ -1468,7 +1512,6 @@ const resolvers = {
         purchaseUnit?: string;
         purchaseUnitAmount?: number;
         consumptionUnit?: string;
-        consumptionUnitAmount?: number;
         ratio?: number;
       } = {};
       if (input.name !== undefined) data.name = input.name.trim();
@@ -1488,9 +1531,6 @@ const resolvers = {
       if (input.purchaseUnit !== undefined) data.purchaseUnit = input.purchaseUnit.trim();
       if (input.purchaseUnitAmount !== undefined) data.purchaseUnitAmount = input.purchaseUnitAmount;
       if (input.consumptionUnit !== undefined) data.consumptionUnit = input.consumptionUnit.trim();
-      if (input.consumptionUnitAmount !== undefined) {
-        data.consumptionUnitAmount = input.consumptionUnitAmount;
-      }
       if (input.ratio !== undefined) data.ratio = input.ratio;
 
       if (Object.keys(data).length === 0) {
@@ -1571,7 +1611,6 @@ const resolvers = {
             purchaseUnit: row.purchaseUnit.trim(),
             purchaseUnitAmount: parseCsvNumber(row.purchaseUnitAmount),
             consumptionUnit: row.consumptionUnit.trim(),
-            consumptionUnitAmount: parseCsvNumber(row.consumptionUnitAmount),
             ratio: parseCsvNumber(row.ratio),
           };
 
@@ -1750,6 +1789,7 @@ const resolvers = {
       return await prisma.processMap.create({
         data: {
           name: input.name.trim(),
+          outcome: input.outcome,
           product: { connect: { id: input.productId } },
           parameters: input.parameters?.length
             ? {
@@ -1760,8 +1800,20 @@ const resolvers = {
                 })),
               }
             : undefined,
+          ingredients: input.ingredients?.length
+            ? {
+                create: input.ingredients.map(ing => ({
+                  amount: ing.amount,
+                  ...(ing.productId ? { product: { connect: { id: ing.productId } } } : {}),
+                  ...(ing.materialId ? { material: { connect: { id: ing.materialId } } } : {}),
+                })),
+              }
+            : undefined,
         },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
       });
     },
     updateProcessMap: async (
@@ -1778,10 +1830,15 @@ const resolvers = {
         await prisma.processParameter.deleteMany({ where: { processMapId: id } });
       }
 
+      if (input.ingredients !== undefined) {
+        await prisma.ingredient.deleteMany({ where: { processMapId: id } });
+      }
+
       return await prisma.processMap.update({
         where: { id },
         data: {
           ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
           ...(input.parameters !== undefined
             ? {
                 parameters: {
@@ -1793,8 +1850,22 @@ const resolvers = {
                 },
               }
             : {}),
+          ...(input.ingredients !== undefined
+            ? {
+                ingredients: {
+                  create: input.ingredients.map(ing => ({
+                    amount: ing.amount,
+                    ...(ing.productId ? { product: { connect: { id: ing.productId } } } : {}),
+                    ...(ing.materialId ? { material: { connect: { id: ing.materialId } } } : {}),
+                  })),
+                },
+              }
+            : {}),
         },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
       });
     },
     createBatch: async (

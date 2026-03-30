@@ -71,6 +71,8 @@ model Material {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   selfProduced          Boolean  @default(false)
+  ingredients           Ingredient[]
+
   caloriesKcal          Decimal  @default(0) @db.Decimal(10, 3)
   fatGrams              Decimal  @default(0) @db.Decimal(10, 3)
   proteinGrams          Decimal  @default(0) @db.Decimal(10, 3)
@@ -83,7 +85,6 @@ model Material {
   purchaseUnit          String
   purchaseUnitAmount    Float
   consumptionUnit       String
-  consumptionUnitAmount Float
   ratio                 Float
 }
 
@@ -104,6 +105,7 @@ model Product {
   sugarsGrams        Decimal  @default(0) @db.Decimal(10, 3)
   fiberGrams         Decimal  @default(0) @db.Decimal(10, 3)
   saltGrams          Decimal  @default(0) @db.Decimal(10, 3)
+  ingredients        Ingredient[]
 }
 
 model Batch {
@@ -130,11 +132,30 @@ model ProcessMap {
   id        String   @id @default(cuid())
   name      String
   productId String
+  outcome   Float
   product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   batches   Batch[]
   parameters ProcessParameter[]
+  ingredients Ingredient[]
+}
+
+model Ingredient {
+  id           String      @id @default(cuid())
+  productId    String?
+  materialId   String?
+  amount       Float
+  product      Product?    @relation(fields: [productId], references: [id])
+  material     Material?   @relation(fields: [materialId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  processMapId String
+  processMap   ProcessMap  @relation(fields: [processMapId], references: [id])
+
+  @@index([productId], map: "Ingredient_productId_fkey")
+  @@index([materialId], map: "Ingredient_materialId_fkey")
+  @@index([processMapId], map: "Ingredient_processMapId_fkey")
 }
 
 model ProcessParameter {

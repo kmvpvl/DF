@@ -24,7 +24,7 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
         ) : activeChapter === 'Batches' ? (
           <StaffBatches />
         ) : activeChapter === 'Products' ? (
-          <StaffProducts />
+          <StaffProducts userId={user?.id} />
         ) : activeChapter === 'Samples' ? (
           <Samples />
         ) : (

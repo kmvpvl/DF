@@ -20,7 +20,6 @@ const MATERIAL_FIELDS = `
   purchaseUnit
   purchaseUnitAmount
   consumptionUnit
-  consumptionUnitAmount
   ratio
   createdAt
   updatedAt
@@ -89,7 +88,6 @@ interface MaterialData {
   purchaseUnit: string;
   purchaseUnitAmount: number;
   consumptionUnit: string;
-  consumptionUnitAmount: number;
   ratio: number;
   createdAt: string;
   updatedAt: string;
@@ -111,7 +109,6 @@ interface MaterialForm {
   purchaseUnit: string;
   purchaseUnitAmount: string;
   consumptionUnit: string;
-  consumptionUnitAmount: string;
   ratio: string;
 }
 
@@ -149,7 +146,7 @@ const INITIAL_FORM: MaterialForm = {
   purchaseUnit: '',
   purchaseUnitAmount: '',
   consumptionUnit: '',
-  consumptionUnitAmount: '',
+
   ratio: '',
 };
 
@@ -299,10 +296,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
         saltGrams: String(material.saltGrams),
         VAT: String(material.VAT),
         Price: String(material.Price),
-        purchaseUnit: material.purchaseUnit,
+        purchaseUnit: material.purchaseUnit ?? '',
         purchaseUnitAmount: String(material.purchaseUnitAmount),
-        consumptionUnit: material.consumptionUnit,
-        consumptionUnitAmount: String(material.consumptionUnitAmount),
+        consumptionUnit: material.consumptionUnit ?? '',
         ratio: String(material.ratio),
       },
     });
@@ -329,11 +325,11 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     const vat = Number.parseFloat(form.VAT);
     const price = Number.parseFloat(form.Price);
     const purchaseUnitAmount = Number.parseFloat(form.purchaseUnitAmount);
-    const consumptionUnitAmount = Number.parseFloat(form.consumptionUnitAmount);
     const ratio = Number.parseFloat(form.ratio);
 
     if (
       !form.name.trim() ||
+      !form.description.trim() ||
       !form.purchaseUnit.trim() ||
       !form.consumptionUnit.trim() ||
       !Number.isFinite(caloriesKcal) ||
@@ -346,7 +342,6 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       !Number.isFinite(vat) ||
       !Number.isFinite(price) ||
       !Number.isFinite(purchaseUnitAmount) ||
-      !Number.isFinite(consumptionUnitAmount) ||
       !Number.isFinite(ratio)
     ) {
       this.setState({
@@ -359,7 +354,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
     const input = {
       name: form.name.trim(),
-      description: form.description.trim() || null,
+      description: form.description.trim(),
       selfProduced: form.selfProduced,
       caloriesKcal,
       fatGrams,
@@ -373,7 +368,6 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       purchaseUnit: form.purchaseUnit.trim(),
       purchaseUnitAmount,
       consumptionUnit: form.consumptionUnit.trim(),
-      consumptionUnitAmount,
       ratio,
     };
 
@@ -692,20 +686,6 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     value={form.consumptionUnit}
                     onChange={(event) =>
                       this.setState({ form: { ...form, consumptionUnit: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Consumption unit amount
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="0.01"
-                    value={form.consumptionUnitAmount}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, consumptionUnitAmount: event.target.value } })
                     }
                     required
                   />
