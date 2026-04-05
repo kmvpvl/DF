@@ -232,6 +232,10 @@ interface CreateProcessMapInput {
   productId: string;
   name: string;
   outcome: number;
+  VAT?: number;
+  containerCost?: number;
+  weight?: number;
+  marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
   ingredients?: IngredientInput[];
 }
@@ -239,6 +243,10 @@ interface CreateProcessMapInput {
 interface UpdateProcessMapInput {
   name?: string;
   outcome?: number;
+  VAT?: number;
+  containerCost?: number;
+  weight?: number;
+  marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
   ingredients?: IngredientInput[];
 }
@@ -765,6 +773,10 @@ const typeDefs = `
     id: ID!
     name: String!
     outcome: Float!
+    VAT: Float!
+    containerCost: Float!
+    weight: Float!
+    marginalCoefficient: Float!
     productId: ID!
     parameters: [ProcessParameter!]!
     ingredients: [Ingredient!]!
@@ -913,6 +925,10 @@ const typeDefs = `
     productId: ID!
     name: String!
     outcome: Float!
+    VAT: Float
+    containerCost: Float
+    weight: Float
+    marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
     ingredients: [IngredientInput!]
   }
@@ -920,6 +936,10 @@ const typeDefs = `
   input UpdateProcessMapInput {
     name: String
     outcome: Float
+    VAT: Float
+    containerCost: Float
+    weight: Float
+    marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
     ingredients: [IngredientInput!]
   }
@@ -956,6 +976,31 @@ const typeDefs = `
     sampleNumber: Int
   }
 
+  type CostSettings {
+    id: ID!
+    marginalCoefficient: Float!
+    containerCost: Float!
+    productVat: Float!
+    productWeight: Float!
+    productContainerCosts: String!
+    productMarginalCoefficients: String!
+    productWeights: String!
+    productVats: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  input UpdateCostSettingsInput {
+    marginalCoefficient: Float
+    containerCost: Float
+    productVat: Float
+    productWeight: Float
+    productContainerCosts: String
+    productMarginalCoefficients: String
+    productWeights: String
+    productVats: String
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -973,6 +1018,7 @@ const typeDefs = `
     batches: [Batch!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
+    costSettings: CostSettings!
   }
 
   type Mutation {
@@ -997,6 +1043,7 @@ const typeDefs = `
     createBatch(input: CreateBatchInput!): Batch!
     updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
     updateSample(id: ID!, input: UpdateSampleInput!): Sample!
+    updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
   }
 `;
 
@@ -1229,6 +1276,26 @@ const resolvers = {
       }
 
       return user;
+    },
+    costSettings: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      
+      let settings = await prisma.costSettings.findUnique({ where: { id: 'singleton' } });
+      if (!settings) {
+        settings = await prisma.costSettings.create({
+          data: { id: 'singleton' },
+        });
+      }
+      
+      return {
+        ...settings,
+        createdAt: settings.createdAt.toISOString(),
+        updatedAt: settings.updatedAt.toISOString(),
+        productContainerCosts: JSON.stringify(settings.productContainerCosts),
+        productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
+        productWeights: JSON.stringify(settings.productWeights),
+        productVats: JSON.stringify(settings.productVats),
+      };
     },
   },
   Mutation: {
@@ -1785,11 +1852,35 @@ const resolvers = {
     ) => {
       if (!req.session.userId) throw new Error('Not authenticated');
       if (!input.name.trim()) throw new Error('Process map name is required');
+      if (input.VAT !== undefined && (!Number.isFinite(input.VAT) || input.VAT < 0)) {
+        throw new Error('Process map VAT must be a non-negative number');
+      }
+      if (
+        input.containerCost !== undefined &&
+        (!Number.isFinite(input.containerCost) || input.containerCost < 0)
+      ) {
+        throw new Error('Process map container cost must be a non-negative number');
+      }
+      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
+        throw new Error('Process map weight must be a non-negative number');
+      }
+      if (
+        input.marginalCoefficient !== undefined &&
+        (!Number.isFinite(input.marginalCoefficient) || input.marginalCoefficient <= 0)
+      ) {
+        throw new Error('Process map marginal coefficient must be greater than zero');
+      }
 
       return await prisma.processMap.create({
         data: {
           name: input.name.trim(),
           outcome: input.outcome,
+          ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
+          ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
+          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.marginalCoefficient !== undefined
+            ? { marginalCoefficient: input.marginalCoefficient }
+            : {}),
           product: { connect: { id: input.productId } },
           parameters: input.parameters?.length
             ? {
@@ -1825,6 +1916,24 @@ const resolvers = {
       if (input.name !== undefined && !input.name.trim()) {
         throw new Error('Process map name cannot be empty');
       }
+      if (input.VAT !== undefined && (!Number.isFinite(input.VAT) || input.VAT < 0)) {
+        throw new Error('Process map VAT must be a non-negative number');
+      }
+      if (
+        input.containerCost !== undefined &&
+        (!Number.isFinite(input.containerCost) || input.containerCost < 0)
+      ) {
+        throw new Error('Process map container cost must be a non-negative number');
+      }
+      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
+        throw new Error('Process map weight must be a non-negative number');
+      }
+      if (
+        input.marginalCoefficient !== undefined &&
+        (!Number.isFinite(input.marginalCoefficient) || input.marginalCoefficient <= 0)
+      ) {
+        throw new Error('Process map marginal coefficient must be greater than zero');
+      }
 
       if (input.parameters !== undefined) {
         await prisma.processParameter.deleteMany({ where: { processMapId: id } });
@@ -1839,6 +1948,12 @@ const resolvers = {
         data: {
           ...(input.name !== undefined ? { name: input.name.trim() } : {}),
           ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
+          ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
+          ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
+          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.marginalCoefficient !== undefined
+            ? { marginalCoefficient: input.marginalCoefficient }
+            : {}),
           ...(input.parameters !== undefined
             ? {
                 parameters: {
@@ -2021,6 +2136,56 @@ const resolvers = {
         where: { id },
         data,
       });
+    },
+    updateCostSettings: async (
+      _: unknown,
+      { input }: { input: Record<string, unknown> },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const updateData: Record<string, unknown> = {};
+
+      if (input.marginalCoefficient !== undefined) {
+        updateData.marginalCoefficient = Number(input.marginalCoefficient);
+      }
+      if (input.containerCost !== undefined) {
+        updateData.containerCost = Number(input.containerCost);
+      }
+      if (input.productVat !== undefined) {
+        updateData.productVat = Number(input.productVat);
+      }
+      if (input.productWeight !== undefined) {
+        updateData.productWeight = Number(input.productWeight);
+      }
+      if (input.productContainerCosts !== undefined) {
+        updateData.productContainerCosts = JSON.parse(String(input.productContainerCosts) || '{}');
+      }
+      if (input.productMarginalCoefficients !== undefined) {
+        updateData.productMarginalCoefficients = JSON.parse(String(input.productMarginalCoefficients) || '{}');
+      }
+      if (input.productWeights !== undefined) {
+        updateData.productWeights = JSON.parse(String(input.productWeights) || '{}');
+      }
+      if (input.productVats !== undefined) {
+        updateData.productVats = JSON.parse(String(input.productVats) || '{}');
+      }
+
+      const settings = await prisma.costSettings.upsert({
+        where: { id: 'singleton' },
+        update: updateData,
+        create: { id: 'singleton', ...updateData },
+      });
+
+      return {
+        ...settings,
+        createdAt: settings.createdAt.toISOString(),
+        updatedAt: settings.updatedAt.toISOString(),
+        productContainerCosts: JSON.stringify(settings.productContainerCosts),
+        productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
+        productWeights: JSON.stringify(settings.productWeights),
+        productVats: JSON.stringify(settings.productVats),
+      };
     },
     sendOrderByEmail: async (
       _: unknown,

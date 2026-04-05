@@ -42,6 +42,10 @@ const PROCESS_MAPS_QUERY = `
       id
       name
       outcome
+      VAT
+      containerCost
+      weight
+      marginalCoefficient
       parameters {
         id
         name
@@ -65,6 +69,10 @@ const CREATE_PROCESS_MAP_MUTATION = `
       id
       name
       outcome
+      VAT
+      containerCost
+      weight
+      marginalCoefficient
       parameters {
         id
         name
@@ -88,6 +96,10 @@ const UPDATE_PROCESS_MAP_MUTATION = `
       id
       name
       outcome
+      VAT
+      containerCost
+      weight
+      marginalCoefficient
       parameters {
         id
         name
@@ -110,6 +122,10 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
     processMaps(productId: $productId) {
       id
       outcome
+      VAT
+      containerCost
+      weight
+      marginalCoefficient
       ingredients {
         id
         product { id name }
@@ -122,7 +138,7 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
 
 const DEFAULT_MARGINAL_COEFFICIENT = 2.01;
 const DEFAULT_CONTAINER_COST = 35;
-const DEFAULT_PRODUCT_VAT = 0.2;
+const DEFAULT_PRODUCT_VAT = 20;
 const DEFAULT_PRODUCT_WEIGHT = 100;
 
 const CREATE_PRODUCT_MUTATION = `
@@ -153,6 +169,22 @@ const IMPORT_PRODUCTS_CSV_MUTATION = `
       importedCount
       skippedCount
       errors
+    }
+  }
+`;
+
+const COST_SETTINGS_QUERY = `
+  query {
+    costSettings {
+      id
+      marginalCoefficient
+      containerCost
+      productVat
+      productWeight
+      productContainerCosts
+      productMarginalCoefficients
+      productWeights
+      productVats
     }
   }
 `;
@@ -193,7 +225,15 @@ interface ProcessParameterData {
 interface IngredientData {
   id: string;
   product: { id: string; name: string } | null;
-  material: { id: string; name: string; consumptionUnit: string } | null;
+  material: {
+    id: string;
+    name: string;
+    consumptionUnit: string;
+    VAT: number;
+    Price: number;
+    purchaseUnitAmount: number;
+    ratio: number;
+  } | null;
   amount: number;
   unit: string;
 }
@@ -202,6 +242,10 @@ interface ProcessMapData {
   id: string;
   name: string;
   outcome: number;
+  VAT: number;
+  containerCost: number;
+  weight: number;
+  marginalCoefficient: number;
   parameters: ProcessParameterData[];
   ingredients: IngredientData[];
 }
@@ -235,6 +279,10 @@ interface CostCalculationResult {
 interface ProcessMapForCost {
   id: string;
   outcome: number;
+  VAT: number;
+  containerCost: number;
+  weight: number;
+  marginalCoefficient: number;
   ingredients: Array<{
     id: string;
     amount: number;
@@ -256,6 +304,10 @@ interface CostSettingsStorage {
   containerCost: number;
   productVat: number;
   productWeight: number;
+  productContainerCosts?: Record<string, number>;
+  productMarginalCoefficients?: Record<string, number>;
+  productWeights?: Record<string, number>;
+  productVats?: Record<string, number>;
 }
 
 interface StaffProductForm {
@@ -280,8 +332,14 @@ interface ImportProductsCsvResult {
 interface StaffProductsState {
   products: StaffProductData[];
   materials: MaterialOption[];
+  productAutoCostLoading: boolean;
+  productAutoCosts: Record<string, number | null>;
+  productAutoCostWeights: Record<string, number | null>;
   processMaps: ProcessMapData[];
   processMapLoading: boolean;
+  processMapAutoCostLoading: boolean;
+  processMapAutoCosts: Record<string, number | null>;
+  processMapAutoCostWeight: number | null;
   processMapPanel: 'none' | 'create' | 'edit';
   processMapEditingId: string | null;
   processMapPanelForm: ProcessMapPanelForm;
@@ -330,11 +388,21 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
   private readonly productUnitPriceCache = new Map<string, number>();
   private readonly processMapsForCostCache = new Map<string, ProcessMapForCost[]>();
+  private productContainerCostById: Record<string, number> = {};
+  private productMarginalCoefficientById: Record<string, number> = {};
+  private productWeightById: Record<string, number> = {};
+  private productVatById: Record<string, number> = {};
   state: StaffProductsState = {
     products: [],
     materials: [],
+    productAutoCostLoading: false,
+    productAutoCosts: {},
+    productAutoCostWeights: {},
     processMaps: [],
     processMapLoading: false,
+    processMapAutoCostLoading: false,
+    processMapAutoCosts: {},
+    processMapAutoCostWeight: null,
     processMapPanel: 'none',
     processMapEditingId: null,
     processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
@@ -352,70 +420,112 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   };
 
   componentDidMount() {
-    this.hydrateCostSettings();
+    void this.hydrateCostSettings();
     void this.fetchProducts();
   }
 
-  private getCostSettingsStorageKey = () =>
-    `staff-products:cost-settings:${this.props.userId ?? 'anonymous'}`;
-
-  private hydrateCostSettings = () => {
-    let parsed: CostSettingsStorage | null = null;
+  private hydrateCostSettings = async () => {
     try {
-      const raw = window.localStorage.getItem(this.getCostSettingsStorageKey());
-      if (raw) {
-        const data = JSON.parse(raw) as Partial<CostSettingsStorage>;
-        const marginalCoefficient = Number(data.marginalCoefficient);
-        const containerCost = Number(data.containerCost);
-        const productVat = Number(data.productVat);
-        const productWeight = Number(data.productWeight);
-        if (
-          Number.isFinite(marginalCoefficient) &&
-          Number.isFinite(containerCost) &&
-          Number.isFinite(productVat) &&
-          Number.isFinite(productWeight)
-        ) {
-          parsed = { marginalCoefficient, containerCost, productVat, productWeight };
-        }
-      }
+      const data = await this.gql(COST_SETTINGS_QUERY);
+      const settings = data.costSettings as {
+        marginalCoefficient: number;
+        containerCost: number;
+        productVat: number;
+        productWeight: number;
+        productContainerCosts: string;
+        productMarginalCoefficients: string;
+        productWeights: string;
+        productVats: string;
+      };
+
+      const productContainerCosts = JSON.parse(settings.productContainerCosts || '{}') as Record<string, number>;
+      const productMarginalCoefficients = JSON.parse(settings.productMarginalCoefficients || '{}') as Record<string, number>;
+      const productWeights = JSON.parse(settings.productWeights || '{}') as Record<string, number>;
+      const productVats = JSON.parse(settings.productVats || '{}') as Record<string, number>;
+
+      this.productContainerCostById = Object.fromEntries(
+        Object.entries(productContainerCosts)
+          .map(([productId, value]) => [productId, Number(value)] as const)
+          .filter((entry) => Number.isFinite(entry[1]) && entry[1] >= 0)
+      );
+      this.productMarginalCoefficientById = Object.fromEntries(
+        Object.entries(productMarginalCoefficients)
+          .map(([productId, value]) => [productId, Number(value)] as const)
+          .filter((entry) => Number.isFinite(entry[1]) && entry[1] > 0)
+      );
+      this.productWeightById = Object.fromEntries(
+        Object.entries(productWeights)
+          .map(([productId, value]) => [productId, Number(value)] as const)
+          .filter((entry) => Number.isFinite(entry[1]) && entry[1] >= 0)
+      );
+      this.productVatById = Object.fromEntries(
+        Object.entries(productVats)
+          .map(([productId, value]) => [productId, Number(value)] as const)
+          .filter((entry) => Number.isFinite(entry[1]) && entry[1] >= 0)
+      );
+
+      this.setState((prev) => ({
+        processMapPanelForm: {
+          ...prev.processMapPanelForm,
+          marginalCoefficient: String(settings.marginalCoefficient),
+          containerCost: String(settings.containerCost),
+          productVat: String(settings.productVat),
+          productWeight: String(settings.productWeight),
+        },
+      }));
     } catch {
-      parsed = null;
+      // If database load fails, use defaults
     }
-
-    if (!parsed) {
-      return;
-    }
-
-    this.setState((prev) => ({
-      processMapPanelForm: {
-        ...prev.processMapPanelForm,
-        marginalCoefficient: String(parsed.marginalCoefficient),
-        containerCost: String(parsed.containerCost),
-        productVat: String(parsed.productVat),
-        productWeight: String(parsed.productWeight),
-      },
-    }));
   };
 
-  private persistCostSettings = (
-    marginalCoefficient: number,
-    containerCost: number,
-    productVat: number,
-    productWeight: number
-  ) => {
-    try {
-      window.localStorage.setItem(
-        this.getCostSettingsStorageKey(),
-        JSON.stringify({
-          marginalCoefficient,
-          containerCost,
-          productVat,
-          productWeight,
-        })
-      );
-    } catch {
-      // Ignore localStorage write errors.
+  private getContainerCostForProduct = (
+    productId: string | null | undefined,
+    fallbackContainerCost: number
+  ): number => {
+    if (!productId) {
+      return fallbackContainerCost;
     }
+
+    const specific = this.productContainerCostById[productId];
+    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackContainerCost;
+  };
+
+  private getMarginalCoefficientForProduct = (
+    productId: string | null | undefined,
+    fallbackMarginalCoefficient: number
+  ): number => {
+    if (!productId) {
+      return fallbackMarginalCoefficient;
+    }
+
+    const specific = this.productMarginalCoefficientById[productId];
+    return Number.isFinite(specific) && specific > 0
+      ? specific
+      : fallbackMarginalCoefficient;
+  };
+
+  private getProductWeightForProduct = (
+    productId: string | null | undefined,
+    fallbackProductWeight: number
+  ): number => {
+    if (!productId) {
+      return fallbackProductWeight;
+    }
+
+    const specific = this.productWeightById[productId];
+    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackProductWeight;
+  };
+
+  private getProductVatForProduct = (
+    productId: string | null | undefined,
+    fallbackProductVat: number
+  ): number => {
+    if (!productId) {
+      return fallbackProductVat;
+    }
+
+    const specific = this.productVatById[productId];
+    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackProductVat;
   };
 
   private getMaterialUnitPriceWithoutVat = (material: {
@@ -451,7 +561,6 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   private computeProductUnitPriceWithoutVat = async (
     productId: string,
     marginalCoefficient: number,
-    containerCost: number,
     visiting: Set<string>,
     applyMarginalCoefficient: boolean
   ): Promise<number> => {
@@ -478,6 +587,12 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         throw new Error('Referenced product process map outcome must be greater than zero.');
       }
 
+      const mapMarginalCoefficient = Number(selectedMap.marginalCoefficient);
+      const effectiveMarginalCoefficient =
+        Number.isFinite(mapMarginalCoefficient) && mapMarginalCoefficient > 0
+          ? mapMarginalCoefficient
+          : marginalCoefficient;
+
       let ingredientsTotal = 0;
       for (const ingredient of selectedMap.ingredients) {
         const amount = Number(ingredient.amount);
@@ -494,7 +609,6 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           const unitPrice = await this.computeProductUnitPriceWithoutVat(
             ingredient.product.id,
             marginalCoefficient,
-            containerCost,
             visiting,
             applyMarginalCoefficient
           );
@@ -503,8 +617,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       }
 
       const totalCostWithoutVat = applyMarginalCoefficient
-        ? (ingredientsTotal + containerCost) * marginalCoefficient
-        : (ingredientsTotal + containerCost);
+        ? ingredientsTotal * effectiveMarginalCoefficient
+        : ingredientsTotal;
       const unitPriceWithoutVat = totalCostWithoutVat / outcome;
       this.productUnitPriceCache.set(cacheKey, unitPriceWithoutVat);
       return unitPriceWithoutVat;
@@ -513,40 +627,48 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     }
   };
 
-  private calculateProcessMapCost = async () => {
+  private calculateProcessMapCost = async (
+    options: { silent?: boolean } = {}
+  ) => {
     const { processMapPanelForm } = this.state;
+    const silent = options.silent ?? false;
+    const getValidationState = (
+      message: string
+    ): Pick<StaffProductsState, 'processMapCostResult' | 'error'> => ({
+      processMapCostResult: null,
+      error: silent ? null : message,
+    });
     const outcome = Number.parseFloat(processMapPanelForm.outcome);
     if (!Number.isFinite(outcome) || outcome <= 0) {
-      this.setState({ error: 'Outcome must be greater than zero to calculate cost.' });
+      this.setState(getValidationState('Outcome must be greater than zero to calculate cost.'));
       return;
     }
 
     const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
     if (!Number.isFinite(marginalCoefficient) || marginalCoefficient <= 0) {
-      this.setState({ error: 'Marginal coefficient must be greater than zero.' });
+      this.setState(getValidationState('Marginal coefficient must be greater than zero.'));
       return;
     }
 
     const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
     if (!Number.isFinite(containerCost) || containerCost < 0) {
-      this.setState({ error: 'Cost of container must be a non-negative number.' });
+      this.setState(getValidationState('Cost of container must be a non-negative number.'));
       return;
     }
 
     const productVat = Number.parseFloat(processMapPanelForm.productVat);
     if (!Number.isFinite(productVat) || productVat < 0) {
-      this.setState({ error: 'VAT of product must be a non-negative number.' });
+      this.setState(getValidationState('VAT of product must be a non-negative number.'));
       return;
     }
 
     const productWeight = Number.parseFloat(processMapPanelForm.productWeight);
     if (!Number.isFinite(productWeight) || productWeight < 0) {
-      this.setState({ error: 'Weight of product must be a non-negative number.' });
+      this.setState(getValidationState('Weight of product must be a non-negative number.'));
       return;
     }
 
     this.setState({ processMapCostCalculating: true, processMapCostResult: null, error: null });
-    this.persistCostSettings(marginalCoefficient, containerCost, productVat, productWeight);
     this.productUnitPriceCache.clear();
     this.processMapsForCostCache.clear();
 
@@ -570,7 +692,6 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           unitPriceWithoutVat = await this.computeProductUnitPriceWithoutVat(
             ingredient.productId,
             marginalCoefficient,
-            containerCost,
             new Set<string>(),
             false
           );
@@ -601,11 +722,271 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         },
       });
     } catch (error) {
-      this.setState({
+      const failureState: Pick<
+        StaffProductsState,
+        'processMapCostCalculating' | 'processMapCostResult' | 'error'
+      > = {
         processMapCostCalculating: false,
-        error: String(error),
+        processMapCostResult: null,
+        error: silent ? null : String(error),
+      };
+      this.setState(failureState);
+    }
+  };
+
+  private triggerAutoProcessMapCostCalculation = () => {
+    void this.calculateProcessMapCost({ silent: true });
+  };
+
+  private getParsedCostSettings = (): CostSettingsStorage | null => {
+    const { processMapPanelForm } = this.state;
+    const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
+    const productVat = Number.parseFloat(processMapPanelForm.productVat);
+    const productWeight = Number.parseFloat(processMapPanelForm.productWeight);
+
+    if (
+      !Number.isFinite(marginalCoefficient) ||
+      marginalCoefficient <= 0 ||
+      !Number.isFinite(containerCost) ||
+      containerCost < 0 ||
+      !Number.isFinite(productVat) ||
+      productVat < 0 ||
+      !Number.isFinite(productWeight) ||
+      productWeight < 0
+    ) {
+      return null;
+    }
+
+    return {
+      marginalCoefficient,
+      containerCost,
+      productVat,
+      productWeight,
+    };
+  };
+
+  private calculateSingleProcessMapTotalWithVat = async (
+    processMap: ProcessMapData,
+    defaults: CostSettingsStorage
+  ): Promise<number | null> => {
+    const outcome = Number(processMap.outcome);
+    if (!Number.isFinite(outcome) || outcome <= 0) {
+      return null;
+    }
+
+    const mapMarginalCoefficient = Number(processMap.marginalCoefficient);
+    const mapWeight = Number(processMap.weight);
+    const mapVat = Number(processMap.VAT);
+    const mapContainerCost = Number(processMap.containerCost);
+
+    const marginalCoefficient =
+      Number.isFinite(mapMarginalCoefficient) && mapMarginalCoefficient > 0
+        ? mapMarginalCoefficient
+        : defaults.marginalCoefficient;
+    const productWeight =
+      Number.isFinite(mapWeight) && mapWeight >= 0 ? mapWeight : defaults.productWeight;
+    const productVat = Number.isFinite(mapVat) && mapVat >= 0 ? mapVat : defaults.productVat;
+    const containerCost =
+      Number.isFinite(mapContainerCost) && mapContainerCost >= 0
+        ? mapContainerCost
+        : defaults.containerCost;
+
+    let ingredientsTotal = 0;
+    for (const ingredient of processMap.ingredients) {
+      const amount = Number(ingredient.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        continue;
+      }
+
+      if (ingredient.material) {
+        ingredientsTotal += this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
+        continue;
+      }
+
+      if (ingredient.product?.id) {
+        const unitPriceWithoutVat = await this.computeProductUnitPriceWithoutVat(
+          ingredient.product.id,
+          defaults.marginalCoefficient,
+          new Set<string>(),
+          false
+        );
+        ingredientsTotal += unitPriceWithoutVat * amount;
+      }
+    }
+
+    const costPerGramWithoutVat =
+      (ingredientsTotal * marginalCoefficient) / outcome;
+    const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
+    const totalCostWithVat =
+      weightedCostWithoutVat * (1 + productVat / 100) + containerCost;
+
+    return totalCostWithVat;
+  };
+
+  private calculateProcessMapListAutoCosts = async (
+    processMaps: ProcessMapData[]
+  ) => {
+    if (processMaps.length === 0) {
+      this.setState({
+        processMapAutoCosts: {},
+        processMapAutoCostLoading: false,
+        processMapAutoCostWeight: null,
+      });
+      return;
+    }
+
+    const settings = this.getParsedCostSettings();
+    if (!settings) {
+      this.setState({
+        processMapAutoCosts: {},
+        processMapAutoCostLoading: false,
+        processMapAutoCostWeight: null,
+      });
+      return;
+    }
+
+    this.productUnitPriceCache.clear();
+    this.processMapsForCostCache.clear();
+
+    try {
+      const pairs = await Promise.all(
+        processMaps.map(async (pm) => {
+          const total = await this.calculateSingleProcessMapTotalWithVat(pm, settings);
+          return [pm.id, total] as const;
+        })
+      );
+
+      this.setState({
+        processMapAutoCosts: Object.fromEntries(pairs),
+        processMapAutoCostLoading: false,
+        processMapAutoCostWeight: null,
+      });
+    } catch {
+      this.setState({ processMapAutoCostLoading: false, processMapAutoCostWeight: null });
+    }
+  };
+
+  private calculateProductTableAutoCosts = async (
+    products: StaffProductData[]
+  ) => {
+    if (products.length === 0) {
+      this.setState({
+        productAutoCostLoading: false,
+        productAutoCosts: {},
+        productAutoCostWeights: {},
+      });
+      return;
+    }
+
+    const settings = this.getParsedCostSettings();
+    if (!settings) {
+      this.setState({
+        productAutoCostLoading: false,
+        productAutoCosts: {},
+        productAutoCostWeights: {},
+      });
+      return;
+    }
+
+    this.setState({ productAutoCostLoading: true });
+    this.productUnitPriceCache.clear();
+    this.processMapsForCostCache.clear();
+
+    try {
+      const pairs = await Promise.all(
+        products.map(async (product) => {
+          const maps = await this.loadProcessMapsForCost(product.id);
+          const selectedMap = maps[0];
+          if (!selectedMap) {
+            return [product.id, null, null] as const;
+          }
+
+          const productMarginalCoefficient =
+            Number.isFinite(Number(selectedMap.marginalCoefficient)) &&
+            Number(selectedMap.marginalCoefficient) > 0
+              ? Number(selectedMap.marginalCoefficient)
+              : settings.marginalCoefficient;
+          const productContainerCost =
+            Number.isFinite(Number(selectedMap.containerCost)) &&
+            Number(selectedMap.containerCost) >= 0
+              ? Number(selectedMap.containerCost)
+              : settings.containerCost;
+          const productVat =
+            Number.isFinite(Number(selectedMap.VAT)) && Number(selectedMap.VAT) >= 0
+              ? Number(selectedMap.VAT)
+              : settings.productVat;
+          const productWeight =
+            Number.isFinite(Number(selectedMap.weight)) && Number(selectedMap.weight) >= 0
+              ? Number(selectedMap.weight)
+              : settings.productWeight;
+
+          const outcome = Number(selectedMap.outcome);
+          if (!Number.isFinite(outcome) || outcome <= 0) {
+            return [product.id, null, null] as const;
+          }
+
+          let ingredientsTotal = 0;
+          for (const ingredient of selectedMap.ingredients) {
+            const amount = Number(ingredient.amount);
+            if (!Number.isFinite(amount) || amount <= 0) {
+              continue;
+            }
+
+            if (ingredient.material) {
+              ingredientsTotal += this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
+              continue;
+            }
+
+            if (ingredient.product?.id) {
+              const unitPriceWithoutVat = await this.computeProductUnitPriceWithoutVat(
+                ingredient.product.id,
+                productMarginalCoefficient,
+                new Set<string>(),
+                false
+              );
+              ingredientsTotal += unitPriceWithoutVat * amount;
+            }
+          }
+
+          const costPerGramWithoutVat =
+            (ingredientsTotal * productMarginalCoefficient) / outcome;
+          const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
+          const totalCostWithVat =
+            weightedCostWithoutVat * (1 + productVat / 100) + productContainerCost;
+
+          return [product.id, totalCostWithVat, productWeight] as const;
+        })
+      );
+
+      this.setState({
+        productAutoCostLoading: false,
+        productAutoCosts: Object.fromEntries(
+          pairs.map(([productId, total]) => [productId, total])
+        ),
+        productAutoCostWeights: Object.fromEntries(
+          pairs.map(([productId, , productWeight]) => [productId, productWeight ?? null])
+        ) as Record<string, number | null>,
+      });
+    } catch {
+      this.setState({
+        productAutoCostLoading: false,
       });
     }
+  };
+
+  private triggerProductTableAutoCostCalculation = () => {
+    void this.calculateProductTableAutoCosts(this.state.products);
+  };
+
+  private formatAutoCostWeight = (weight: number | null): string => {
+    if (weight === null || !Number.isFinite(weight)) {
+      return '0';
+    }
+
+    return Number.isInteger(weight)
+      ? String(weight)
+      : weight.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
   };
 
   private gql = async (query: string, variables: Record<string, unknown> = {}) => {
@@ -633,10 +1014,13 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
 
     try {
       const data = await this.gql(PRODUCTS_QUERY);
+      const products = data.products as StaffProductData[];
       this.setState({
         loading: false,
-        products: data.products as StaffProductData[],
+        products,
         materials: data.materials as MaterialOption[],
+      }, () => {
+        this.triggerProductTableAutoCostCalculation();
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
@@ -644,15 +1028,21 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   };
 
   private loadProcessMaps = async (productId: string) => {
-    this.setState({ processMapLoading: true, error: null });
+    this.setState({ processMapLoading: true, processMapAutoCostLoading: true, error: null });
     try {
       const data = await this.gql(PROCESS_MAPS_QUERY, { productId });
+      const processMaps = data.processMaps as ProcessMapData[];
       this.setState({
-        processMaps: data.processMaps as ProcessMapData[],
+        processMaps,
         processMapLoading: false,
       });
+      void this.calculateProcessMapListAutoCosts(processMaps);
     } catch (error) {
-      this.setState({ processMapLoading: false, error: String(error) });
+      this.setState({
+        processMapLoading: false,
+        processMapAutoCostLoading: false,
+        error: String(error),
+      });
     }
   };
 
@@ -723,6 +1113,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       editingProduct: null,
       form: { ...INITIAL_FORM },
       processMaps: [],
+      processMapAutoCosts: {},
+      processMapAutoCostLoading: false,
+      processMapAutoCostWeight: null,
       processMapPanel: 'none',
       processMapEditingId: null,
       processMapPanelForm: {
@@ -739,6 +1132,33 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
 
   private openEditForm = (product: StaffProductData) => {
     const { processMapPanelForm } = this.state;
+    const fallbackMarginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const resolvedMarginalFallback =
+      Number.isFinite(fallbackMarginalCoefficient) && fallbackMarginalCoefficient > 0
+        ? fallbackMarginalCoefficient
+        : DEFAULT_MARGINAL_COEFFICIENT;
+    const fallbackContainerCost = Number.parseFloat(processMapPanelForm.containerCost);
+    const resolvedFallback =
+      Number.isFinite(fallbackContainerCost) && fallbackContainerCost >= 0
+        ? fallbackContainerCost
+        : DEFAULT_CONTAINER_COST;
+    const fallbackProductWeight = Number.parseFloat(processMapPanelForm.productWeight);
+    const resolvedWeightFallback =
+      Number.isFinite(fallbackProductWeight) && fallbackProductWeight >= 0
+        ? fallbackProductWeight
+        : DEFAULT_PRODUCT_WEIGHT;
+    const fallbackProductVat = Number.parseFloat(processMapPanelForm.productVat);
+    const resolvedVatFallback =
+      Number.isFinite(fallbackProductVat) && fallbackProductVat >= 0
+        ? fallbackProductVat
+        : DEFAULT_PRODUCT_VAT;
+    const productMarginalCoefficient = this.getMarginalCoefficientForProduct(
+      product.id,
+      resolvedMarginalFallback
+    );
+    const productContainerCost = this.getContainerCostForProduct(product.id, resolvedFallback);
+    const productWeight = this.getProductWeightForProduct(product.id, resolvedWeightFallback);
+    const productVat = this.getProductVatForProduct(product.id, resolvedVatFallback);
     this.setState({
       adding: false,
       editingProduct: product,
@@ -759,10 +1179,10 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       processMapEditingId: null,
       processMapPanelForm: {
         ...INITIAL_PROCESS_MAP_PANEL_FORM,
-        marginalCoefficient: processMapPanelForm.marginalCoefficient,
-        containerCost: processMapPanelForm.containerCost,
-        productVat: processMapPanelForm.productVat,
-        productWeight: processMapPanelForm.productWeight,
+        marginalCoefficient: String(productMarginalCoefficient),
+        containerCost: String(productContainerCost),
+        productVat: String(productVat),
+        productWeight: String(productWeight),
       },
     });
     void this.loadProcessMaps(product.id);
@@ -785,6 +1205,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         productWeight: processMapPanelForm.productWeight,
       },
       processMapCostResult: null,
+      processMapAutoCosts: {},
+      processMapAutoCostLoading: false,
+      processMapAutoCostWeight: null,
     });
   };
 
@@ -813,10 +1236,10 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       processMapPanelForm: {
         name: pm.name,
         outcome: String(pm.outcome),
-        marginalCoefficient: this.state.processMapPanelForm.marginalCoefficient,
-        containerCost: this.state.processMapPanelForm.containerCost,
-        productVat: this.state.processMapPanelForm.productVat,
-        productWeight: this.state.processMapPanelForm.productWeight,
+        marginalCoefficient: String(pm.marginalCoefficient),
+        containerCost: String(pm.containerCost),
+        productVat: String(pm.VAT),
+        productWeight: String(pm.weight),
         parameters: pm.parameters.map(p => ({ name: p.name, value: p.value, unit: p.unit })),
         ingredients: pm.ingredients.map(ing => ({
           type: ing.product ? 'product' : 'material',
@@ -826,6 +1249,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         })),
       },
       processMapCostResult: null,
+    }, () => {
+      this.triggerAutoProcessMapCostCalculation();
     });
   };
 
@@ -857,6 +1282,30 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       return;
     }
 
+    const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    if (!Number.isFinite(marginalCoefficient) || marginalCoefficient <= 0) {
+      this.setState({ error: 'Marginal coefficient must be greater than zero.' });
+      return;
+    }
+
+    const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
+    if (!Number.isFinite(containerCost) || containerCost < 0) {
+      this.setState({ error: 'Cost of container must be a non-negative number.' });
+      return;
+    }
+
+    const productVat = Number.parseFloat(processMapPanelForm.productVat);
+    if (!Number.isFinite(productVat) || productVat < 0) {
+      this.setState({ error: 'VAT of product must be a non-negative number.' });
+      return;
+    }
+
+    const productWeight = Number.parseFloat(processMapPanelForm.productWeight);
+    if (!Number.isFinite(productWeight) || productWeight < 0) {
+      this.setState({ error: 'Weight of product must be a non-negative number.' });
+      return;
+    }
+
     this.setState({ processMapSaving: true, error: null });
     try {
       if (processMapPanel === 'create') {
@@ -865,6 +1314,10 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
             productId: editingProduct.id,
             name: processMapPanelForm.name.trim(),
             outcome,
+            VAT: productVat,
+            containerCost,
+            weight: productWeight,
+            marginalCoefficient,
             parameters: processMapPanelForm.parameters.map(p => ({
               name: p.name.trim(),
               value: p.value.trim(),
@@ -885,6 +1338,10 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           input: {
             name: processMapPanelForm.name.trim(),
             outcome,
+            VAT: productVat,
+            containerCost,
+            weight: productWeight,
+            marginalCoefficient,
             parameters: processMapPanelForm.parameters.map(p => ({
               name: p.name.trim(),
               value: p.value.trim(),
@@ -949,6 +1406,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         processMapPanelForm: { ...prev.processMapPanelForm, parameters },
         processMapCostResult: null,
       };
+    }, () => {
+      this.triggerAutoProcessMapCostCalculation();
     });
   };
 
@@ -962,7 +1421,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         ],
       },
       processMapCostResult: null,
-    }));
+    }), () => {
+      this.triggerAutoProcessMapCostCalculation();
+    });
   };
 
   private removeIngredient = (idx: number) => {
@@ -972,7 +1433,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         ingredients: prev.processMapPanelForm.ingredients.filter((_, i) => i !== idx),
       },
       processMapCostResult: null,
-    }));
+    }), () => {
+      this.triggerAutoProcessMapCostCalculation();
+    });
   };
 
   private updateIngredient = (
@@ -992,6 +1455,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         processMapPanelForm: { ...prev.processMapPanelForm, ingredients },
         processMapCostResult: null,
       };
+    }, () => {
+      this.triggerAutoProcessMapCostCalculation();
     });
   };
 
@@ -1054,7 +1519,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           products: prevState.products
             .map((product) => (product.id === updated.id ? updated : product))
             .sort((a, b) => a.name.localeCompare(b.name)),
-        }));
+        }), () => {
+          this.triggerProductTableAutoCostCalculation();
+        });
       } else {
         const data = await this.gql(CREATE_PRODUCT_MUTATION, { input });
         const created = data.createProduct as StaffProductData;
@@ -1066,7 +1533,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           products: [...prevState.products, created].sort((a, b) =>
             a.name.localeCompare(b.name)
           ),
-        }));
+        }), () => {
+          this.triggerProductTableAutoCostCalculation();
+        });
       }
     } catch (error) {
       this.setState({ saving: false, error: String(error) });
@@ -1077,8 +1546,14 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     const {
       products,
       materials,
+      productAutoCostLoading,
+      productAutoCosts,
+      productAutoCostWeights,
       processMaps,
       processMapLoading,
+      processMapAutoCostLoading,
+      processMapAutoCosts,
+      processMapAutoCostWeight,
       processMapPanel,
       processMapPanelForm,
       processMapSaving,
@@ -1313,6 +1788,19 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                         >
                           <span>
                             <strong>{pm.name}</strong> (outcome: {pm.outcome})
+                            {processMapAutoCostLoading ? (
+                              <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.85em' }}>
+                                auto cost: calculating...
+                              </span>
+                            ) : processMapAutoCosts[pm.id] != null ? (
+                              <span style={{ marginLeft: '8px', color: '#345d2f', fontSize: '0.85em' }}>
+                                auto cost: {processMapAutoCosts[pm.id]?.toFixed(4)} /{this.formatAutoCostWeight(processMapAutoCostWeight)} g
+                              </span>
+                            ) : (
+                              <span style={{ marginLeft: '8px', color: '#888', fontSize: '0.85em' }}>
+                                auto cost: -
+                              </span>
+                            )}
                           </span>
                           <button type="button" className="cj-btn-sm" onClick={() => this.openEditProcessMap(pm.id)}>
                             Edit
@@ -1364,10 +1852,17 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                                   outcome: event.target.value,
                                 },
                                 processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
                               })
                             }
                             placeholder="Outcome"
                           />
+                          {processMapCostResult && (
+                            <div style={{ marginTop: '4px', fontSize: '0.8em', color: '#345d2f' }}>
+                              Auto total (with VAT): <strong>{processMapCostResult.totalCostWithVat.toFixed(4)}</strong>
+                            </div>
+                          )}
                         </label>
 
                         <label className="cj-label" style={{ margin: 0 }}>
@@ -1384,6 +1879,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                                   marginalCoefficient: event.target.value,
                                 },
                                 processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
+                                this.triggerProductTableAutoCostCalculation();
                               })
                             }
                             placeholder="Marginal coeff"
@@ -1404,6 +1902,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                                   containerCost: event.target.value,
                                 },
                                 processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
+                                this.triggerProductTableAutoCostCalculation();
                               })
                             }
                             placeholder="Container cost"
@@ -1424,6 +1925,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                                   productVat: event.target.value,
                                 },
                                 processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
+                                this.triggerProductTableAutoCostCalculation();
                               })
                             }
                             placeholder="VAT %"
@@ -1445,6 +1949,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                                   productWeight: event.target.value,
                                 },
                                 processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
+                                this.triggerProductTableAutoCostCalculation();
                               })
                             }
                             placeholder="Weight g"
@@ -1662,13 +2169,14 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                   <th>Fat</th>
                   <th>Protein</th>
                   <th>Carbs</th>
+                  <th>Auto cost</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {products.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="cj-empty">
+                    <td colSpan={8} className="cj-empty">
                       No product records yet.
                     </td>
                   </tr>
@@ -1684,6 +2192,13 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                       <td>{product.fatGrams}</td>
                       <td>{product.proteinGrams}</td>
                       <td>{product.carbohydratesGrams}</td>
+                      <td>
+                        {productAutoCostLoading
+                          ? 'Calculating...'
+                          : productAutoCosts[product.id] != null
+                            ? `${productAutoCosts[product.id]!.toFixed(4)} /${this.formatAutoCostWeight(productAutoCostWeights[product.id] ?? null)} g`
+                            : '-'}
+                      </td>
                       <td className="cj-row-actions">
                         <button className="cj-btn-sm" onClick={() => this.openEditForm(product)}>
                           Edit
