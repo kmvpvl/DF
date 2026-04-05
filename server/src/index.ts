@@ -1949,6 +1949,9 @@ const resolvers = {
       return await prisma.sample.update({
         where: { id },
         data,
+        include: {
+          batch: { include: { product: true } },
+        },
       });
     },
     sendOrderByEmail: async (
