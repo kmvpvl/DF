@@ -133,6 +133,7 @@ model ProcessMap {
   name      String
   productId String
   outcome   Float
+  rateOfLoss Float  @default(0.0)
   VAT       Float    @default(20.0)
   containerCost Float @default(35.0)
   weight    Float    @default(100.0)

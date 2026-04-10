@@ -232,6 +232,7 @@ interface CreateProcessMapInput {
   productId: string;
   name: string;
   outcome: number;
+  rateOfLoss?: number;
   VAT?: number;
   containerCost?: number;
   weight?: number;
@@ -243,6 +244,7 @@ interface CreateProcessMapInput {
 interface UpdateProcessMapInput {
   name?: string;
   outcome?: number;
+  rateOfLoss?: number;
   VAT?: number;
   containerCost?: number;
   weight?: number;
@@ -773,6 +775,7 @@ const typeDefs = `
     id: ID!
     name: String!
     outcome: Float!
+    rateOfLoss: Float!
     VAT: Float!
     containerCost: Float!
     weight: Float!
@@ -925,6 +928,7 @@ const typeDefs = `
     productId: ID!
     name: String!
     outcome: Float!
+    rateOfLoss: Float
     VAT: Float
     containerCost: Float
     weight: Float
@@ -936,6 +940,7 @@ const typeDefs = `
   input UpdateProcessMapInput {
     name: String
     outcome: Float
+    rateOfLoss: Float
     VAT: Float
     containerCost: Float
     weight: Float
@@ -1856,6 +1861,12 @@ const resolvers = {
         throw new Error('Process map VAT must be a non-negative number');
       }
       if (
+        input.rateOfLoss !== undefined &&
+        (!Number.isFinite(input.rateOfLoss) || input.rateOfLoss < 0 || input.rateOfLoss >= 100)
+      ) {
+        throw new Error('Process map rate of loss must be between 0 and 100');
+      }
+      if (
         input.containerCost !== undefined &&
         (!Number.isFinite(input.containerCost) || input.containerCost < 0)
       ) {
@@ -1875,6 +1886,7 @@ const resolvers = {
         data: {
           name: input.name.trim(),
           outcome: input.outcome,
+          ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
           ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
           ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
           ...(input.weight !== undefined ? { weight: input.weight } : {}),
@@ -1920,6 +1932,12 @@ const resolvers = {
         throw new Error('Process map VAT must be a non-negative number');
       }
       if (
+        input.rateOfLoss !== undefined &&
+        (!Number.isFinite(input.rateOfLoss) || input.rateOfLoss < 0 || input.rateOfLoss >= 100)
+      ) {
+        throw new Error('Process map rate of loss must be between 0 and 100');
+      }
+      if (
         input.containerCost !== undefined &&
         (!Number.isFinite(input.containerCost) || input.containerCost < 0)
       ) {
@@ -1948,6 +1966,7 @@ const resolvers = {
         data: {
           ...(input.name !== undefined ? { name: input.name.trim() } : {}),
           ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
+          ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
           ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
           ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
           ...(input.weight !== undefined ? { weight: input.weight } : {}),

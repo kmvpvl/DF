@@ -42,6 +42,7 @@ const PROCESS_MAPS_QUERY = `
       id
       name
       outcome
+      rateOfLoss
       VAT
       containerCost
       weight
@@ -69,6 +70,7 @@ const CREATE_PROCESS_MAP_MUTATION = `
       id
       name
       outcome
+      rateOfLoss
       VAT
       containerCost
       weight
@@ -96,6 +98,7 @@ const UPDATE_PROCESS_MAP_MUTATION = `
       id
       name
       outcome
+      rateOfLoss
       VAT
       containerCost
       weight
@@ -122,6 +125,7 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
     processMaps(productId: $productId) {
       id
       outcome
+      rateOfLoss
       VAT
       containerCost
       weight
@@ -242,6 +246,7 @@ interface ProcessMapData {
   id: string;
   name: string;
   outcome: number;
+  rateOfLoss: number;
   VAT: number;
   containerCost: number;
   weight: number;
@@ -253,6 +258,7 @@ interface ProcessMapData {
 interface ProcessMapPanelForm {
   name: string;
   outcome: string;
+  rateOfLoss: string;
   marginalCoefficient: string;
   containerCost: string;
   productVat: string;
@@ -279,6 +285,7 @@ interface CostCalculationResult {
 interface ProcessMapForCost {
   id: string;
   outcome: number;
+  rateOfLoss: number;
   VAT: number;
   containerCost: number;
   weight: number;
@@ -372,6 +379,7 @@ const INITIAL_FORM: StaffProductForm = {
 const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
   name: '',
   outcome: '',
+  rateOfLoss: '0',
   marginalCoefficient: String(DEFAULT_MARGINAL_COEFFICIENT),
   containerCost: String(DEFAULT_CONTAINER_COST),
   productVat: String(DEFAULT_PRODUCT_VAT),
@@ -587,6 +595,12 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         throw new Error('Referenced product process map outcome must be greater than zero.');
       }
 
+      const mapRateOfLoss = Number(selectedMap.rateOfLoss);
+      const effectiveRateOfLoss =
+        Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+          ? mapRateOfLoss
+          : 0;
+
       const mapMarginalCoefficient = Number(selectedMap.marginalCoefficient);
       const effectiveMarginalCoefficient =
         Number.isFinite(mapMarginalCoefficient) && mapMarginalCoefficient > 0
@@ -619,7 +633,11 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       const totalCostWithoutVat = applyMarginalCoefficient
         ? ingredientsTotal * effectiveMarginalCoefficient
         : ingredientsTotal;
-      const unitPriceWithoutVat = totalCostWithoutVat / outcome;
+      const effectiveOutcome = outcome * (1 - effectiveRateOfLoss / 100);
+      if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
+        throw new Error('Referenced product process map effective outcome must be greater than zero.');
+      }
+      const unitPriceWithoutVat = totalCostWithoutVat / effectiveOutcome;
       this.productUnitPriceCache.set(cacheKey, unitPriceWithoutVat);
       return unitPriceWithoutVat;
     } finally {
@@ -641,6 +659,12 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     const outcome = Number.parseFloat(processMapPanelForm.outcome);
     if (!Number.isFinite(outcome) || outcome <= 0) {
       this.setState(getValidationState('Outcome must be greater than zero to calculate cost.'));
+      return;
+    }
+
+    const rateOfLoss = Number.parseFloat(processMapPanelForm.rateOfLoss);
+    if (!Number.isFinite(rateOfLoss) || rateOfLoss < 0 || rateOfLoss >= 100) {
+      this.setState(getValidationState('Rate of loss must be between 0 and 100.'));
       return;
     }
 
@@ -705,7 +729,11 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       }
 
       const ingredientsTotal = lines.reduce((sum, line) => sum + line.lineCost, 0);
-      const costPerGramWithoutVat = (ingredientsTotal * marginalCoefficient) / outcome;
+      const effectiveOutcome = outcome * (1 - rateOfLoss / 100);
+      if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
+        throw new Error('Effective outcome must be greater than zero.');
+      }
+      const costPerGramWithoutVat = (ingredientsTotal * marginalCoefficient) / effectiveOutcome;
       const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
       const totalCostWithoutVat = weightedCostWithoutVat + containerCost;
       const totalCostWithVat = weightedCostWithoutVat * (1 + productVat / 100) + containerCost;
@@ -775,6 +803,12 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       return null;
     }
 
+    const mapRateOfLoss = Number(processMap.rateOfLoss);
+    const rateOfLoss =
+      Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+        ? mapRateOfLoss
+        : 0;
+
     const mapMarginalCoefficient = Number(processMap.marginalCoefficient);
     const mapWeight = Number(processMap.weight);
     const mapVat = Number(processMap.VAT);
@@ -815,8 +849,13 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       }
     }
 
+    const effectiveOutcome = outcome * (1 - rateOfLoss / 100);
+    if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
+      return null;
+    }
+
     const costPerGramWithoutVat =
-      (ingredientsTotal * marginalCoefficient) / outcome;
+      (ingredientsTotal * marginalCoefficient) / effectiveOutcome;
     const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
     const totalCostWithVat =
       weightedCostWithoutVat * (1 + productVat / 100) + containerCost;
@@ -926,6 +965,13 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
             return [product.id, null, null] as const;
           }
 
+          const productRateOfLoss =
+            Number.isFinite(Number(selectedMap.rateOfLoss)) &&
+            Number(selectedMap.rateOfLoss) >= 0 &&
+            Number(selectedMap.rateOfLoss) < 100
+              ? Number(selectedMap.rateOfLoss)
+              : 0;
+
           let ingredientsTotal = 0;
           for (const ingredient of selectedMap.ingredients) {
             const amount = Number(ingredient.amount);
@@ -949,8 +995,13 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
             }
           }
 
+          const effectiveOutcome = outcome * (1 - productRateOfLoss / 100);
+          if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
+            return [product.id, null, null] as const;
+          }
+
           const costPerGramWithoutVat =
-            (ingredientsTotal * productMarginalCoefficient) / outcome;
+            (ingredientsTotal * productMarginalCoefficient) / effectiveOutcome;
           const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
           const totalCostWithVat =
             weightedCostWithoutVat * (1 + productVat / 100) + productContainerCost;
@@ -1236,6 +1287,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       processMapPanelForm: {
         name: pm.name,
         outcome: String(pm.outcome),
+        rateOfLoss: String(pm.rateOfLoss),
         marginalCoefficient: String(pm.marginalCoefficient),
         containerCost: String(pm.containerCost),
         productVat: String(pm.VAT),
@@ -1282,6 +1334,12 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       return;
     }
 
+    const rateOfLoss = Number.parseFloat(processMapPanelForm.rateOfLoss);
+    if (!Number.isFinite(rateOfLoss) || rateOfLoss < 0 || rateOfLoss >= 100) {
+      this.setState({ error: 'Rate of loss must be between 0 and 100.' });
+      return;
+    }
+
     const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
     if (!Number.isFinite(marginalCoefficient) || marginalCoefficient <= 0) {
       this.setState({ error: 'Marginal coefficient must be greater than zero.' });
@@ -1314,6 +1372,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
             productId: editingProduct.id,
             name: processMapPanelForm.name.trim(),
             outcome,
+            rateOfLoss,
             VAT: productVat,
             containerCost,
             weight: productWeight,
@@ -1338,6 +1397,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
           input: {
             name: processMapPanelForm.name.trim(),
             outcome,
+            rateOfLoss,
             VAT: productVat,
             containerCost,
             weight: productWeight,
@@ -1863,6 +1923,31 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                               Auto total (with VAT): <strong>{processMapCostResult.totalCostWithVat.toFixed(4)}</strong>
                             </div>
                           )}
+                        </label>
+
+                        <label className="cj-label" style={{ margin: 0 }}>
+                          Rate of loss (%)
+                          <input
+                            className="cj-input batch-input-wide"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="99.99"
+                            value={processMapPanelForm.rateOfLoss}
+                            onChange={(event) =>
+                              this.setState({
+                                processMapPanelForm: {
+                                  ...processMapPanelForm,
+                                  rateOfLoss: event.target.value,
+                                },
+                                processMapCostResult: null,
+                              }, () => {
+                                this.triggerAutoProcessMapCostCalculation();
+                                this.triggerProductTableAutoCostCalculation();
+                              })
+                            }
+                            placeholder="Rate of loss %"
+                          />
                         </label>
 
                         <label className="cj-label" style={{ margin: 0 }}>
