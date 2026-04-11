@@ -235,10 +235,11 @@ interface CreateProcessMapInput {
   rateOfLoss?: number;
   VAT?: number;
   containerCost?: number;
-  weight?: number;
+  dose?: number;
   marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
   ingredients?: IngredientInput[];
+  outcomeUnit?: string;
 }
 
 interface UpdateProcessMapInput {
@@ -247,10 +248,11 @@ interface UpdateProcessMapInput {
   rateOfLoss?: number;
   VAT?: number;
   containerCost?: number;
-  weight?: number;
+  dose?: number;
   marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
   ingredients?: IngredientInput[];
+  outcomeUnit?: string;
 }
 
 interface ImportMaterialsCsvResult {
@@ -778,13 +780,14 @@ const typeDefs = `
     rateOfLoss: Float!
     VAT: Float!
     containerCost: Float!
-    weight: Float!
+    dose: Float!
     marginalCoefficient: Float!
     productId: ID!
     parameters: [ProcessParameter!]!
     ingredients: [Ingredient!]!
     createdAt: String!
     updatedAt: String!
+    outcomeUnit: String!
   }
 
   type Sample {
@@ -931,10 +934,11 @@ const typeDefs = `
     rateOfLoss: Float
     VAT: Float
     containerCost: Float
-    weight: Float
+    dose: Float
     marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
     ingredients: [IngredientInput!]
+    outcomeUnit: String
   }
 
   input UpdateProcessMapInput {
@@ -943,10 +947,11 @@ const typeDefs = `
     rateOfLoss: Float
     VAT: Float
     containerCost: Float
-    weight: Float
+    dose: Float
     marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
     ingredients: [IngredientInput!]
+    outcomeUnit: String
   }
 
   input CreateBatchInput {
@@ -1877,8 +1882,8 @@ const resolvers = {
       ) {
         throw new Error('Process map container cost must be a non-negative number');
       }
-      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
-        throw new Error('Process map weight must be a non-negative number');
+      if (input.dose !== undefined && (!Number.isFinite(input.dose) || input.dose < 0)) {
+        throw new Error('Process map dose must be a non-negative number');
       }
       if (
         input.marginalCoefficient !== undefined &&
@@ -1894,10 +1899,11 @@ const resolvers = {
           ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
           ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
           ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
-          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.dose !== undefined ? { dose: input.dose } : {}),
           ...(input.marginalCoefficient !== undefined
             ? { marginalCoefficient: input.marginalCoefficient }
             : {}),
+          ...(input.outcomeUnit !== undefined ? { outcomeUnit: input.outcomeUnit } : {}),
           product: { connect: { id: input.productId } },
           parameters: input.parameters?.length
             ? {
@@ -1948,8 +1954,8 @@ const resolvers = {
       ) {
         throw new Error('Process map container cost must be a non-negative number');
       }
-      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
-        throw new Error('Process map weight must be a non-negative number');
+      if (input.dose !== undefined && (!Number.isFinite(input.dose) || input.dose < 0)) {
+        throw new Error('Process map dose must be a non-negative number');
       }
       if (
         input.marginalCoefficient !== undefined &&
@@ -1974,10 +1980,11 @@ const resolvers = {
           ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
           ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
           ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
-          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.dose !== undefined ? { dose: input.dose } : {}),
           ...(input.marginalCoefficient !== undefined
             ? { marginalCoefficient: input.marginalCoefficient }
             : {}),
+          ...(input.outcomeUnit !== undefined ? { outcomeUnit: input.outcomeUnit } : {}),
           ...(input.parameters !== undefined
             ? {
                 parameters: {
