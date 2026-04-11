@@ -136,8 +136,9 @@ model ProcessMap {
   rateOfLoss Float  @default(0.0)
   VAT       Float    @default(20.0)
   containerCost Float @default(35.0)
-  weight    Float    @default(100.0)
+  dose      Float    @default(100.0)
   marginalCoefficient Float @default(2.01)
+  outcomeUnit String  @default("g")
   product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
