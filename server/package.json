@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start:prod": "npm run build && npx prisma migrate deploy && npm run start",
+    "start:prod": "npx prisma migrate deploy && npm run start",
     "start": "node dist/index.js",
     "dev": "nodemon --exec tsx src/index.ts",
     "test": "vitest",
