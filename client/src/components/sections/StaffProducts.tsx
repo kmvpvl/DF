@@ -346,7 +346,7 @@ interface StaffProductsState {
   processMapLoading: boolean;
   processMapAutoCostLoading: boolean;
   processMapAutoCosts: Record<string, number | null>;
-  processMapAutoCostWeight: number | null;
+  processMapAutoCostWeights: Record<string, number | null>;
   processMapPanel: 'none' | 'create' | 'edit';
   processMapEditingId: string | null;
   processMapPanelForm: ProcessMapPanelForm;
@@ -410,7 +410,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     processMapLoading: false,
     processMapAutoCostLoading: false,
     processMapAutoCosts: {},
-    processMapAutoCostWeight: null,
+    processMapAutoCostWeights: {},
     processMapPanel: 'none',
     processMapEditingId: null,
     processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
@@ -869,8 +869,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     if (processMaps.length === 0) {
       this.setState({
         processMapAutoCosts: {},
+        processMapAutoCostWeights: {},
         processMapAutoCostLoading: false,
-        processMapAutoCostWeight: null,
       });
       return;
     }
@@ -879,8 +879,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     if (!settings) {
       this.setState({
         processMapAutoCosts: {},
+        processMapAutoCostWeights: {},
         processMapAutoCostLoading: false,
-        processMapAutoCostWeight: null,
       });
       return;
     }
@@ -892,17 +892,32 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       const pairs = await Promise.all(
         processMaps.map(async (pm) => {
           const total = await this.calculateSingleProcessMapTotalWithVat(pm, settings);
-          return [pm.id, total] as const;
+          if (total === null) {
+            return [pm.id, null, null] as const;
+          }
+
+          const mapWeight = Number(pm.weight);
+          const resolvedWeight =
+            Number.isFinite(mapWeight) && mapWeight >= 0 ? mapWeight : settings.productWeight;
+          return [pm.id, total, resolvedWeight] as const;
         })
       );
 
       this.setState({
-        processMapAutoCosts: Object.fromEntries(pairs),
+        processMapAutoCosts: Object.fromEntries(
+          pairs.map(([processMapId, total]) => [processMapId, total])
+        ),
+        processMapAutoCostWeights: Object.fromEntries(
+          pairs.map(([processMapId, , weight]) => [processMapId, weight])
+        ) as Record<string, number | null>,
         processMapAutoCostLoading: false,
-        processMapAutoCostWeight: null,
       });
     } catch {
-      this.setState({ processMapAutoCostLoading: false, processMapAutoCostWeight: null });
+      this.setState({
+        processMapAutoCostLoading: false,
+        processMapAutoCosts: {},
+        processMapAutoCostWeights: {},
+      });
     }
   };
 
@@ -1165,8 +1180,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       form: { ...INITIAL_FORM },
       processMaps: [],
       processMapAutoCosts: {},
+      processMapAutoCostWeights: {},
       processMapAutoCostLoading: false,
-      processMapAutoCostWeight: null,
       processMapPanel: 'none',
       processMapEditingId: null,
       processMapPanelForm: {
@@ -1257,8 +1272,8 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       },
       processMapCostResult: null,
       processMapAutoCosts: {},
+      processMapAutoCostWeights: {},
       processMapAutoCostLoading: false,
-      processMapAutoCostWeight: null,
     });
   };
 
@@ -1613,7 +1628,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       processMapLoading,
       processMapAutoCostLoading,
       processMapAutoCosts,
-      processMapAutoCostWeight,
+      processMapAutoCostWeights,
       processMapPanel,
       processMapPanelForm,
       processMapSaving,
@@ -1854,7 +1869,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                               </span>
                             ) : processMapAutoCosts[pm.id] != null ? (
                               <span style={{ marginLeft: '8px', color: '#345d2f', fontSize: '0.85em' }}>
-                                auto cost: {processMapAutoCosts[pm.id]?.toFixed(4)} /{this.formatAutoCostWeight(processMapAutoCostWeight)} g
+                                auto cost: {processMapAutoCosts[pm.id]?.toFixed(4)} /{this.formatAutoCostWeight(processMapAutoCostWeights[pm.id] ?? null)} g
                               </span>
                             ) : (
                               <span style={{ marginLeft: '8px', color: '#888', fontSize: '0.85em' }}>
