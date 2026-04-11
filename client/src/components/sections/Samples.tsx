@@ -65,6 +65,7 @@ interface SearchForm {
 
 interface EditingData {
   sampleId: string;
+  numberStr: string;
   result: string;
   note: string;
   studyAt: string;
@@ -180,6 +181,7 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
     this.setState({
       editingSample: {
         sampleId: sample.id,
+        numberStr: sample.numberStr,
         result: sample.result || '',
         note: sample.note || '',
         studyAt: sample.studyAt || '',
@@ -323,7 +325,7 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
 
           {editingSample ? (
             <div className="sample-edit-form batch-form">
-              <h2>Edit Sample {editingSample.sampleId}</h2>
+              <h2>Edit Sample {editingSample.numberStr}</h2>
 
               <label className="cj-label">
                 Result
