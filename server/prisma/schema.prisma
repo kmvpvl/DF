@@ -234,6 +234,7 @@ model CostSettings {
   productMarginalCoefficients Json     @default("{}")
   productWeights             Json     @default("{}")
   productVats                Json     @default("{}")
+  productMainProcessMaps     Json     @default("{}")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 }

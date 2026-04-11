@@ -991,6 +991,7 @@ const typeDefs = `
     productMarginalCoefficients: String!
     productWeights: String!
     productVats: String!
+    productMainProcessMaps: String!
     createdAt: String!
     updatedAt: String!
   }
@@ -1004,6 +1005,7 @@ const typeDefs = `
     productMarginalCoefficients: String
     productWeights: String
     productVats: String
+    productMainProcessMaps: String
   }
 
   type Query {
@@ -1300,6 +1302,9 @@ const resolvers = {
         productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
         productWeights: JSON.stringify(settings.productWeights),
         productVats: JSON.stringify(settings.productVats),
+        productMainProcessMaps: JSON.stringify(
+          (settings as Record<string, unknown>).productMainProcessMaps ?? {}
+        ),
       };
     },
   },
@@ -2189,6 +2194,9 @@ const resolvers = {
       if (input.productVats !== undefined) {
         updateData.productVats = JSON.parse(String(input.productVats) || '{}');
       }
+      if (input.productMainProcessMaps !== undefined) {
+        updateData.productMainProcessMaps = JSON.parse(String(input.productMainProcessMaps) || '{}');
+      }
 
       const settings = await prisma.costSettings.upsert({
         where: { id: 'singleton' },
@@ -2204,6 +2212,9 @@ const resolvers = {
         productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
         productWeights: JSON.stringify(settings.productWeights),
         productVats: JSON.stringify(settings.productVats),
+        productMainProcessMaps: JSON.stringify(
+          (settings as Record<string, unknown>).productMainProcessMaps ?? {}
+        ),
       };
     },
     sendOrderByEmail: async (

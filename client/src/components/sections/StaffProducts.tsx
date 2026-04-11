@@ -189,6 +189,15 @@ const COST_SETTINGS_QUERY = `
       productMarginalCoefficients
       productWeights
       productVats
+      productMainProcessMaps
+    }
+  }
+`;
+
+const UPDATE_COST_SETTINGS_MUTATION = `
+  mutation($input: UpdateCostSettingsInput!) {
+    updateCostSettings(input: $input) {
+      id
     }
   }
 `;
@@ -315,6 +324,7 @@ interface CostSettingsStorage {
   productMarginalCoefficients?: Record<string, number>;
   productWeights?: Record<string, number>;
   productVats?: Record<string, number>;
+  productMainProcessMaps?: Record<string, string>;
 }
 
 interface StaffProductForm {
@@ -400,6 +410,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   private productMarginalCoefficientById: Record<string, number> = {};
   private productWeightById: Record<string, number> = {};
   private productVatById: Record<string, number> = {};
+  private productMainProcessMapById: Record<string, string> = {};
   state: StaffProductsState = {
     products: [],
     materials: [],
@@ -444,12 +455,14 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         productMarginalCoefficients: string;
         productWeights: string;
         productVats: string;
+        productMainProcessMaps: string;
       };
 
       const productContainerCosts = JSON.parse(settings.productContainerCosts || '{}') as Record<string, number>;
       const productMarginalCoefficients = JSON.parse(settings.productMarginalCoefficients || '{}') as Record<string, number>;
       const productWeights = JSON.parse(settings.productWeights || '{}') as Record<string, number>;
       const productVats = JSON.parse(settings.productVats || '{}') as Record<string, number>;
+      const productMainProcessMaps = JSON.parse(settings.productMainProcessMaps || '{}') as Record<string, string>;
 
       this.productContainerCostById = Object.fromEntries(
         Object.entries(productContainerCosts)
@@ -470,6 +483,11 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         Object.entries(productVats)
           .map(([productId, value]) => [productId, Number(value)] as const)
           .filter((entry) => Number.isFinite(entry[1]) && entry[1] >= 0)
+      );
+      this.productMainProcessMapById = Object.fromEntries(
+        Object.entries(productMainProcessMaps)
+          .map(([productId, processMapId]) => [productId, String(processMapId)] as const)
+          .filter((entry) => entry[1].trim().length > 0)
       );
 
       this.setState((prev) => ({
@@ -566,6 +584,48 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     return maps;
   };
 
+  private getMainProcessMapForProduct = (
+    productId: string,
+    processMaps: ProcessMapForCost[]
+  ): ProcessMapForCost | null => {
+    if (processMaps.length === 0) {
+      return null;
+    }
+
+    const configuredMainId = this.productMainProcessMapById[productId];
+    if (configuredMainId) {
+      const configuredMain = processMaps.find((pm) => pm.id === configuredMainId);
+      if (configuredMain) {
+        return configuredMain;
+      }
+    }
+
+    return processMaps[0] ?? null;
+  };
+
+  private setMainProcessMapForProduct = async (productId: string, processMapId: string) => {
+    this.productMainProcessMapById = {
+      ...this.productMainProcessMapById,
+      [productId]: processMapId,
+    };
+
+    // Force immediate UI refresh for "main" badge/button state.
+    this.setState({ error: null });
+    this.triggerProductTableAutoCostCalculation();
+
+    try {
+      await this.gql(UPDATE_COST_SETTINGS_MUTATION, {
+        input: {
+          productMainProcessMaps: JSON.stringify(this.productMainProcessMapById),
+        },
+      });
+    } catch (error) {
+      this.setState({
+        error: `Main process map was set locally, but could not be saved: ${String(error)}`,
+      });
+    }
+  };
+
   private computeProductUnitPriceWithoutVat = async (
     productId: string,
     marginalCoefficient: number,
@@ -589,7 +649,10 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
         throw new Error('Referenced product has no process map for cost calculation.');
       }
 
-      const selectedMap = maps[0];
+      const selectedMap = this.getMainProcessMapForProduct(productId, maps);
+      if (!selectedMap) {
+        throw new Error('Referenced product has no process map for cost calculation.');
+      }
       const outcome = Number(selectedMap.outcome);
       if (!Number.isFinite(outcome) || outcome <= 0) {
         throw new Error('Referenced product process map outcome must be greater than zero.');
@@ -951,7 +1014,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
       const pairs = await Promise.all(
         products.map(async (product) => {
           const maps = await this.loadProcessMapsForCost(product.id);
-          const selectedMap = maps[0];
+          const selectedMap = this.getMainProcessMapForProduct(product.id, maps);
           if (!selectedMap) {
             return [product.id, null, null] as const;
           }
@@ -1849,7 +1912,16 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                     ) : processMaps.length === 0 ? (
                       <span className="cj-empty">No process maps for this product.</span>
                     ) : (
-                      processMaps.map(pm => (
+                      processMaps.map(pm => {
+                        const isMainProcessMap =
+                          (editingProduct
+                            ? this.productMainProcessMapById[editingProduct.id]
+                            : undefined) === pm.id ||
+                          (!editingProduct || !this.productMainProcessMapById[editingProduct.id]
+                            ? processMaps[0]?.id === pm.id
+                            : false);
+
+                        return (
                         <div
                           key={pm.id}
                           style={{
@@ -1877,11 +1949,27 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
                               </span>
                             )}
                           </span>
-                          <button type="button" className="cj-btn-sm" onClick={() => this.openEditProcessMap(pm.id)}>
-                            Edit
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="cj-btn-sm"
+                              disabled={isMainProcessMap || !editingProduct}
+                              onClick={() => {
+                                if (!editingProduct) {
+                                  return;
+                                }
+                                void this.setMainProcessMapForProduct(editingProduct.id, pm.id);
+                              }}
+                            >
+                              {isMainProcessMap ? 'Main for auto cost' : 'Set as main'}
+                            </button>
+                            <button type="button" className="cj-btn-sm" onClick={() => this.openEditProcessMap(pm.id)}>
+                              Edit
+                            </button>
+                          </div>
                         </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 
