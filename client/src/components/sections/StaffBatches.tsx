@@ -69,36 +69,6 @@ const PROCESS_MAPS_QUERY = `
   }
 `;
 
-const CREATE_PROCESS_MAP_MUTATION = `
-  mutation($input: CreateProcessMapInput!) {
-    createProcessMap(input: $input) {
-      id
-      name
-      parameters {
-        id
-        name
-        value
-        unit
-      }
-    }
-  }
-`;
-
-const UPDATE_PROCESS_MAP_MUTATION = `
-  mutation($id: ID!, $input: UpdateProcessMapInput!) {
-    updateProcessMap(id: $id, input: $input) {
-      id
-      name
-      parameters {
-        id
-        name
-        value
-        unit
-      }
-    }
-  }
-`;
-
 const CREATE_BATCH_MUTATION = `
   mutation($input: CreateBatchInput!) {
     createBatch(input: $input) {
@@ -168,11 +138,6 @@ interface StaffBatchData {
   processMap: ProcessMapData | null;
 }
 
-interface ProcessMapPanelForm {
-  name: string;
-  parameters: { name: string; value: string; unit: string }[];
-}
-
 interface BatchForm {
   productId: string;
   nettoWeight: string;
@@ -199,9 +164,6 @@ interface StaffBatchesState {
   form: BatchForm;
   processMaps: ProcessMapData[];
   processMapLoading: boolean;
-  processMapPanel: 'none' | 'create' | 'edit';
-  processMapPanelForm: ProcessMapPanelForm;
-  processMapSaving: boolean;
 }
 
 const INITIAL_FORM: BatchForm = {
@@ -213,11 +175,6 @@ const INITIAL_FORM: BatchForm = {
   processDeviations: '',
   processMapId: '',
   sampleCount: '0',
-};
-
-const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
-  name: '',
-  parameters: [],
 };
 
 class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
@@ -236,9 +193,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
     form: { ...INITIAL_FORM },
     processMaps: [],
     processMapLoading: false,
-    processMapPanel: 'none',
-    processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
-    processMapSaving: false,
   };
 
   componentDidMount() {
@@ -325,8 +279,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       error: null,
       notice: null,
       processMaps: [],
-      processMapPanel: 'none',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
     });
   };
 
@@ -338,8 +290,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       error: null,
       notice: null,
       processMaps: [],
-      processMapPanel: 'none',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
       form: {
         productId: batch.product.id,
         nettoWeight: String(batch.nettoWeight),
@@ -361,131 +311,17 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       nextBatchPreview: null,
       form: { ...INITIAL_FORM },
       processMaps: [],
-      processMapPanel: 'none',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
     });
   };
 
   private handleCreateProductChange = async (productId: string) => {
     this.setState((prevState) => ({
       form: { ...prevState.form, productId, processMapId: '' },
-      processMapPanel: 'none',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
     }));
     await Promise.all([
       this.loadNextBatchPreview(productId),
       this.loadProcessMaps(productId),
     ]);
-  };
-
-  private openCreateProcessMap = () => {
-    this.setState({
-      processMapPanel: 'create',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
-    });
-  };
-
-  private openEditProcessMap = () => {
-    const { form, processMaps } = this.state;
-    const pm = processMaps.find(p => p.id === form.processMapId);
-    if (!pm) return;
-    this.setState({
-      processMapPanel: 'edit',
-      processMapPanelForm: {
-        name: pm.name,
-        parameters: pm.parameters.map(p => ({ name: p.name, value: p.value, unit: p.unit })),
-      },
-    });
-  };
-
-  private closeProcessMapPanel = () => {
-    this.setState({
-      processMapPanel: 'none',
-      processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
-    });
-  };
-
-  private saveProcessMap = async () => {
-    const { form, processMapPanel, processMapPanelForm } = this.state;
-    if (!processMapPanelForm.name.trim()) {
-      this.setState({ error: 'Process map name is required.' });
-      return;
-    }
-    this.setState({ processMapSaving: true, error: null });
-    try {
-      let saved: ProcessMapData;
-      if (processMapPanel === 'create') {
-        const data = await this.gql(CREATE_PROCESS_MAP_MUTATION, {
-          input: {
-            productId: form.productId,
-            name: processMapPanelForm.name.trim(),
-            parameters: processMapPanelForm.parameters.map(p => ({
-              name: p.name.trim(),
-              value: p.value.trim(),
-              unit: p.unit.trim(),
-            })),
-          },
-        });
-        saved = data.createProcessMap as ProcessMapData;
-        this.setState((prev) => ({
-          processMaps: [...prev.processMaps, saved].sort((a, b) => a.name.localeCompare(b.name)),
-          form: { ...prev.form, processMapId: saved.id },
-          processMapPanel: 'none',
-          processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
-          processMapSaving: false,
-          notice: 'Process map created.',
-        }));
-      } else {
-        const data = await this.gql(UPDATE_PROCESS_MAP_MUTATION, {
-          id: form.processMapId,
-          input: {
-            name: processMapPanelForm.name.trim(),
-            parameters: processMapPanelForm.parameters.map(p => ({
-              name: p.name.trim(),
-              value: p.value.trim(),
-              unit: p.unit.trim(),
-            })),
-          },
-        });
-        saved = data.updateProcessMap as ProcessMapData;
-        this.setState((prev) => ({
-          processMaps: prev.processMaps.map(pm => pm.id === saved.id ? saved : pm),
-          processMapPanel: 'none',
-          processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
-          processMapSaving: false,
-          notice: 'Process map updated.',
-        }));
-      }
-    } catch (error) {
-      this.setState({ processMapSaving: false, error: String(error) });
-    }
-  };
-
-  private addParameter = () => {
-    this.setState((prev) => ({
-      processMapPanelForm: {
-        ...prev.processMapPanelForm,
-        parameters: [...prev.processMapPanelForm.parameters, { name: '', value: '', unit: '' }],
-      },
-    }));
-  };
-
-  private removeParameter = (idx: number) => {
-    this.setState((prev) => ({
-      processMapPanelForm: {
-        ...prev.processMapPanelForm,
-        parameters: prev.processMapPanelForm.parameters.filter((_, i) => i !== idx),
-      },
-    }));
-  };
-
-  private updateParameter = (idx: number, field: 'name' | 'value' | 'unit', val: string) => {
-    this.setState((prev) => {
-      const parameters = prev.processMapPanelForm.parameters.map((p, i) =>
-        i === idx ? { ...p, [field]: val } : p
-      );
-      return { processMapPanelForm: { ...prev.processMapPanelForm, parameters } };
-    });
   };
 
   private saveBatch = async () => {
@@ -606,9 +442,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       form,
       processMaps,
       processMapLoading,
-      processMapPanel,
-      processMapPanelForm,
-      processMapSaving,
     } = this.state;
 
     return (
@@ -779,8 +612,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       onChange={(event) =>
                         this.setState({
                           form: { ...form, processMapId: event.target.value },
-                          processMapPanel: 'none',
-                          processMapPanelForm: { ...INITIAL_PROCESS_MAP_PANEL_FORM },
                         })
                       }
                     >
@@ -791,110 +622,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                         </option>
                       ))}
                     </select>
-                    {form.processMapId && processMapPanel !== 'edit' && (
-                      <button
-                        type="button"
-                        className="cj-btn-sm"
-                        onClick={this.openEditProcessMap}
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {processMapPanel !== 'create' && (
-                      <button
-                        type="button"
-                        className="cj-btn-sm"
-                        onClick={this.openCreateProcessMap}
-                      >
-                        + New
-                      </button>
-                    )}
                   </div>
-                  {processMapPanel !== 'none' && (
-                    <div className="material-form" style={{ marginTop: '12px', padding: '12px', border: '1px solid #ddd', borderRadius: '6px' }}>
-                      <h4 style={{ margin: '0 0 8px' }}>
-                        {processMapPanel === 'create' ? 'New process map' : 'Edit process map'}
-                      </h4>
-                      <label className="cj-label">
-                        Name
-                        <input
-                          className="cj-input batch-input-wide"
-                          type="text"
-                          value={processMapPanelForm.name}
-                          onChange={(event) =>
-                            this.setState({
-                              processMapPanelForm: {
-                                ...processMapPanelForm,
-                                name: event.target.value,
-                              },
-                            })
-                          }
-                          placeholder="Process map name"
-                        />
-                      </label>
-                      <div style={{ marginTop: '8px' }}>
-                        <strong style={{ fontSize: '0.9em' }}>Parameters</strong>
-                        {processMapPanelForm.parameters.map((param, idx) => (
-                          <div
-                            key={idx}
-                            style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' }}
-                          >
-                            <input
-                              className="cj-input material-input"
-                              placeholder="Name"
-                              value={param.name}
-                              onChange={(e) => this.updateParameter(idx, 'name', e.target.value)}
-                            />
-                            <input
-                              className="cj-input material-input"
-                              placeholder="Value"
-                              value={param.value}
-                              onChange={(e) => this.updateParameter(idx, 'value', e.target.value)}
-                            />
-                            <input
-                              className="cj-input material-input"
-                              placeholder="Unit"
-                              value={param.unit}
-                              style={{ maxWidth: '80px' }}
-                              onChange={(e) => this.updateParameter(idx, 'unit', e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="cj-btn-sm"
-                              onClick={() => this.removeParameter(idx)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          className="btn-outline"
-                          style={{ marginTop: '8px', fontSize: '0.85em' }}
-                          onClick={this.addParameter}
-                        >
-                          + Add parameter
-                        </button>
-                      </div>
-                      <div className="material-actions" style={{ marginTop: '12px' }}>
-                        <button
-                          type="button"
-                          className="btn-primary"
-                          disabled={processMapSaving}
-                          onClick={() => void this.saveProcessMap()}
-                        >
-                          {processMapSaving ? 'Saving...' : 'Save process map'}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-outline"
-                          onClick={this.closeProcessMapPanel}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 

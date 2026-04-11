@@ -148,7 +148,6 @@ interface CreateMaterialInput {
   purchaseUnit: string;
   purchaseUnitAmount: number;
   consumptionUnit: string;
-  consumptionUnitAmount: number;
   ratio: number;
 }
 
@@ -168,7 +167,6 @@ interface UpdateMaterialInput {
   purchaseUnit?: string;
   purchaseUnitAmount?: number;
   consumptionUnit?: string;
-  consumptionUnitAmount?: number;
   ratio?: number;
 }
 
@@ -224,15 +222,35 @@ interface CreateProcessParameterInput {
   unit: string;
 }
 
+interface IngredientInput {
+  productId?: string;
+  materialId?: string;
+  amount: number;
+}
+
 interface CreateProcessMapInput {
   productId: string;
   name: string;
+  outcome: number;
+  rateOfLoss?: number;
+  VAT?: number;
+  containerCost?: number;
+  weight?: number;
+  marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
+  ingredients?: IngredientInput[];
 }
 
 interface UpdateProcessMapInput {
   name?: string;
+  outcome?: number;
+  rateOfLoss?: number;
+  VAT?: number;
+  containerCost?: number;
+  weight?: number;
+  marginalCoefficient?: number;
   parameters?: CreateProcessParameterInput[];
+  ingredients?: IngredientInput[];
 }
 
 interface ImportMaterialsCsvResult {
@@ -285,7 +303,6 @@ const MATERIAL_CSV_HEADERS = [
   'purchaseUnit',
   'purchaseUnitAmount',
   'consumptionUnit',
-  'consumptionUnitAmount',
   'ratio',
 ] as const;
 
@@ -330,7 +347,7 @@ function parseCsv(content: string): string[][] {
       continue;
     }
 
-    if (char === ',' && !inQuotes) {
+    if (char === ';' && !inQuotes) {
       currentRow.push(currentValue);
       currentValue = '';
       continue;
@@ -711,7 +728,6 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
-    consumptionUnitAmount: Float!
     ratio: Float!
     createdAt: String!
     updatedAt: String!
@@ -747,11 +763,26 @@ const typeDefs = `
     unit: String!
   }
 
+  type Ingredient {
+    id: ID!
+    product: Product
+    material: Material
+    amount: Float!
+    unit: String!
+  }
+
   type ProcessMap {
     id: ID!
     name: String!
+    outcome: Float!
+    rateOfLoss: Float!
+    VAT: Float!
+    containerCost: Float!
+    weight: Float!
+    marginalCoefficient: Float!
     productId: ID!
     parameters: [ProcessParameter!]!
+    ingredients: [Ingredient!]!
     createdAt: String!
     updatedAt: String!
   }
@@ -833,7 +864,6 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
-    consumptionUnitAmount: Float!
     ratio: Float!
   }
 
@@ -853,7 +883,6 @@ const typeDefs = `
     purchaseUnit: String
     purchaseUnitAmount: Float
     consumptionUnit: String
-    consumptionUnitAmount: Float
     ratio: Float
   }
 
@@ -889,15 +918,35 @@ const typeDefs = `
     unit: String!
   }
 
+  input IngredientInput {
+    productId: ID
+    materialId: ID
+    amount: Float!
+  }
+
   input CreateProcessMapInput {
     productId: ID!
     name: String!
+    outcome: Float!
+    rateOfLoss: Float
+    VAT: Float
+    containerCost: Float
+    weight: Float
+    marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
   }
 
   input UpdateProcessMapInput {
     name: String
+    outcome: Float
+    rateOfLoss: Float
+    VAT: Float
+    containerCost: Float
+    weight: Float
+    marginalCoefficient: Float
     parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
   }
 
   input CreateBatchInput {
@@ -932,6 +981,33 @@ const typeDefs = `
     sampleNumber: Int
   }
 
+  type CostSettings {
+    id: ID!
+    marginalCoefficient: Float!
+    containerCost: Float!
+    productVat: Float!
+    productWeight: Float!
+    productContainerCosts: String!
+    productMarginalCoefficients: String!
+    productWeights: String!
+    productVats: String!
+    productMainProcessMaps: String!
+    createdAt: String!
+    updatedAt: String!
+  }
+
+  input UpdateCostSettingsInput {
+    marginalCoefficient: Float
+    containerCost: Float
+    productVat: Float
+    productWeight: Float
+    productContainerCosts: String
+    productMarginalCoefficients: String
+    productWeights: String
+    productVats: String
+    productMainProcessMaps: String
+  }
+
   type Query {
     hello: String
     userById(id: ID!): User!
@@ -949,6 +1025,7 @@ const typeDefs = `
     batches: [Batch!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
+    costSettings: CostSettings!
   }
 
   type Mutation {
@@ -973,10 +1050,25 @@ const typeDefs = `
     createBatch(input: CreateBatchInput!): Batch!
     updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
     updateSample(id: ID!, input: UpdateSampleInput!): Sample!
+    updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
   }
 `;
 
+type IngredientWithRefs = {
+  productId?: string | null;
+  materialId?: string | null;
+  amount: number;
+  product?: { consumptionUnit?: string } | null;
+  material?: { consumptionUnit: string } | null;
+};
+
 const resolvers = {
+  Ingredient: {
+    unit: (parent: IngredientWithRefs): string => {
+      if (parent.material) return parent.material.consumptionUnit;
+      return 'gram';
+    },
+  },
   Query: {
     hello: () => 'DolceForte API',
     userById: async (_: unknown, { id }: { id: string }) => {
@@ -1057,14 +1149,13 @@ const resolvers = {
           material.purchaseUnit,
           String(material.purchaseUnitAmount),
           material.consumptionUnit,
-          String(material.consumptionUnitAmount),
           String(material.ratio),
         ]
           .map(value => escapeCsvValue(String(value)))
-          .join(',')
+          .join(';')
       );
 
-      return [MATERIAL_CSV_HEADERS.join(','), ...rows].join('\n');
+      return [MATERIAL_CSV_HEADERS.join(';'), ...rows].join('\n');
     },
     products: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       if (!req.session.userId) throw new Error('Not authenticated');
@@ -1105,7 +1196,10 @@ const resolvers = {
       if (!req.session.userId) throw new Error('Not authenticated');
       return await prisma.processMap.findMany({
         where: { productId },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
         orderBy: { name: 'asc' },
       });
     },
@@ -1115,7 +1209,12 @@ const resolvers = {
         include: {
           product: true,
           storageCondition: true,
-          processMap: { include: { parameters: true } },
+          processMap: {
+            include: {
+              parameters: true,
+              ingredients: { include: { product: true, material: true } },
+            },
+          },
         },
         orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
       });
@@ -1184,6 +1283,29 @@ const resolvers = {
       }
 
       return user;
+    },
+    costSettings: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      
+      let settings = await prisma.costSettings.findUnique({ where: { id: 'singleton' } });
+      if (!settings) {
+        settings = await prisma.costSettings.create({
+          data: { id: 'singleton' },
+        });
+      }
+      
+      return {
+        ...settings,
+        createdAt: settings.createdAt.toISOString(),
+        updatedAt: settings.updatedAt.toISOString(),
+        productContainerCosts: JSON.stringify(settings.productContainerCosts),
+        productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
+        productWeights: JSON.stringify(settings.productWeights),
+        productVats: JSON.stringify(settings.productVats),
+        productMainProcessMaps: JSON.stringify(
+          (settings as Record<string, unknown>).productMainProcessMaps ?? {}
+        ),
+      };
     },
   },
   Mutation: {
@@ -1440,7 +1562,6 @@ const resolvers = {
           purchaseUnit: input.purchaseUnit.trim(),
           purchaseUnitAmount: input.purchaseUnitAmount,
           consumptionUnit: input.consumptionUnit.trim(),
-          consumptionUnitAmount: input.consumptionUnitAmount,
           ratio: input.ratio,
         },
       });
@@ -1468,7 +1589,6 @@ const resolvers = {
         purchaseUnit?: string;
         purchaseUnitAmount?: number;
         consumptionUnit?: string;
-        consumptionUnitAmount?: number;
         ratio?: number;
       } = {};
       if (input.name !== undefined) data.name = input.name.trim();
@@ -1488,9 +1608,6 @@ const resolvers = {
       if (input.purchaseUnit !== undefined) data.purchaseUnit = input.purchaseUnit.trim();
       if (input.purchaseUnitAmount !== undefined) data.purchaseUnitAmount = input.purchaseUnitAmount;
       if (input.consumptionUnit !== undefined) data.consumptionUnit = input.consumptionUnit.trim();
-      if (input.consumptionUnitAmount !== undefined) {
-        data.consumptionUnitAmount = input.consumptionUnitAmount;
-      }
       if (input.ratio !== undefined) data.ratio = input.ratio;
 
       if (Object.keys(data).length === 0) {
@@ -1571,7 +1688,6 @@ const resolvers = {
             purchaseUnit: row.purchaseUnit.trim(),
             purchaseUnitAmount: parseCsvNumber(row.purchaseUnitAmount),
             consumptionUnit: row.consumptionUnit.trim(),
-            consumptionUnitAmount: parseCsvNumber(row.consumptionUnitAmount),
             ratio: parseCsvNumber(row.ratio),
           };
 
@@ -1746,10 +1862,42 @@ const resolvers = {
     ) => {
       if (!req.session.userId) throw new Error('Not authenticated');
       if (!input.name.trim()) throw new Error('Process map name is required');
+      if (input.VAT !== undefined && (!Number.isFinite(input.VAT) || input.VAT < 0)) {
+        throw new Error('Process map VAT must be a non-negative number');
+      }
+      if (
+        input.rateOfLoss !== undefined &&
+        (!Number.isFinite(input.rateOfLoss) || input.rateOfLoss < 0 || input.rateOfLoss >= 100)
+      ) {
+        throw new Error('Process map rate of loss must be between 0 and 100');
+      }
+      if (
+        input.containerCost !== undefined &&
+        (!Number.isFinite(input.containerCost) || input.containerCost < 0)
+      ) {
+        throw new Error('Process map container cost must be a non-negative number');
+      }
+      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
+        throw new Error('Process map weight must be a non-negative number');
+      }
+      if (
+        input.marginalCoefficient !== undefined &&
+        (!Number.isFinite(input.marginalCoefficient) || input.marginalCoefficient <= 0)
+      ) {
+        throw new Error('Process map marginal coefficient must be greater than zero');
+      }
 
       return await prisma.processMap.create({
         data: {
           name: input.name.trim(),
+          outcome: input.outcome,
+          ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
+          ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
+          ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
+          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.marginalCoefficient !== undefined
+            ? { marginalCoefficient: input.marginalCoefficient }
+            : {}),
           product: { connect: { id: input.productId } },
           parameters: input.parameters?.length
             ? {
@@ -1760,8 +1908,20 @@ const resolvers = {
                 })),
               }
             : undefined,
+          ingredients: input.ingredients?.length
+            ? {
+                create: input.ingredients.map(ing => ({
+                  amount: ing.amount,
+                  ...(ing.productId ? { product: { connect: { id: ing.productId } } } : {}),
+                  ...(ing.materialId ? { material: { connect: { id: ing.materialId } } } : {}),
+                })),
+              }
+            : undefined,
         },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
       });
     },
     updateProcessMap: async (
@@ -1773,15 +1933,51 @@ const resolvers = {
       if (input.name !== undefined && !input.name.trim()) {
         throw new Error('Process map name cannot be empty');
       }
+      if (input.VAT !== undefined && (!Number.isFinite(input.VAT) || input.VAT < 0)) {
+        throw new Error('Process map VAT must be a non-negative number');
+      }
+      if (
+        input.rateOfLoss !== undefined &&
+        (!Number.isFinite(input.rateOfLoss) || input.rateOfLoss < 0 || input.rateOfLoss >= 100)
+      ) {
+        throw new Error('Process map rate of loss must be between 0 and 100');
+      }
+      if (
+        input.containerCost !== undefined &&
+        (!Number.isFinite(input.containerCost) || input.containerCost < 0)
+      ) {
+        throw new Error('Process map container cost must be a non-negative number');
+      }
+      if (input.weight !== undefined && (!Number.isFinite(input.weight) || input.weight < 0)) {
+        throw new Error('Process map weight must be a non-negative number');
+      }
+      if (
+        input.marginalCoefficient !== undefined &&
+        (!Number.isFinite(input.marginalCoefficient) || input.marginalCoefficient <= 0)
+      ) {
+        throw new Error('Process map marginal coefficient must be greater than zero');
+      }
 
       if (input.parameters !== undefined) {
         await prisma.processParameter.deleteMany({ where: { processMapId: id } });
+      }
+
+      if (input.ingredients !== undefined) {
+        await prisma.ingredient.deleteMany({ where: { processMapId: id } });
       }
 
       return await prisma.processMap.update({
         where: { id },
         data: {
           ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+          ...(input.outcome !== undefined ? { outcome: input.outcome } : {}),
+          ...(input.rateOfLoss !== undefined ? { rateOfLoss: input.rateOfLoss } : {}),
+          ...(input.VAT !== undefined ? { VAT: input.VAT } : {}),
+          ...(input.containerCost !== undefined ? { containerCost: input.containerCost } : {}),
+          ...(input.weight !== undefined ? { weight: input.weight } : {}),
+          ...(input.marginalCoefficient !== undefined
+            ? { marginalCoefficient: input.marginalCoefficient }
+            : {}),
           ...(input.parameters !== undefined
             ? {
                 parameters: {
@@ -1793,8 +1989,22 @@ const resolvers = {
                 },
               }
             : {}),
+          ...(input.ingredients !== undefined
+            ? {
+                ingredients: {
+                  create: input.ingredients.map(ing => ({
+                    amount: ing.amount,
+                    ...(ing.productId ? { product: { connect: { id: ing.productId } } } : {}),
+                    ...(ing.materialId ? { material: { connect: { id: ing.materialId } } } : {}),
+                  })),
+                },
+              }
+            : {}),
         },
-        include: { parameters: true },
+        include: {
+          parameters: true,
+          ingredients: { include: { product: true, material: true } },
+        },
       });
     },
     createBatch: async (
@@ -1950,6 +2160,62 @@ const resolvers = {
         where: { id },
         data,
       });
+    },
+    updateCostSettings: async (
+      _: unknown,
+      { input }: { input: Record<string, unknown> },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const updateData: Record<string, unknown> = {};
+
+      if (input.marginalCoefficient !== undefined) {
+        updateData.marginalCoefficient = Number(input.marginalCoefficient);
+      }
+      if (input.containerCost !== undefined) {
+        updateData.containerCost = Number(input.containerCost);
+      }
+      if (input.productVat !== undefined) {
+        updateData.productVat = Number(input.productVat);
+      }
+      if (input.productWeight !== undefined) {
+        updateData.productWeight = Number(input.productWeight);
+      }
+      if (input.productContainerCosts !== undefined) {
+        updateData.productContainerCosts = JSON.parse(String(input.productContainerCosts) || '{}');
+      }
+      if (input.productMarginalCoefficients !== undefined) {
+        updateData.productMarginalCoefficients = JSON.parse(String(input.productMarginalCoefficients) || '{}');
+      }
+      if (input.productWeights !== undefined) {
+        updateData.productWeights = JSON.parse(String(input.productWeights) || '{}');
+      }
+      if (input.productVats !== undefined) {
+        updateData.productVats = JSON.parse(String(input.productVats) || '{}');
+      }
+      if (input.productMainProcessMaps !== undefined) {
+        updateData.productMainProcessMaps = JSON.parse(String(input.productMainProcessMaps) || '{}');
+      }
+
+      const settings = await prisma.costSettings.upsert({
+        where: { id: 'singleton' },
+        update: updateData,
+        create: { id: 'singleton', ...updateData },
+      });
+
+      return {
+        ...settings,
+        createdAt: settings.createdAt.toISOString(),
+        updatedAt: settings.updatedAt.toISOString(),
+        productContainerCosts: JSON.stringify(settings.productContainerCosts),
+        productMarginalCoefficients: JSON.stringify(settings.productMarginalCoefficients),
+        productWeights: JSON.stringify(settings.productWeights),
+        productVats: JSON.stringify(settings.productVats),
+        productMainProcessMaps: JSON.stringify(
+          (settings as Record<string, unknown>).productMainProcessMaps ?? {}
+        ),
+      };
     },
     sendOrderByEmail: async (
       _: unknown,
