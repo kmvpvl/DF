@@ -141,6 +141,7 @@ interface CreateMaterialInput {
   name: string;
   description?: string;
   selfProduced: boolean;
+  isPublicComposition?: boolean;
   caloriesKcal: number;
   fatGrams: number;
   proteinGrams: number;
@@ -160,6 +161,7 @@ interface UpdateMaterialInput {
   name?: string;
   description?: string;
   selfProduced?: boolean;
+  isPublicComposition?: boolean;
   caloriesKcal?: number;
   fatGrams?: number;
   proteinGrams?: number;
@@ -810,10 +812,11 @@ async function buildCertificateDocumentPayload(certificateId: string): Promise<{
     .join('\n');
 
   const ingredients = [...(certificate.batch.processMap?.ingredients ?? [])]
+    .filter(ingredient => ingredient.material?.isPublicComposition === true)
     .sort((left, right) => Number(right.amount) - Number(left.amount))
     .map((ingredient, index) => ({
       index: index + 1,
-      name: ingredient.product?.name ?? ingredient.material?.name ?? 'Ingredient',
+      name: ingredient.material?.name ?? 'Ingredient',
       amount: ingredient.amount,
       unit: ingredient.material?.consumptionUnit ?? 'gram',
     }));
@@ -1045,6 +1048,7 @@ const typeDefs = `
     name: String!
     description: String
     selfProduced: Boolean!
+    isPublicComposition: Boolean!
     caloriesKcal: Float!
     fatGrams: Float!
     proteinGrams: Float!
@@ -1214,6 +1218,7 @@ const typeDefs = `
     name: String!
     description: String
     selfProduced: Boolean!
+    isPublicComposition: Boolean
     caloriesKcal: Float!
     fatGrams: Float!
     proteinGrams: Float!
@@ -1233,6 +1238,7 @@ const typeDefs = `
     name: String
     description: String
     selfProduced: Boolean
+    isPublicComposition: Boolean
     caloriesKcal: Float
     fatGrams: Float
     proteinGrams: Float
@@ -2046,6 +2052,7 @@ const resolvers = {
           name: input.name.trim(),
           description: input.description?.trim() || null,
           selfProduced: input.selfProduced,
+          isPublicComposition: input.isPublicComposition ?? true,
           caloriesKcal: input.caloriesKcal,
           fatGrams: input.fatGrams,
           proteinGrams: input.proteinGrams,
@@ -2073,6 +2080,7 @@ const resolvers = {
         name?: string;
         description?: string | null;
         selfProduced?: boolean;
+        isPublicComposition?: boolean;
         caloriesKcal?: number;
         fatGrams?: number;
         proteinGrams?: number;
@@ -2090,6 +2098,9 @@ const resolvers = {
       if (input.name !== undefined) data.name = input.name.trim();
       if (input.description !== undefined) data.description = input.description.trim() || null;
       if (input.selfProduced !== undefined) data.selfProduced = input.selfProduced;
+      if (input.isPublicComposition !== undefined) {
+        data.isPublicComposition = input.isPublicComposition;
+      }
       if (input.caloriesKcal !== undefined) data.caloriesKcal = input.caloriesKcal;
       if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;
       if (input.proteinGrams !== undefined) data.proteinGrams = input.proteinGrams;

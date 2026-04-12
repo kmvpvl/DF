@@ -8,6 +8,7 @@ const MATERIAL_FIELDS = `
   name
   description
   selfProduced
+  isPublicComposition
   caloriesKcal
   fatGrams
   proteinGrams
@@ -76,6 +77,7 @@ interface MaterialData {
   name: string;
   description: string | null;
   selfProduced: boolean;
+  isPublicComposition: boolean;
   caloriesKcal: number;
   fatGrams: number;
   proteinGrams: number;
@@ -97,6 +99,7 @@ interface MaterialForm {
   name: string;
   description: string;
   selfProduced: boolean;
+  isPublicComposition: boolean;
   caloriesKcal: string;
   fatGrams: string;
   proteinGrams: string;
@@ -134,6 +137,7 @@ const INITIAL_FORM: MaterialForm = {
   name: '',
   description: '',
   selfProduced: false,
+  isPublicComposition: true,
   caloriesKcal: '0',
   fatGrams: '0',
   proteinGrams: '0',
@@ -287,6 +291,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
         name: material.name,
         description: material.description ?? '',
         selfProduced: material.selfProduced,
+        isPublicComposition: material.isPublicComposition,
         caloriesKcal: String(material.caloriesKcal),
         fatGrams: String(material.fatGrams),
         proteinGrams: String(material.proteinGrams),
@@ -356,6 +361,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       name: form.name.trim(),
       description: form.description.trim(),
       selfProduced: form.selfProduced,
+      isPublicComposition: form.isPublicComposition,
       caloriesKcal,
       fatGrams,
       proteinGrams,
@@ -522,6 +528,18 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   }
                 />
                 Self produced
+              </label>
+
+              <label className="cj-label material-checkbox-label">
+                <input
+                  className="material-checkbox"
+                  type="checkbox"
+                  checked={form.isPublicComposition}
+                  onChange={(event) =>
+                    this.setState({ form: { ...form, isPublicComposition: event.target.checked } })
+                  }
+                />
+                Public in certificate composition
               </label>
 
               <div className="material-grid">

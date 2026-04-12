@@ -71,6 +71,7 @@ model Material {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   selfProduced          Boolean  @default(false)
+  isPublicComposition   Boolean  @default(true)
   ingredients           Ingredient[]
 
   caloriesKcal          Decimal  @default(0) @db.Decimal(10, 3)
