@@ -7,6 +7,11 @@ import bcrypt from 'bcrypt';
 import cors, { type CorsOptions } from 'cors';
 import session from 'express-session';
 import nodemailer from 'nodemailer';
+import fs from 'node:fs';
+import path from 'node:path';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import 'dotenv/config';
 
 function createPrismaAdapter(): PrismaMariaDb {
@@ -44,7 +49,7 @@ function createPrismaAdapter(): PrismaMariaDb {
 
 const prisma = new PrismaClient({
   adapter: createPrismaAdapter(),
-  log: ['query', 'error', 'warn'],
+  log: ['error', 'warn'],
 });
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -214,6 +219,23 @@ interface UpdateBatchInput {
   storageConditionName?: string;
   processDeviations?: string;
   processMapId?: string | null;
+}
+
+interface CreateCertificateInput {
+  batchId: string;
+  extraCertificateData?: string;
+}
+
+interface UpdateCertificateInput {
+  extraCertificateData?: string;
+}
+
+interface SearchCertificatesInput {
+  fromDate?: string;
+  toDate?: string;
+  number?: number;
+  productId?: string;
+  batchNumber?: string;
 }
 
 interface CreateProcessParameterInput {
@@ -541,6 +563,311 @@ function formatSampleNumberString(date: Date, sampleNumber: number): string {
   return `${shortYear}-${sampleNumber}`;
 }
 
+function formatCertificateNumberString(date: Date, certificateNumber: number): string {
+  const shortYear = String(date.getFullYear()).slice(-2);
+  return `${shortYear}-${String(certificateNumber).padStart(9, '0')}`;
+}
+
+async function getNextCertificateNumber(date = new Date()): Promise<number> {
+  const numberYear = date.getFullYear();
+
+  const aggregate = await prisma.certificate.aggregate({
+    where: { numberYear },
+    _max: {
+      number: true,
+    },
+  });
+
+  return (aggregate._max.number ?? 0) + 1;
+}
+
+function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const normalized = new Date(date);
+  const day = String(normalized.getDate()).padStart(2, '0');
+  const month = String(normalized.getMonth() + 1).padStart(2, '0');
+  const year = normalized.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const normalized = new Date(date);
+  const day = String(normalized.getDate()).padStart(2, '0');
+  const month = String(normalized.getMonth() + 1).padStart(2, '0');
+  const year = normalized.getFullYear();
+  const hours = String(normalized.getHours()).padStart(2, '0');
+  const minutes = String(normalized.getMinutes()).padStart(2, '0');
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
+
+function formatDecimalLike(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '0';
+  }
+
+  if (typeof value === 'number') {
+    return value.toString().replace('.', ',');
+  }
+
+  if (typeof value === 'string') {
+    return value.replace('.', ',');
+  }
+
+  if (typeof value === 'object' && value !== null && 'toString' in value) {
+    return String(value).replace('.', ',');
+  }
+
+  return '0';
+}
+
+function getCertificateTemplatePath(): string {
+  const configuredPath = process.env.CERTIFICATE_TEMPLATE_PATH?.trim();
+  if (configuredPath) {
+    return path.isAbsolute(configuredPath)
+      ? configuredPath
+      : path.resolve(process.cwd(), configuredPath);
+  }
+
+  return path.resolve(process.cwd(), 'templates', 'certificate.dotx');
+}
+
+function renderCertificateDocument(templateData: Record<string, unknown>): Buffer {
+  const templatePath = getCertificateTemplatePath();
+  if (!fs.existsSync(templatePath)) {
+    throw new Error(
+      `Certificate template not found at ${templatePath}. Set CERTIFICATE_TEMPLATE_PATH.`
+    );
+  }
+
+  const fileBuffer = fs.readFileSync(templatePath);
+  const zip = new PizZip(fileBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+  });
+
+  doc.render(templateData);
+  const renderedZip = doc.getZip();
+
+  const scalarValues = Object.fromEntries(
+    Object.entries(templateData).filter(([, value]) => {
+      const valueType = typeof value;
+      return (
+        value === null ||
+        value === undefined ||
+        valueType === 'string' ||
+        valueType === 'number' ||
+        valueType === 'boolean'
+      );
+    })
+  );
+
+  // Support Word Content Controls (w:sdt) tagged fields used in this template.
+  for (const fileName of Object.keys(renderedZip.files)) {
+    if (!fileName.startsWith('word/') || !fileName.endsWith('.xml')) {
+      continue;
+    }
+
+    const entry = renderedZip.file(fileName);
+    if (!entry) {
+      continue;
+    }
+
+    const xmlContent = entry.asText();
+    const updatedXmlContent = fillTaggedContentControls(xmlContent, scalarValues);
+    if (updatedXmlContent !== xmlContent) {
+      renderedZip.file(fileName, updatedXmlContent);
+    }
+  }
+
+  const uint8 = renderedZip.generate({
+    type: 'uint8array',
+    compression: 'DEFLATE',
+  }) as Uint8Array;
+  return Buffer.from(uint8);
+}
+
+function fillTaggedContentControls(
+  xmlContent: string,
+  values: Record<string, unknown>
+): string {
+  const parser = new DOMParser();
+  const serializer = new XMLSerializer();
+  const doc = parser.parseFromString(xmlContent, 'application/xml');
+
+  const controls = Array.from(doc.getElementsByTagName('w:sdt'));
+
+  for (const control of controls) {
+    const pr = control.getElementsByTagName('w:sdtPr')[0];
+    if (!pr) continue;
+
+    const tagNode = pr.getElementsByTagName('w:tag')[0];
+    const aliasNode = pr.getElementsByTagName('w:alias')[0];
+    const tag = tagNode?.getAttribute('w:val') ?? aliasNode?.getAttribute('w:val');
+    if (!tag) continue;
+
+    if (!(tag in values)) continue;
+
+    const rawValue = values[tag];
+    const value = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+
+    const content = control.getElementsByTagName('w:sdtContent')[0];
+    if (!content) continue;
+
+    const texts = Array.from(content.getElementsByTagName('w:t'));
+    if (texts.length === 0) continue;
+
+    texts[0].textContent = value;
+    for (let index = 1; index < texts.length; index += 1) {
+      texts[index].textContent = '';
+    }
+  }
+
+  return serializer.serializeToString(doc);
+}
+
+const CERTIFICATE_DOCX_MIME =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const CERTIFICATE_DOTX_MIME =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.template';
+
+function getCertificateOutputMeta(): { extension: 'docx' | 'dotx'; mimeType: string } {
+  const templatePath = getCertificateTemplatePath();
+  const ext = path.extname(templatePath).toLowerCase();
+
+  if (ext === '.dotx') {
+    return {
+      extension: 'dotx',
+      mimeType: CERTIFICATE_DOTX_MIME,
+    };
+  }
+
+  return {
+    extension: 'docx',
+    mimeType: CERTIFICATE_DOCX_MIME,
+  };
+}
+
+function sanitizeFileNameSegment(value: string): string {
+  // Remove characters that are unsafe for Content-Disposition and file systems.
+  const normalized = value
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return normalized || 'unknown-batch';
+}
+
+async function buildCertificateDocumentPayload(certificateId: string): Promise<{
+  fileName: string;
+  mimeType: string;
+  fileBuffer: Buffer;
+}> {
+  const certificate = await prisma.certificate.findUnique({
+    where: { id: certificateId },
+    include: {
+      batch: {
+        include: {
+          product: true,
+          storageCondition: true,
+          samples: true,
+          processMap: {
+            include: {
+              parameters: true,
+              ingredients: {
+                include: {
+                  product: true,
+                  material: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!certificate) {
+    throw new Error('Certificate not found');
+  }
+
+  const expiresTo = new Date(certificate.batch.createdAt);
+  expiresTo.setHours(expiresTo.getHours() + certificate.batch.storageDurationHours);
+
+  const samplesList = certificate.batch.samples
+    .map(sample => {
+      const suffixParts = [
+        sample.result ? `result: ${sample.result}` : null,
+        sample.studyAt ? `study: ${formatDate(sample.studyAt)}` : null,
+      ].filter(Boolean);
+
+      return suffixParts.length > 0
+        ? `${sample.numberStr} (${suffixParts.join(', ')})`
+        : sample.numberStr;
+    })
+    .join('\n');
+
+  const ingredients = [...(certificate.batch.processMap?.ingredients ?? [])]
+    .sort((left, right) => Number(right.amount) - Number(left.amount))
+    .map((ingredient, index) => ({
+      index: index + 1,
+      name: ingredient.product?.name ?? ingredient.material?.name ?? 'Ingredient',
+      amount: ingredient.amount,
+      unit: ingredient.material?.consumptionUnit ?? 'gram',
+    }));
+
+  const processMapParameters = (certificate.batch.processMap?.parameters ?? []).map(
+    (parameter, index) => ({
+      index: index + 1,
+      name: parameter.name,
+      value: parameter.value,
+      unit: parameter.unit,
+    })
+  );
+
+  const context = {
+    CertificateNumberStr: certificate.numberStr,
+    CertificateDate: formatDate(certificate.createdAt),
+    ProductName: certificate.batch.product.name,
+    BatchCreatedAt: formatDateTime(certificate.batch.createdAt),
+    Outcome: `${certificate.batch.nettoWeight}`,
+    SapmlesList: samplesList,
+    SamplesList: samplesList,
+    StorageCondition: certificate.batch.storageCondition.name,
+    ExpiresTo: formatDateTime(expiresTo),
+    ProcessMap: certificate.batch.processMap?.name ?? '',
+    BatchNumber: certificate.batch.numberStr,
+    caloriesKcal: formatDecimalLike(certificate.batch.product.caloriesKcal),
+    fatGrams: formatDecimalLike(certificate.batch.product.fatGrams),
+    proteinGrams: formatDecimalLike(certificate.batch.product.proteinGrams),
+    carbohydratesGrams: formatDecimalLike(certificate.batch.product.carbohydratesGrams),
+    sugarsGrams: formatDecimalLike(certificate.batch.product.sugarsGrams),
+    fiberGrams: formatDecimalLike(certificate.batch.product.fiberGrams),
+    saltGrams: formatDecimalLike(certificate.batch.product.saltGrams),
+    ingredients,
+    HasProcessMapParameters: processMapParameters.length > 0,
+    ProcessMapParameters: processMapParameters,
+    extraCertificateData: certificate.extraCertificateData,
+  };
+
+  const outputMeta = getCertificateOutputMeta();
+  const fileBuffer = renderCertificateDocument(context);
+
+  if (fileBuffer.length < 4 || fileBuffer[0] !== 0x50 || fileBuffer[1] !== 0x4b) {
+    throw new Error('Generated file is not a valid OpenXML zip package');
+  }
+
+  const batchNumberForFile = sanitizeFileNameSegment(certificate.batch.numberStr);
+
+  return {
+    fileName: `cert-${batchNumberForFile}.${outputMeta.extension}`,
+    mimeType: outputMeta.mimeType,
+    fileBuffer,
+  };
+}
+
 async function resolveStorageConditionId(
   storageConditionId?: string,
   storageConditionName?: string
@@ -813,8 +1140,40 @@ const typeDefs = `
     processMap: ProcessMap
     samples: [Sample!]!
     processDeviations: String
+    certificate: Certificate
     createdAt: String!
     updatedAt: String!
+  }
+
+  type Certificate {
+    id: ID!
+    number: Int!
+    numberYear: Int!
+    numberStr: String!
+    createdAt: String!
+    updatedAt: String!
+    batch: Batch!
+    extraCertificateData: String!
+  }
+
+  type CertificateBatchOption {
+    id: ID!
+    number: Int!
+    numberStr: String!
+    createdAt: String!
+    nettoWeight: Float!
+    storageDurationHours: Int!
+    processDeviations: String
+    product: Product!
+    storageCondition: StorageCondition!
+    processMap: ProcessMap
+    samples: [Sample!]!
+  }
+
+  type CertificateDocument {
+    fileName: String!
+    mimeType: String!
+    base64: String!
   }
 
   type BatchNumberPreview {
@@ -986,6 +1345,23 @@ const typeDefs = `
     sampleNumber: Int
   }
 
+  input CreateCertificateInput {
+    batchId: ID!
+    extraCertificateData: String
+  }
+
+  input UpdateCertificateInput {
+    extraCertificateData: String
+  }
+
+  input SearchCertificatesInput {
+    fromDate: String
+    toDate: String
+    number: Int
+    productId: ID
+    batchNumber: String
+  }
+
   type CostSettings {
     id: ID!
     marginalCoefficient: Float!
@@ -1028,6 +1404,9 @@ const typeDefs = `
     storageConditions: [StorageCondition!]!
     processMaps(productId: ID!): [ProcessMap!]!
     batches: [Batch!]!
+    certificateBatchOptions: [CertificateBatchOption!]!
+    certificates: [Certificate!]!
+    searchCertificates(input: SearchCertificatesInput!): [Certificate!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
     costSettings: CostSettings!
@@ -1055,6 +1434,9 @@ const typeDefs = `
     createBatch(input: CreateBatchInput!): Batch!
     updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
     updateSample(id: ID!, input: UpdateSampleInput!): Sample!
+    createCertificate(input: CreateCertificateInput!): Certificate!
+    updateCertificate(id: ID!, input: UpdateCertificateInput!): Certificate!
+    generateCertificateDocument(id: ID!): CertificateDocument!
     updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
   }
 `;
@@ -1214,10 +1596,119 @@ const resolvers = {
         include: {
           product: true,
           storageCondition: true,
+          certificate: true,
           processMap: {
             include: {
               parameters: true,
               ingredients: { include: { product: true, material: true } },
+            },
+          },
+        },
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      });
+    },
+    certificateBatchOptions: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.batch.findMany({
+        where: {
+          certificate: null,
+        },
+        include: {
+          product: true,
+          storageCondition: true,
+          samples: true,
+          processMap: {
+            include: {
+              parameters: true,
+              ingredients: { include: { product: true, material: true } },
+            },
+          },
+        },
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      });
+    },
+    certificates: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      return await prisma.certificate.findMany({
+        include: {
+          batch: {
+            include: {
+              product: true,
+              storageCondition: true,
+              samples: true,
+              processMap: {
+                include: {
+                  parameters: true,
+                  ingredients: { include: { product: true, material: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ createdAt: 'desc' }, { number: 'desc' }],
+      });
+    },
+    searchCertificates: async (
+      _: unknown,
+      { input }: { input: SearchCertificatesInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const where: Record<string, unknown> = {};
+
+      if (input.number !== undefined) {
+        where.number = input.number;
+      }
+
+      if (input.fromDate || input.toDate) {
+        const dateFilter: Record<string, Date> = {};
+        if (input.fromDate) {
+          dateFilter.gte = new Date(input.fromDate);
+        }
+        if (input.toDate) {
+          const end = new Date(input.toDate);
+          end.setHours(23, 59, 59, 999);
+          dateFilter.lte = end;
+        }
+        where.createdAt = dateFilter;
+      }
+
+      const batchWhere: Record<string, unknown> = {};
+      if (input.productId?.trim()) {
+        batchWhere.productId = input.productId.trim();
+      }
+      if (input.batchNumber?.trim()) {
+        const normalizedBatchNumber = input.batchNumber.trim();
+        const parsedNumber = Number.parseInt(normalizedBatchNumber, 10);
+        if (Number.isInteger(parsedNumber) && String(parsedNumber) === normalizedBatchNumber) {
+          batchWhere.number = parsedNumber;
+        } else {
+          batchWhere.numberStr = {
+            contains: normalizedBatchNumber,
+          };
+        }
+      }
+
+      if (Object.keys(batchWhere).length > 0) {
+        where.batch = { is: batchWhere };
+      }
+
+      return await prisma.certificate.findMany({
+        where,
+        include: {
+          batch: {
+            include: {
+              product: true,
+              storageCondition: true,
+              samples: true,
+              processMap: {
+                include: {
+                  parameters: true,
+                  ingredients: { include: { product: true, material: true } },
+                },
+              },
             },
           },
         },
@@ -2171,6 +2662,138 @@ const resolvers = {
         },
       });
     },
+    createCertificate: async (
+      _: unknown,
+      { input }: { input: CreateCertificateInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const batch = await prisma.batch.findUnique({
+        where: { id: input.batchId },
+        include: {
+          certificate: true,
+        },
+      });
+
+      if (!batch) {
+        throw new Error('Batch not found');
+      }
+
+      if (batch.certificate) {
+        throw new Error('Certificate already exists for selected batch');
+      }
+
+      const now = new Date();
+      const numberYear = now.getFullYear();
+      let attempts = 0;
+
+      while (attempts < 3) {
+        attempts += 1;
+
+        try {
+          const created = await prisma.$transaction(async tx => {
+            const nextNumberAggregate = await tx.certificate.aggregate({
+              where: { numberYear },
+              _max: { number: true },
+            });
+
+            const nextNumber = (nextNumberAggregate._max.number ?? 0) + 1;
+            const numberStr = formatCertificateNumberString(now, nextNumber);
+
+            return tx.certificate.create({
+              data: {
+                numberYear,
+                number: nextNumber,
+                numberStr,
+                batchId: input.batchId,
+                extraCertificateData: input.extraCertificateData?.trim() || '',
+              },
+              include: {
+                batch: {
+                  include: {
+                    product: true,
+                    storageCondition: true,
+                    samples: true,
+                    processMap: {
+                      include: {
+                        parameters: true,
+                        ingredients: { include: { product: true, material: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            });
+          });
+
+          return created;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (
+            message.includes('Certificate_numberYear_number_key') ||
+            message.toLowerCase().includes('unique constraint')
+          ) {
+            continue;
+          }
+
+          throw error;
+        }
+      }
+
+      throw new Error('Unable to generate certificate number. Try again.');
+    },
+    updateCertificate: async (
+      _: unknown,
+      { id, input }: { id: string; input: UpdateCertificateInput },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const data: Record<string, unknown> = {};
+      if (input.extraCertificateData !== undefined) {
+        data.extraCertificateData = input.extraCertificateData.trim();
+      }
+
+      if (Object.keys(data).length === 0) {
+        throw new Error('No fields provided for update');
+      }
+
+      return await prisma.certificate.update({
+        where: { id },
+        data,
+        include: {
+          batch: {
+            include: {
+              product: true,
+              storageCondition: true,
+              samples: true,
+              processMap: {
+                include: {
+                  parameters: true,
+                  ingredients: { include: { product: true, material: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+    },
+    generateCertificateDocument: async (
+      _: unknown,
+      { id }: { id: string },
+      { req }: GraphQLContext
+    ) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+
+      const { fileName, mimeType, fileBuffer } = await buildCertificateDocumentPayload(id);
+
+      return {
+        fileName,
+        mimeType,
+        base64: fileBuffer.toString('base64'),
+      };
+    },
     updateCostSettings: async (
       _: unknown,
       { input }: { input: Record<string, unknown> },
@@ -2372,10 +2995,26 @@ const resolvers = {
     storageCondition: (batch: { storageCondition: unknown }) => batch.storageCondition,
     processMap: (batch: { processMap?: unknown }) => batch.processMap ?? null,
     samples: (batch: { samples?: unknown[] }) => batch.samples ?? [],
+    certificate: (batch: { certificate?: unknown }) => batch.certificate ?? null,
     createdAt: (batch: { createdAt: Date | string }) =>
       new Date(batch.createdAt).toISOString(),
     updatedAt: (batch: { updatedAt: Date | string }) =>
       new Date(batch.updatedAt).toISOString(),
+  },
+  Certificate: {
+    batch: (certificate: { batch: unknown }) => certificate.batch,
+    createdAt: (certificate: { createdAt: Date | string }) =>
+      new Date(certificate.createdAt).toISOString(),
+    updatedAt: (certificate: { updatedAt: Date | string }) =>
+      new Date(certificate.updatedAt).toISOString(),
+  },
+  CertificateBatchOption: {
+    product: (batch: { product: unknown }) => batch.product,
+    storageCondition: (batch: { storageCondition: unknown }) => batch.storageCondition,
+    processMap: (batch: { processMap?: unknown }) => batch.processMap ?? null,
+    samples: (batch: { samples?: unknown[] }) => batch.samples ?? [],
+    createdAt: (batch: { createdAt: Date | string }) =>
+      new Date(batch.createdAt).toISOString(),
   },
   Sample: {
     createdAt: (sample: { createdAt: Date | string }) => new Date(sample.createdAt).toISOString(),
@@ -2420,6 +3059,7 @@ const corsOptions: CorsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
   optionsSuccessStatus: 204,
 };
 
@@ -2444,6 +3084,37 @@ app.use(
 
 app.get('/', (req, res) => {
   res.json({ message: 'DolceForte API' });
+});
+
+app.get('/certificates/:id/document', async (req, res) => {
+  if (!req.session.userId) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+
+  try {
+    const { fileName, mimeType, fileBuffer } = await buildCertificateDocumentPayload(
+      req.params.id
+    );
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Length', String(fileBuffer.length));
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
+    );
+    res.status(200).send(fileBuffer);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === 'Certificate not found') {
+      res.status(404).json({ error: message });
+      return;
+    }
+
+    console.error('Failed to generate certificate document', error);
+    res.status(500).json({ error: 'Failed to generate certificate document' });
+  }
 });
 
 export default app;
@@ -2477,3 +3148,4 @@ const server = new ApolloServer({
     console.log(`GraphQL playground at http://localhost:${port}/graphql`);
   });
 })();
+

@@ -825,6 +825,11 @@ main {
 .sample-edit-form {
   margin-top: 0.6rem;
 }
+.certificate-actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
 .no-results {
   color: var(--text-light);
   font-size: 0.9rem;
