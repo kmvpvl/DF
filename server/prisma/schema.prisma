@@ -71,6 +71,7 @@ model Material {
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   selfProduced          Boolean  @default(false)
+  isPublicComposition   Boolean  @default(true)
   ingredients           Ingredient[]
 
   caloriesKcal          Decimal  @default(0) @db.Decimal(10, 3)
@@ -124,6 +125,7 @@ model Batch {
   processMap   ProcessMap? @relation(fields: [processMapId], references: [id])
   processDeviations String?
   samples Sample[]
+  certificate Certificate?
 
   @@index([productId], map: "Batch_productId_fkey")
 }
@@ -240,3 +242,16 @@ model CostSettings {
   updatedAt                  DateTime @updatedAt
 }
 
+model Certificate {
+  id        String   @id @default(cuid())
+  numberYear Int
+  number    Int
+  numberStr String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  batch     Batch @relation(fields: [batchId], references: [id])
+  batchId   String @unique
+  extraCertificateData String @db.Text
+
+  @@unique([numberYear, number], map: "Certificate_numberYear_number_key")
+}

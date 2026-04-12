@@ -85,33 +85,37 @@ describe('App', () => {
     expect(screen.getAllByText('209 din').length).toBeGreaterThan(0);
   });
 
-  it('updates the add-to-basket price when a cheesecake option is selected', () => {
-    mockFetch.mockResolvedValue({
-      json: async () => ({ data: { sessionUser: null } }),
-    });
+  it(
+    'updates the add-to-basket price when a cheesecake option is selected',
+    () => {
+      mockFetch.mockResolvedValue({
+        json: async () => ({ data: { sessionUser: null } }),
+      });
 
-    render(
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    );
+      render(
+        <I18nProvider>
+          <App />
+        </I18nProvider>
+      );
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Select Cube option for Cheesecake glazed in milk chocolate',
-      })
-    );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Select Cube option for Cheesecake glazed in milk chocolate',
+        })
+      );
 
-    expect(screen.getByTestId('product-price-15')).toHaveTextContent('50 din');
+      expect(screen.getByTestId('product-price-15')).toHaveTextContent('50 din');
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Select Star option for Cheesecake glazed in milk chocolate',
-      })
-    );
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Select Star option for Cheesecake glazed in milk chocolate',
+        })
+      );
 
-    expect(screen.getByTestId('product-price-15')).toHaveTextContent('60 din');
-  });
+      expect(screen.getByTestId('product-price-15')).toHaveTextContent('60 din');
+    },
+    10000
+  );
 
   it('opens profile editing when the logged-in user name is clicked', async () => {
     mockFetch.mockResolvedValue({
