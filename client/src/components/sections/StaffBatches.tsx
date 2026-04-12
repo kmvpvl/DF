@@ -42,6 +42,9 @@ const INITIAL_QUERY = `
         }
       }
     }
+    costSettings {
+      productMainProcessMaps
+    }
   }
 `;
 
@@ -59,11 +62,25 @@ const PROCESS_MAPS_QUERY = `
     processMaps(productId: $productId) {
       id
       name
+      rateOfLoss
       parameters {
         id
         name
         value
         unit
+      }
+      ingredients {
+        id
+        amount
+        unit
+        product {
+          id
+          name
+        }
+        material {
+          id
+          name
+        }
       }
     }
   }
@@ -121,7 +138,22 @@ interface ProcessParameterData {
 interface ProcessMapData {
   id: string;
   name: string;
+  rateOfLoss: number;
   parameters: ProcessParameterData[];
+  ingredients: {
+    id: string;
+    amount: number;
+    unit: string;
+    product: { id: string; name: string } | null;
+    material: { id: string; name: string } | null;
+  }[];
+}
+
+interface CalculatedIngredientLine {
+  id: string;
+  name: string;
+  amount: number;
+  unit: string;
 }
 
 interface StaffBatchData {
@@ -164,6 +196,11 @@ interface StaffBatchesState {
   form: BatchForm;
   processMaps: ProcessMapData[];
   processMapLoading: boolean;
+  productMainProcessMapById: Record<string, string>;
+  calculatedIngredients: CalculatedIngredientLine[];
+  calculatedProcessMapName: string;
+  calculatedInputWeight: number | null;
+  calculatedRateOfLoss: number | null;
 }
 
 const INITIAL_FORM: BatchForm = {
@@ -193,6 +230,11 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
     form: { ...INITIAL_FORM },
     processMaps: [],
     processMapLoading: false,
+    productMainProcessMapById: {},
+    calculatedIngredients: [],
+    calculatedProcessMapName: '',
+    calculatedInputWeight: null,
+    calculatedRateOfLoss: null,
   };
 
   componentDidMount() {
@@ -229,6 +271,19 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
         products: data.products as BatchProductOption[],
         storageConditions: data.storageConditions as StorageConditionOption[],
         batches: data.batches as StaffBatchData[],
+        productMainProcessMapById: (() => {
+          try {
+            const raw = (data.costSettings as { productMainProcessMaps?: string } | undefined)?.productMainProcessMaps ?? '{}';
+            const parsed = JSON.parse(raw) as Record<string, string>;
+            return Object.fromEntries(
+              Object.entries(parsed)
+                .map(([productId, processMapId]) => [productId, String(processMapId)] as const)
+                .filter((entry) => entry[1].trim().length > 0)
+            );
+          } catch {
+            return {};
+          }
+        })(),
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
@@ -279,6 +334,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       error: null,
       notice: null,
       processMaps: [],
+      calculatedIngredients: [],
+      calculatedProcessMapName: '',
+      calculatedInputWeight: null,
+      calculatedRateOfLoss: null,
     });
   };
 
@@ -290,6 +349,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       error: null,
       notice: null,
       processMaps: [],
+      calculatedIngredients: [],
+      calculatedProcessMapName: '',
+      calculatedInputWeight: null,
+      calculatedRateOfLoss: null,
       form: {
         productId: batch.product.id,
         nettoWeight: String(batch.nettoWeight),
@@ -311,18 +374,131 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       nextBatchPreview: null,
       form: { ...INITIAL_FORM },
       processMaps: [],
+      calculatedIngredients: [],
+      calculatedProcessMapName: '',
+      calculatedInputWeight: null,
+      calculatedRateOfLoss: null,
     });
   };
 
   private handleCreateProductChange = async (productId: string) => {
     this.setState((prevState) => ({
       form: { ...prevState.form, productId, processMapId: '' },
+      calculatedIngredients: [],
+      calculatedProcessMapName: '',
+      calculatedInputWeight: null,
+      calculatedRateOfLoss: null,
     }));
     await Promise.all([
       this.loadNextBatchPreview(productId),
       this.loadProcessMaps(productId),
     ]);
   };
+
+  private calculateIngredientsForBatch = () => {
+    const {
+      form,
+      processMaps,
+      productMainProcessMapById,
+    } = this.state;
+
+    const nettoWeight = Number.parseFloat(form.nettoWeight);
+    if (!Number.isFinite(nettoWeight) || nettoWeight <= 0) {
+      this.setState({ error: 'Enter a valid netto weight before calculating ingredients.' });
+      return;
+    }
+
+    if (!form.productId) {
+      this.setState({ error: 'Select a product before calculating ingredients.' });
+      return;
+    }
+
+    if (processMaps.length === 0) {
+      this.setState({ error: 'No process maps available for the selected product.' });
+      return;
+    }
+
+    const selectedMapId = form.processMapId || productMainProcessMapById[form.productId] || '';
+    const selectedMap = processMaps.find((pm) => pm.id === selectedMapId);
+    if (!selectedMap) {
+      this.setState({ error: 'Choose a process map or set a main process map for this product.' });
+      return;
+    }
+
+    const ingredientAmountSum = selectedMap.ingredients.reduce((sum, ingredient) => {
+      const amount = Number(ingredient.amount);
+      return Number.isFinite(amount) && amount > 0 ? sum + amount : sum;
+    }, 0);
+
+    if (!Number.isFinite(ingredientAmountSum) || ingredientAmountSum <= 0) {
+      this.setState({ error: 'Selected process map has no valid ingredient proportions.' });
+      return;
+    }
+
+    const mapRateOfLoss = Number(selectedMap.rateOfLoss);
+    const effectiveRateOfLoss =
+      Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+        ? mapRateOfLoss
+        : 0;
+    const requiredInputWeight = nettoWeight / (1 - effectiveRateOfLoss / 100);
+
+    const calculatedIngredients = selectedMap.ingredients
+      .map((ingredient) => {
+        const amount = Number(ingredient.amount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return null;
+        }
+        const proportion = amount / ingredientAmountSum;
+        return {
+          id: ingredient.id,
+          name: ingredient.product?.name ?? ingredient.material?.name ?? 'Unknown ingredient',
+          amount: requiredInputWeight * proportion,
+          unit: ingredient.unit,
+        };
+      })
+      .filter((ingredient): ingredient is CalculatedIngredientLine => ingredient !== null);
+
+    this.setState({
+      error: null,
+      calculatedIngredients,
+      calculatedProcessMapName: selectedMap.name,
+      calculatedInputWeight: requiredInputWeight,
+      calculatedRateOfLoss: effectiveRateOfLoss,
+    });
+  };
+
+  private renderCalculatedIngredients() {
+    const {
+      calculatedIngredients,
+      calculatedProcessMapName,
+      calculatedInputWeight,
+      calculatedRateOfLoss,
+      form,
+    } = this.state;
+
+    if (calculatedIngredients.length === 0) {
+      return null;
+    }
+
+    const nettoWeight = Number.parseFloat(form.nettoWeight);
+
+    return (
+      <div className="batch-preview-box batch-ingredients-box">
+        <strong>Ingredients calculation</strong>
+        <div>Process map: {calculatedProcessMapName}</div>
+        <div>Netto weight target: {Number.isFinite(nettoWeight) ? nettoWeight.toFixed(3) : form.nettoWeight}</div>
+        <div>Rate of loss: {(calculatedRateOfLoss ?? 0).toFixed(2)}%</div>
+        <div>Required total input: {(calculatedInputWeight ?? 0).toFixed(3)}</div>
+        <ul className="batch-ingredients-list">
+          {calculatedIngredients.map((ingredient) => (
+            <li key={ingredient.id}>
+              {ingredient.name}: {ingredient.amount.toFixed(3)} {ingredient.unit}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   private saveBatch = async () => {
     const { adding, editingBatch, form } = this.state;
@@ -442,6 +618,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       form,
       processMaps,
       processMapLoading,
+      calculatedIngredients,
     } = this.state;
 
     return (
@@ -510,10 +687,26 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                     step="0.001"
                     value={form.nettoWeight}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, nettoWeight: event.target.value } })
+                      this.setState({
+                        form: { ...form, nettoWeight: event.target.value },
+                        calculatedIngredients: [],
+                        calculatedProcessMapName: '',
+                        calculatedInputWeight: null,
+                        calculatedRateOfLoss: null,
+                      })
                     }
                     required
                   />
+                  {adding && (
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      style={{ marginTop: '8px' }}
+                      onClick={this.calculateIngredientsForBatch}
+                    >
+                      Calculate ingredients
+                    </button>
+                  )}
                 </label>
 
                 <label className="cj-label">
@@ -612,6 +805,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       onChange={(event) =>
                         this.setState({
                           form: { ...form, processMapId: event.target.value },
+                          calculatedIngredients: [],
+                          calculatedProcessMapName: '',
+                          calculatedInputWeight: null,
+                          calculatedRateOfLoss: null,
                         })
                       }
                     >
@@ -625,6 +822,8 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                   </div>
                 </div>
               )}
+
+              {adding && calculatedIngredients.length > 0 && this.renderCalculatedIngredients()}
 
               <div className="material-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>

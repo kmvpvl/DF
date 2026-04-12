@@ -768,6 +768,13 @@ main {
   font-size: 0.9rem;
   line-height: 1.5;
 }
+.batch-ingredients-box {
+  margin-top: 0.25rem;
+}
+.batch-ingredients-list {
+  margin: 0.55rem 0 0;
+  padding-left: 1rem;
+}
 
 /* Samples chapter */
 .batch-form {
