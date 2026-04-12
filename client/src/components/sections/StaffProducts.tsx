@@ -56,8 +56,8 @@ const PROCESS_MAPS_QUERY = `
       }
       ingredients {
         id
-        product { id name }
-        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio }
+        product { id name caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
+        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         amount
         unit
       }
@@ -239,10 +239,20 @@ interface ProcessParameterData {
   unit: string;
 }
 
+interface NutritionFields {
+  caloriesKcal: number;
+  fatGrams: number;
+  proteinGrams: number;
+  carbohydratesGrams: number;
+  sugarsGrams: number;
+  fiberGrams: number;
+  saltGrams: number;
+}
+
 interface IngredientData {
   id: string;
-  product: { id: string; name: string } | null;
-  material: {
+  product: ({ id: string; name: string } & NutritionFields) | null;
+  material: ({
     id: string;
     name: string;
     consumptionUnit: string;
@@ -250,7 +260,7 @@ interface IngredientData {
     Price: number;
     purchaseUnitAmount: number;
     ratio: number;
-  } | null;
+  } & NutritionFields) | null;
   amount: number;
   unit: string;
 }
@@ -1680,6 +1690,68 @@ const maps = this.processMapsForCostCache.get(productId);
     });
   };
 
+  private calculateNutritionsFromComposition = () => {
+    const { editingProduct, processMaps, form } = this.state;
+    if (!editingProduct) return;
+
+    if (!window.confirm('Do you agree to lose current nutrition values? They will be recalculated from the composition.')) {
+      return;
+    }
+
+    const mainProcessMapId = this.productMainProcessMapById[editingProduct.id];
+    const mainProcessMap = mainProcessMapId
+      ? processMaps.find((pm) => pm.id === mainProcessMapId)
+      : processMaps[0];
+
+    if (!mainProcessMap) {
+      this.setState({ error: 'No process map found to calculate nutrition from.' });
+      return;
+    }
+
+    const outcome = Number(mainProcessMap.outcome);
+    if (!Number.isFinite(outcome) || outcome <= 0) {
+      this.setState({ error: 'Process map outcome must be greater than zero to calculate nutrition.' });
+      return;
+    }
+
+    let caloriesKcal = 0;
+    let fatGrams = 0;
+    let proteinGrams = 0;
+    let carbohydratesGrams = 0;
+    let sugarsGrams = 0;
+    let fiberGrams = 0;
+    let saltGrams = 0;
+
+    for (const ingredient of mainProcessMap.ingredients) {
+      const amount = Number(ingredient.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      const nutrition = ingredient.material ?? ingredient.product;
+      if (!nutrition) continue;
+      const factor = amount / 100;
+      caloriesKcal += factor * Number(nutrition.caloriesKcal);
+      fatGrams += factor * Number(nutrition.fatGrams);
+      proteinGrams += factor * Number(nutrition.proteinGrams);
+      carbohydratesGrams += factor * Number(nutrition.carbohydratesGrams);
+      sugarsGrams += factor * Number(nutrition.sugarsGrams);
+      fiberGrams += factor * Number(nutrition.fiberGrams);
+      saltGrams += factor * Number(nutrition.saltGrams);
+    }
+
+    const per100 = 100 / outcome;
+    this.setState({
+      form: {
+        ...form,
+        caloriesKcal: (caloriesKcal * per100).toFixed(3),
+        fatGrams: (fatGrams * per100).toFixed(3),
+        proteinGrams: (proteinGrams * per100).toFixed(3),
+        carbohydratesGrams: (carbohydratesGrams * per100).toFixed(3),
+        sugarsGrams: (sugarsGrams * per100).toFixed(3),
+        fiberGrams: (fiberGrams * per100).toFixed(3),
+        saltGrams: (saltGrams * per100).toFixed(3),
+      },
+    });
+  };
+
   private saveProduct = async () => {
     const { form, editingProduct } = this.state;
 
@@ -1881,6 +1953,19 @@ const maps = this.processMapsForCostCache.get(productId);
                   }
                 />
               </label>
+
+              {editingProduct && (
+                <div style={{ marginBottom: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    disabled={processMaps.length === 0 || processMapLoading}
+                    onClick={this.calculateNutritionsFromComposition}
+                  >
+                    Calculate nutritions by composition
+                  </button>
+                </div>
+              )}
 
               <div className="material-grid">
                 <label className="cj-label">
