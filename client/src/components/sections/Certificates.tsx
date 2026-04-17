@@ -485,7 +485,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                   <option value="">-- Select Batch --</option>
                   {availableBatches.map(batch => (
                     <option key={batch.id} value={batch.id}>
-                      {batch.numberStr} - {batch.product.name} ({new Date(batch.createdAt).toLocaleDateString()})
+                      {batch.numberStr} - {batch.product.name} ({this.toLocalDate(batch.createdAt)})
                     </option>
                   ))}
                 </select>
@@ -641,7 +641,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                 {certificates.map(certificate => (
                   <tr key={certificate.id}>
                     <td>{certificate.numberStr}</td>
-                    <td>{new Date(certificate.createdAt).toLocaleDateString()}</td>
+                    <td>{this.toLocalDate(certificate.createdAt)}</td>
                     <td>{certificate.batch.product.name}</td>
                     <td>{certificate.batch.numberStr}</td>
                     <td>{certificate.batch.storageCondition.name}</td>

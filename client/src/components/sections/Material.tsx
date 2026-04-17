@@ -771,8 +771,8 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                       <td>{material.fatGrams}</td>
                       <td>{material.proteinGrams}</td>
                       <td>{material.carbohydratesGrams}</td>
-                      <td>{material.Price.toFixed(2)}</td>
-                      <td>{material.VAT.toFixed(2)}</td>
+                      <td>{this.toCurrency(material.Price)}</td>
+                      <td>{this.toInteger(material.VAT)}</td>
                       <td className="cj-row-actions">
                         <button className="cj-btn-sm" onClick={() => this.openEditForm(material)}>
                           Edit

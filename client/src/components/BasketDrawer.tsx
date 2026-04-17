@@ -79,7 +79,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     }));
   };
 
-  private formatPrice = (value: number) => `${value.toFixed(2)} din`;
+  private formatPrice = (value: number) => `${this.toCurrency(value)} din`;
 
   private getOrderTotal = () =>
     this.props.items.reduce((sum, item) => sum + item.product.price * item.qty, 0);
@@ -90,7 +90,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       name: item.product.name,
       qty: item.qty,
       unitPrice: item.product.price,
-      lineTotal: Number((item.product.price * item.qty).toFixed(2)),
+      lineTotal: item.product.price * item.qty,
       variationLabel: item.product.selectedVariationLabel,
       weightGrams: item.product.selectedWeightGrams,
     }));
@@ -125,7 +125,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         customerPhone,
         note: note || undefined,
         items: this.buildOrderItems(),
-        total: Number(this.getOrderTotal().toFixed(2)),
+        total: this.getOrderTotal(),
       });
 
       this.setState({

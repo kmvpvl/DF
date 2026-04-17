@@ -201,13 +201,10 @@ class Products extends Proto<ProductsProps, ProductsState> {
 
   private formatPrice = (price: number, unit?: string) => {
     if (unit) {
-      const normalizedPrice = Number.isInteger(price)
-        ? price.toString()
-        : price.toFixed(2);
-      return `${normalizedPrice} ${unit}`;
+      return `${this.toCurrency(price)} ${unit}`;
     }
 
-    return `€${price.toFixed(2)}`;
+    return `€${this.toCurrency(price)}`;
   };
 
   private getEffectivePrice = (
@@ -265,7 +262,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
       return null;
     }
 
-    return `${weight} ${unit}`;
+    return `${this.toInteger(weight)} ${unit}`;
   };
 
   private shouldShowVariationWeight = (variation: ProductPriceVariation) => {

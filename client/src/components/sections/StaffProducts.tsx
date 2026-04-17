@@ -1163,8 +1163,8 @@ const maps = this.processMapsForCostCache.get(productId);
     }
 
     return Number.isInteger(weight)
-      ? String(weight)
-      : weight.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+      ? this.toInteger(weight)
+      : this.toFixed(weight);
   };
 
   private gql = async (query: string, variables: Record<string, unknown> = {}) => {
@@ -2111,7 +2111,7 @@ const maps = this.processMapsForCostCache.get(productId);
                               </span>
                             ) : processMapAutoCosts[pm.id] != null ? (
                               <span style={{ marginLeft: '8px', color: '#345d2f', fontSize: '0.85em' }}>
-                                auto cost: {processMapAutoCosts[pm.id]?.toFixed(4)} /{this.formatAutoCostWeight(processMapAutoCostWeights[pm.id] ?? null)} {(processMapAutoCostUnits[pm.id] ?? pm.outcomeUnit) || 'unit'}
+                                auto cost: {this.toFixed(processMapAutoCosts[pm.id]??0)} /{this.formatAutoCostWeight(processMapAutoCostWeights[pm.id] ?? null)} {(processMapAutoCostUnits[pm.id] ?? pm.outcomeUnit) || 'unit'}
                               </span>
                             ) : (
                               <span style={{ marginLeft: '8px', color: '#888', fontSize: '0.85em' }}>
@@ -2193,7 +2193,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           />
                           {processMapCostResult && (
                             <div style={{ marginTop: '4px', fontSize: '0.8em', color: '#345d2f' }}>
-                              Auto total (with VAT): <strong>{processMapCostResult.totalCostWithVat.toFixed(4)}</strong>
+                              Auto total (with VAT): <strong>{this.toCurrency(processMapCostResult.totalCostWithVat)}</strong>
                             </div>
                           )}
                         </label>
@@ -2358,11 +2358,11 @@ const maps = this.processMapsForCostCache.get(productId);
                               lineHeight: '1.6',
                             }}
                           >
-                            <div>Ingredients total (w/o VAT): {processMapCostResult.ingredientsTotal.toFixed(4)}</div>
-                            <div>Cost / {outcomeUnitLabel} (w/o VAT): {processMapCostResult.costPerGramWithoutVat.toFixed(4)}</div>
-                            <div>Cost for dose (w/o VAT): {processMapCostResult.weightedCostWithoutVat.toFixed(4)}</div>
-                            <div>Total (w/o VAT): {processMapCostResult.totalCostWithoutVat.toFixed(4)}</div>
-                            <div>Total (with VAT): <strong>{processMapCostResult.totalCostWithVat.toFixed(4)}</strong></div>
+                            <div>Ingredients total (w/o VAT): {this.toCurrency(processMapCostResult.ingredientsTotal)}</div>
+                            <div>Cost / {outcomeUnitLabel} (w/o VAT): {this.toCurrency(processMapCostResult.costPerGramWithoutVat)}</div>
+                            <div>Cost for dose (w/o VAT): {this.toCurrency(processMapCostResult.weightedCostWithoutVat)}</div>
+                            <div>Total (w/o VAT): {this.toCurrency(processMapCostResult.totalCostWithoutVat)}</div>
+                            <div>Total (with VAT): <strong>{this.toCurrency(processMapCostResult.totalCostWithVat)}</strong></div>
                           </div>
                         )}
                       </div>
@@ -2486,7 +2486,7 @@ const maps = this.processMapsForCostCache.get(productId);
                               )}
                               {costLine && (
                                 <span style={{ fontSize: '0.8em', color: '#666', minWidth: '210px' }}>
-                                  unit: {costLine.unitPriceWithoutVat.toFixed(4)} | line: {costLine.lineCost.toFixed(4)}
+                                  unit: {this.toCurrency(costLine.unitPriceWithoutVat)} | line: {this.toCurrency(costLine.lineCost)}
                                 </span>
                               )}
                               <button type="button" className="cj-btn-sm" onClick={() => this.removeIngredient(idx)}>
@@ -2574,7 +2574,7 @@ const maps = this.processMapsForCostCache.get(productId);
                         {productAutoCostLoading
                           ? 'Calculating...'
                           : productAutoCosts[product.id] != null
-                            ? `${productAutoCosts[product.id]!.toFixed(4)} /${this.formatAutoCostWeight(productAutoCostWeights[product.id] ?? null)} ${productAutoCostUnits[product.id] ?? 'unit'}`
+                            ? `${this.toCurrency(productAutoCosts[product.id]!)} /${this.formatAutoCostWeight(productAutoCostWeights[product.id] ?? null)} ${productAutoCostUnits[product.id] ?? 'unit'}`
                             : '-'}
                       </td>
                       <td className="cj-row-actions">
