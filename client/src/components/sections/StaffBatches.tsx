@@ -486,13 +486,13 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       <div className="batch-preview-box batch-ingredients-box">
         <strong>Ingredients calculation</strong>
         <div>Process map: {calculatedProcessMapName}</div>
-        <div>Netto weight target: {Number.isFinite(nettoWeight) ? nettoWeight.toFixed(3) : form.nettoWeight}</div>
-        <div>Rate of loss: {(calculatedRateOfLoss ?? 0).toFixed(2)}%</div>
-        <div>Required total input: {(calculatedInputWeight ?? 0).toFixed(3)}</div>
+        <div>Netto weight target: {Number.isFinite(nettoWeight) ? this.toFixed(nettoWeight) : form.nettoWeight}</div>
+        <div>Rate of loss: {this.toInteger((calculatedRateOfLoss ?? 0))}%</div>
+        <div>Required total input: {this.toFixed(calculatedInputWeight ?? 0)}</div>
         <ul className="batch-ingredients-list">
           {calculatedIngredients.map((ingredient) => (
             <li key={ingredient.id}>
-              {ingredient.name}: {ingredient.amount.toFixed(3)} {ingredient.unit}
+              {ingredient.name}: {this.toCurrency(ingredient.amount)} {ingredient.unit}
             </li>
           ))}
         </ul>
@@ -881,7 +881,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                           <span className="cj-empty">—</span>
                         )}
                       </td>
-                      <td>{new Date(batch.createdAt).toLocaleString(["sr"], { dateStyle: 'short', timeStyle: 'short' })}</td>
+                      <td>{this.toLocalDate(batch.createdAt)}</td>
                       <td className="cj-row-actions">
                         <button className="cj-btn-sm" onClick={() => this.openEditForm(batch)}>
                           Edit

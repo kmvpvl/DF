@@ -409,11 +409,11 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
                       <td>{sample.note ? sample.note.substring(0, 50) + (sample.note.length > 50 ? '...' : '') : '-'}</td>
                       <td>
                         {sample.studyAt
-                          ? new Date(sample.studyAt).toLocaleDateString()
+                          ? this.toLocalDate(sample.studyAt)
                           : '-'}
                       </td>
                       <td>
-                        {new Date(sample.createdAt).toLocaleDateString()}
+                        {this.toLocalDate(sample.createdAt)}
                       </td>
                       <td>
                         <button

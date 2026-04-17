@@ -51,6 +51,25 @@ export default class Proto<
   protected toCurrency(x: number): string {
     return Intl.NumberFormat(this.getLanguage(), {
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(x);
+  }
+  protected toFixed(x: number): string {
+    return Intl.NumberFormat(this.getLanguage(), {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(x);
+  }
+  protected toInteger(x: number): string {
+    return Intl.NumberFormat(this.getLanguage(), {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(x);
+  }
+  protected toLocalDate(x: string | Date) {
+    return typeof x === 'string' ?
+      new Date(x).toLocaleString([this.getLanguage()], { dateStyle: 'short', timeStyle: 'short' })
+      :
+      x.toLocaleString([this.getLanguage()], { dateStyle: 'short', timeStyle: 'short' })
   }
 }
