@@ -812,11 +812,11 @@ async function buildCertificateDocumentPayload(certificateId: string): Promise<{
     .join('\n');
 
   const ingredients = [...(certificate.batch.processMap?.ingredients ?? [])]
-    .filter(ingredient => ingredient.material?.isPublicComposition === true)
+    .filter(ingredient => ingredient.material?.isPublicComposition === true || ingredient.product?.id)
     .sort((left, right) => Number(right.amount) - Number(left.amount))
     .map((ingredient, index) => ({
       index: index + 1,
-      name: ingredient.material?.name ?? 'Ingredient',
+      name: ingredient.material?.name ?? ingredient.product?.name?? 'Unknown ingredient',
       amount: ingredient.amount,
       unit: ingredient.material?.consumptionUnit ?? 'gram',
     }));
