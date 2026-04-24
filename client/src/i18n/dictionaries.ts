@@ -273,6 +273,47 @@ export const dictionaries = {
           ],
         },
         {
+          id: 22,
+          name: 'Frozen syrniki',
+          description:
+            'Russian Breakfast. Low-Calorie Dessert',
+          price: 250,
+          priceUnit: 'din',
+          emoji: '🍮',
+          chapter: 'desserts',
+          photos: [
+            '/assets/images/products/sy1.jpg',
+            '/assets/images/products/sy2.jpg',
+            '/assets/images/products/sy_mus.jpg',
+          ],
+          priceVariations: [
+            {
+              label: '4 pieces',
+              price: 250,
+              legalEntityPrice: 250,
+              unit: 'din',
+              weight: 400,
+              weightUnit: 'g',
+            },
+            {
+              label: '2 pieces',
+              price: 150,
+              legalEntityPrice: 150,
+              unit: 'din',
+              weight: 200,
+              weightUnit: 'g',
+            },
+            {
+              label: '4 pieces with apple or strawberry mousse',
+              price: 300,
+              legalEntityPrice: 300,
+              unit: 'din',
+              weight: 450,
+              weightUnit: 'g',
+            },
+          ],
+        },
+        {
           id: 10,
           name: 'Postcard Male is waiting',
           description:
