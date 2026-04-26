@@ -342,6 +342,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
   };
 
   private openEditForm = (batch: StaffBatchData) => {
+    window.scrollTo({
+      top: 0, 
+      behavior: 'smooth'
+    });
     this.setState({
       adding: false,
       editingBatch: batch,
@@ -684,7 +688,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.nettoWeight}
                     onChange={(event) =>
                       this.setState({

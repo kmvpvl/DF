@@ -1,0 +1,2 @@
+ALTER TABLE `Material`
+  ADD COLUMN `rateOfLoss` FLOAT NOT NULL DEFAULT 0.0;

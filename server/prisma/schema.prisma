@@ -86,6 +86,7 @@ model Material {
   purchaseUnit          String
   purchaseUnitAmount    Float
   consumptionUnit       String
+  rateOfLoss            Float @default(0.0)
   ratio                 Float
 }
 

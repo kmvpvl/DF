@@ -22,6 +22,7 @@ const MATERIAL_FIELDS = `
   purchaseUnitAmount
   consumptionUnit
   ratio
+  rateOfLoss
   createdAt
   updatedAt
 `;
@@ -90,6 +91,7 @@ interface MaterialData {
   purchaseUnit: string;
   purchaseUnitAmount: number;
   consumptionUnit: string;
+  rateOfLoss: number;
   ratio: number;
   createdAt: string;
   updatedAt: string;
@@ -112,6 +114,7 @@ interface MaterialForm {
   purchaseUnit: string;
   purchaseUnitAmount: string;
   consumptionUnit: string;
+  rateOfLoss: string;
   ratio: string;
 }
 
@@ -150,7 +153,7 @@ const INITIAL_FORM: MaterialForm = {
   purchaseUnit: '',
   purchaseUnitAmount: '',
   consumptionUnit: '',
-
+  rateOfLoss: '',
   ratio: '',
 };
 
@@ -283,6 +286,10 @@ class Material extends Proto<Record<string, never>, MaterialState> {
   };
 
   private openEditForm = (material: MaterialData) => {
+    window.scrollTo({
+      top: 0, 
+      behavior: 'smooth'
+    });
     this.setState({
       adding: false,
       editingMaterial: material,
@@ -304,6 +311,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
         purchaseUnit: material.purchaseUnit ?? '',
         purchaseUnitAmount: String(material.purchaseUnitAmount),
         consumptionUnit: material.consumptionUnit ?? '',
+        rateOfLoss: String(material.rateOfLoss),
         ratio: String(material.ratio),
       },
     });
@@ -330,6 +338,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     const vat = Number.parseFloat(form.VAT);
     const price = Number.parseFloat(form.Price);
     const purchaseUnitAmount = Number.parseFloat(form.purchaseUnitAmount);
+    const rateOfLoss = Number.parseFloat(form.rateOfLoss);
     const ratio = Number.parseFloat(form.ratio);
 
     if (
@@ -337,6 +346,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       !form.description.trim() ||
       !form.purchaseUnit.trim() ||
       !form.consumptionUnit.trim() ||
+      !Number.isFinite(rateOfLoss) ||
       !Number.isFinite(caloriesKcal) ||
       !Number.isFinite(fatGrams) ||
       !Number.isFinite(proteinGrams) ||
@@ -374,6 +384,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       purchaseUnit: form.purchaseUnit.trim(),
       purchaseUnitAmount,
       consumptionUnit: form.consumptionUnit.trim(),
+      rateOfLoss: rateOfLoss,
       ratio,
     };
 
@@ -548,7 +559,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.caloriesKcal}
                     onChange={(event) =>
                       this.setState({ form: { ...form, caloriesKcal: event.target.value } })
@@ -562,7 +573,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.fatGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, fatGrams: event.target.value } })
@@ -576,7 +587,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.proteinGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, proteinGrams: event.target.value } })
@@ -590,7 +601,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.carbohydratesGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, carbohydratesGrams: event.target.value } })
@@ -604,7 +615,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.sugarsGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, sugarsGrams: event.target.value } })
@@ -618,7 +629,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.fiberGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, fiberGrams: event.target.value } })
@@ -632,7 +643,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.saltGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, saltGrams: event.target.value } })
@@ -646,7 +657,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={form.VAT}
                     onChange={(event) =>
                       this.setState({ form: { ...form, VAT: event.target.value } })
@@ -660,7 +671,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={form.Price}
                     onChange={(event) =>
                       this.setState({ form: { ...form, Price: event.target.value } })
@@ -687,7 +698,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.01"
+                    step="1"
                     value={form.purchaseUnitAmount}
                     onChange={(event) =>
                       this.setState({ form: { ...form, purchaseUnitAmount: event.target.value } })
@@ -714,10 +725,22 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.0001"
+                    step="1"
                     value={form.ratio}
                     onChange={(event) =>
                       this.setState({ form: { ...form, ratio: event.target.value } })
+                    }
+                    required
+                  />
+                </label>
+                <label className="cj-label">
+                  Rate of loss (%)
+                  <input
+                    className="cj-input material-input"
+                    type="text"
+                    value={form.rateOfLoss}
+                    onChange={(event) =>
+                      this.setState({ form: { ...form, rateOfLoss: event.target.value } })
                     }
                     required
                   />
