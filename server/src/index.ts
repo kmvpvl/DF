@@ -154,6 +154,7 @@ interface CreateMaterialInput {
   purchaseUnit: string;
   purchaseUnitAmount: number;
   consumptionUnit: string;
+  rateOfLoss: number;
   ratio: number;
 }
 
@@ -174,6 +175,7 @@ interface UpdateMaterialInput {
   purchaseUnit?: string;
   purchaseUnitAmount?: number;
   consumptionUnit?: string;
+  rateOfLoss?: number;
   ratio?: number;
 }
 
@@ -329,6 +331,7 @@ const MATERIAL_CSV_HEADERS = [
   'purchaseUnit',
   'purchaseUnitAmount',
   'consumptionUnit',
+  'rateOfLoss',
   'ratio',
 ] as const;
 
@@ -1061,6 +1064,7 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
+    rateOfLoss: Float!
     ratio: Float!
     createdAt: String!
     updatedAt: String!
@@ -1231,6 +1235,7 @@ const typeDefs = `
     purchaseUnit: String!
     purchaseUnitAmount: Float!
     consumptionUnit: String!
+    rateOfLoss: Float!
     ratio: Float!
   }
 
@@ -1251,6 +1256,7 @@ const typeDefs = `
     purchaseUnit: String
     purchaseUnitAmount: Float
     consumptionUnit: String
+    rateOfLoss: Float
     ratio: Float
   }
 
@@ -1542,6 +1548,7 @@ const resolvers = {
           material.purchaseUnit,
           String(material.purchaseUnitAmount),
           material.consumptionUnit,
+          String(material.rateOfLoss),
           String(material.ratio),
         ]
           .map(value => escapeCsvValue(String(value)))
@@ -2065,6 +2072,7 @@ const resolvers = {
           purchaseUnit: input.purchaseUnit.trim(),
           purchaseUnitAmount: input.purchaseUnitAmount,
           consumptionUnit: input.consumptionUnit.trim(),
+          rateOfLoss: input.rateOfLoss,
           ratio: input.ratio,
         },
       });
@@ -2093,6 +2101,7 @@ const resolvers = {
         purchaseUnit?: string;
         purchaseUnitAmount?: number;
         consumptionUnit?: string;
+        rateOfLoss?: number;
         ratio?: number;
       } = {};
       if (input.name !== undefined) data.name = input.name.trim();
@@ -2115,6 +2124,7 @@ const resolvers = {
       if (input.purchaseUnit !== undefined) data.purchaseUnit = input.purchaseUnit.trim();
       if (input.purchaseUnitAmount !== undefined) data.purchaseUnitAmount = input.purchaseUnitAmount;
       if (input.consumptionUnit !== undefined) data.consumptionUnit = input.consumptionUnit.trim();
+      if (input.rateOfLoss !== undefined) data.rateOfLoss = input.rateOfLoss;
       if (input.ratio !== undefined) data.ratio = input.ratio;
 
       if (Object.keys(data).length === 0) {
@@ -2195,6 +2205,7 @@ const resolvers = {
             purchaseUnit: row.purchaseUnit.trim(),
             purchaseUnitAmount: parseCsvNumber(row.purchaseUnitAmount),
             consumptionUnit: row.consumptionUnit.trim(),
+            rateOfLoss: parseCsvNumber(row.rateOfLoss),
             ratio: parseCsvNumber(row.ratio),
           };
 

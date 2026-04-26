@@ -31,6 +31,7 @@ const PRODUCTS_QUERY = `
       Price
       purchaseUnitAmount
       consumptionUnit
+      rateOfLoss
       ratio
     }
   }
@@ -229,6 +230,7 @@ interface MaterialOption {
   Price: number;
   purchaseUnitAmount: number;
   consumptionUnit: string;
+  rateOfLoss: number;
   ratio: number;
 }
 
@@ -259,6 +261,7 @@ interface IngredientData {
     VAT: number;
     Price: number;
     purchaseUnitAmount: number;
+    rateOfLoss: number;
     ratio: number;
   } & NutritionFields) | null;
   amount: number;
@@ -327,6 +330,7 @@ interface ProcessMapForCost {
       VAT: number;
       Price: number;
       purchaseUnitAmount: number;
+      rateOfLoss: number;
       ratio: number;
     } | null;
   }>;
@@ -578,12 +582,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     return Number.isFinite(specific) && specific >= 0 ? specific : fallbackProductVat;
   };
 
-  private getMaterialUnitPriceWithoutVat = (material: {
-    VAT: number;
-    Price: number;
-    ratio: number;
-    purchaseUnitAmount: number;
-  }): number => {
+  private getMaterialUnitPriceWithoutVat = (material: MaterialOption): number => {
     const vatFactor = 1 + material.VAT / 100;
     const priceWithoutVat = vatFactor > 0 ? material.Price / vatFactor : material.Price;
     let result = priceWithoutVat;
@@ -592,6 +591,9 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     }
     if (material.purchaseUnitAmount > 0) {
       result /= material.purchaseUnitAmount;
+    }
+    if (material.rateOfLoss > 0) {
+      result /= (1 - material.rateOfLoss/100);
     }
     return result;
   };
@@ -1311,6 +1313,10 @@ const maps = this.processMapsForCostCache.get(productId);
   };
 
   private openEditForm = (product: StaffProductData) => {
+    window.scrollTo({
+      top: 0, 
+      behavior: 'smooth'
+    });
     const { processMapPanelForm } = this.state;
     const fallbackMarginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
     const resolvedMarginalFallback =
@@ -1973,7 +1979,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.caloriesKcal}
                     onChange={(event) =>
                       this.setState({ form: { ...form, caloriesKcal: event.target.value } })
@@ -1987,7 +1993,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.fatGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, fatGrams: event.target.value } })
@@ -2001,7 +2007,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.proteinGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, proteinGrams: event.target.value } })
@@ -2015,7 +2021,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.carbohydratesGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, carbohydratesGrams: event.target.value } })
@@ -2029,7 +2035,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.sugarsGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, sugarsGrams: event.target.value } })
@@ -2043,7 +2049,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.fiberGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, fiberGrams: event.target.value } })
@@ -2057,7 +2063,7 @@ const maps = this.processMapsForCostCache.get(productId);
                   <input
                     className="cj-input material-input"
                     type="number"
-                    step="0.001"
+                    step="1"
                     value={form.saltGrams}
                     onChange={(event) =>
                       this.setState({ form: { ...form, saltGrams: event.target.value } })
@@ -2176,7 +2182,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.001"
+                            step="1"
                             value={processMapPanelForm.outcome}
                             onChange={(event) =>
                               this.setState({
@@ -2221,7 +2227,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.01"
+                            step="1"
                             min="0"
                             max="99.99"
                             value={processMapPanelForm.rateOfLoss}
@@ -2246,7 +2252,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.0001"
+                            step="1"
                             value={processMapPanelForm.marginalCoefficient}
                             onChange={(event) =>
                               this.setState({
@@ -2269,7 +2275,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.01"
+                            step="1"
                             value={processMapPanelForm.containerCost}
                             onChange={(event) =>
                               this.setState({
@@ -2292,7 +2298,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.01"
+                            step="1"
                             value={processMapPanelForm.productVat}
                             onChange={(event) =>
                               this.setState({
@@ -2315,7 +2321,7 @@ const maps = this.processMapsForCostCache.get(productId);
                           <input
                             className="cj-input batch-input-wide"
                             type="number"
-                            step="0.001"
+                            step="1"
                             min="0"
                             value={processMapPanelForm.productWeight}
                             onChange={(event) =>
@@ -2474,7 +2480,7 @@ const maps = this.processMapsForCostCache.get(productId);
                               <input
                                 className="cj-input material-input"
                                 type="number"
-                                step="0.001"
+                                step="1"
                                 min="0"
                                 placeholder="Amount"
                                 style={{ width: '90px' }}
