@@ -10,6 +10,7 @@ import Tool from './components/sections/Tool.tsx';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
 import Proto from './proto';
+import Instructions from './components/sections/instructions.tsx';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -489,6 +490,7 @@ class App extends Proto<Record<string, never>, AppState> {
               />
               <Delivery />
               <Contacts />
+              <Instructions />
             </>
           )}
         </main>
