@@ -1152,69 +1152,93 @@ export const mlStrings = new Map([
     ]),
   ],
   [
-    ``,
+    `Here are some recipes for cooking. Please read them carefully to ensure perfect results that will delight you and your family.`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Здесь находятся рецепты приготовления блюд. Пожалуйста, прочитайте внимательно, чтобы получить идеальный результат, который порадует Вас и Вашу семью'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Evo nekoliko recepata za kuvanje. Pažljivo ih pročitajte kako biste osigurali savršene rezultate koji će oduševiti vas i vašu porodicu.'],
     ]),
   ],
   [
-    ``,
+    `<p>Syrniki are a traditional Russian breakfast. They are made with cottage cheese, flour, and egg. They are fried in a frying pan with a small amount of refined sunflower oil until done. We sell frozen, vacuum-packed syrniki. </p><p>1) Heat a frying pan of sufficient size and pour in some refined vegetable oil, </p><p>2) Reduce heat to low, </p><p>3) Place the frozen or thawed syrniki in the pan and fry for 7 minutes on each side. If the syrniki are frozen, cover the pan with a lid. </p><p>4) Bake the syrniki until smooth (they shouldn't be runny inside). </p><p>5) Serve with sour cream, sweetened condensed milk, or fruit or berry puree.</p>`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, '<p>Сырники это традиционный русский завтрак. Сырники готовятся из творога, муки и яйца. Сырники необходимо обжарить до готовности на сковороде с небольшим количеством рафинированного подсолнечного масла. Мы продаем сырники в замороженном виде в вакуумной упаковке. </p><p>1) разогрейте сковороду достаточного размера и налейте немного рафинированного растительного масла, </p><p>2) сделайте малый огонь, </p><p>3) выложите замороженные или размороженные сырники на сковороду и обжаривайте на каждой стороне по 7 минут, если сырники заморожены, то накройте сковороду крышкой, </p><p>4) пропеките сырники до однородной консистенции (внутри они не должны быть жидкими), </p><p>5) подавайте сырники со сметаной, сладким сгущеным молоком или фруктовым или ягодным пюре.</p>'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, '<p>Sirnici su tradicionalni ruski doručak. Prave se od svežeg sira, brašna i jajeta. Prže se u tiganju sa malom količinom rafinisanog suncokretovog ulja dok ne budu gotovi. Prodajemo zamrznute, vakuumski upakovane sirnike. </p><p>1) Zagrejte tiganj dovoljne veličine i sipajte malo rafinisanog biljnog ulja, </p><p>2) Smanjite vatru na najslabije, </p><p>3) Stavite zamrznute ili odmrznute sirnike u tiganj i pržite 7 minuta sa svake strane. Ako su sirnici zamrznuti, pokrijte tiganj poklopcem. </p><p>4) Pecite sirnike dok ne postanu glatki (ne smeju biti tečni unutra). </p><p>5) Poslužite sa pavlakom, zaslađenim kondenzovanim mlekom ili pireom od voća ili bobičastog voća.</p>'],
     ]),
   ],
   [
-    ``,
+    `Ready-to-eat soups`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Супы, готовые к употреблению'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Supe spremne za jelo'],
     ]),
   ],
   [
-    ``,
+    `Recipes`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Рецепты'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Recepti'],
     ]),
   ],
   [
-    ``,
+    `<p>All soups are cooked below 100°C to preserve the beneficial properties of all ingredients. Therefore, we recommend using one of two serving methods.</p><p>
+
+Method 1. Suitable for most users. Use kitchen scissors to cut off one end of the bag and pour the contents into a saucepan or sauté pan. Heat the soup to 60°C and ladle into bowls.</p><p>
+
+Method 2. For professionals only. Heat water in a saucepan or sauté pan and immerse the bag of soup in it. Once the bag reaches 60°C, remove the bag from the hot water, cut off one end of the bag, and pour the contents into a bowl. CAUTION! The contents of the bag will be hot, so handle with care. Avoid burns!</p><p>
+
+DO NOT microwave the bag. If using a microwave, first empty the contents of the bag into a bowl and reheat the soup in the bowl.</p><p>
+
+We do not recommend reheating our dishes in a microwave oven, as microwaves cause electric current to flow through the liquid, which can trigger unexpected chemical reactions. Microwaves inside the oven, due to numerous reflections from the walls, create standing waves, leading to uneven heating of the soup, even as the plate rotates within the oven. This results in localized overheating, which can negatively impact the quality of the dish.</p>`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, `<p>Все супы готовятся при температуре ниже 100°C, чтобы сохранить полезные свойства всех ингредиентов. Поэтому мы рекомендуем использовать один из двух способов сервировки.</p><p>
+
+Способ 1. Подходит для большинства пользователей. Кухонными ножницами отрежьте один край пакета и вылейте содержимое в кастрюлю или сотейник. Нагрейте суп до 60°C и разлейте по тарелкам.</p><p>
+
+Способ 2. Только для профессионалов. Нагрейте воду в кастрюле или сотейнике и погрузите в нее пакет с супом. Как только пакет нагреется до 60°C, выньте пакет из горячей воды, отрежьте один край пакета и вылейте содержимое в тарелку. ВНИМАНИЕ! Содержимое пакета будет горячим, поэтому обращайтесь с ним осторожно. Берегитесь ожогов!</p><p>
+
+ЗАПРЕЩЕНО разогревать пакет в микроволновой печи. Если используете микроволновую печь, то предварительно вылейте содержимое пакета в тарелку и разогревайте суп в тарелке. </p><p>
+
+Мы не рекомендуем разогрев изготовленных нами блюд в микроволновой печи, так как СВЧ приводит к протеканию электрического тока в жидкости, что порождает самые неожиданные химические реакции. СВЧ внутри печи из-за многочисленных отражений от стенок внутри формирует стоячие волны, что приводит к неравномерному нагреванию супа даже в процессе вращения тарелки внутри печи. В результате возникают локальные перегревы, что может негативно сказаться на свойствах блюда</p>`],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, `<p>Sve supe se kuvaju na temperaturi ispod 100°C kako bi se sačuvala korisna svojstva svih sastojaka. Stoga preporučujemo upotrebu jednog od dva načina serviranja.</p><p>
+
+Metod 1. Pogodno za većinu korisnika. Kuhinjskim makazama odsecite jedan kraj kesice i sipajte sadržaj u šerpu ili tiganj. Zagrejte supu na 60°C i sipajte u činije.</p><p>
+
+Metod 2. Samo za profesionalce. Zagrejte vodu u šerpi ili tiganju i potopite kesicu supe u nju. Kada kesica dostigne 60°C, izvadite kesicu iz vrele vode, odsecite jedan kraj kesice i sipajte sadržaj u činiju. OPREZ! Sadržaj kesice će biti vruć, zato pažljivo rukujte. Izbegavajte opekotine!</p><p>
+
+NE zagrevajte kesicu u mikrotalasnoj pećnici. Ako koristite mikrotalasnu, prvo ispraznite sadržaj kesice u činiju i ponovo zagrejte supu u činiji.</p><p>
+
+Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrotalasi izazivaju protok električne struje kroz tečnost, što može izazvati neočekivane hemijske reakcije. Mikrotalasi unutar rerne, zbog brojnih refleksija od zidova, stvaraju stojeće talase, što dovodi do neravnomernog zagrevanja supe, čak i dok se tanjir okreće unutar rerne. To rezultira lokalizovanim pregrevanjem, što može negativno uticati na kvalitet jela</p>`],
     ]),
   ],
   [
-    ``,
+    `Syrniki`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Сырники'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Sirnjikji'],
     ]),
   ],
   [

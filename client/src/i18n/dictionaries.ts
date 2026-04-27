@@ -453,11 +453,37 @@ export const dictionaries = {
         },
       ],
     },
+    recipes: {
+      label: 'Recipes',
+      title: 'Here are some recipes for cooking. Please read them carefully to ensure perfect results that will delight you and your family.',
+
+      items: [
+        {
+          anchorId: 'syrnik',
+          name: 'Syrniki',
+          description: `<p>Syrniki are a traditional Russian breakfast. They are made with cottage cheese, flour, and egg. They are fried in a frying pan with a small amount of refined sunflower oil until done. We sell frozen, vacuum-packed syrniki. </p><p>1) Heat a frying pan of sufficient size and pour in some refined vegetable oil, </p><p>2) Reduce heat to low, </p><p>3) Place the frozen or thawed syrniki in the pan and fry for 7 minutes on each side. If the syrniki are frozen, cover the pan with a lid. </p><p>4) Bake the syrniki until smooth (they shouldn't be runny inside). </p><p>5) Serve with sour cream, sweetened condensed milk, or fruit or berry puree.</p>`,
+
+        },
+        {
+          anchorId: 'soup-package',
+          name: 'Ready-to-eat soups',
+          description: `<p>All soups are cooked below 100°C to preserve the beneficial properties of all ingredients. Therefore, we recommend using one of two serving methods.</p><p>
+
+Method 1. Suitable for most users. Use kitchen scissors to cut off one end of the bag and pour the contents into a saucepan or sauté pan. Heat the soup to 60°C and ladle into bowls.</p><p>
+
+Method 2. For professionals only. Heat water in a saucepan or sauté pan and immerse the bag of soup in it. Once the bag reaches 60°C, remove the bag from the hot water, cut off one end of the bag, and pour the contents into a bowl. CAUTION! The contents of the bag will be hot, so handle with care. Avoid burns!</p><p>
+
+DO NOT microwave the bag. If using a microwave, first empty the contents of the bag into a bowl and reheat the soup in the bowl.</p><p>
+
+We do not recommend reheating our dishes in a microwave oven, as microwaves cause electric current to flow through the liquid, which can trigger unexpected chemical reactions. Microwaves inside the oven, due to numerous reflections from the walls, create standing waves, leading to uneven heating of the soup, even as the plate rotates within the oven. This results in localized overheating, which can negatively impact the quality of the dish.</p>`
+        }
+      ]
+    },
     contacts: {
       label: 'Get in Touch',
       title: "We'd Love to Hear From You",
       addressLabel: 'Address',
-      addressValue: 'Braće Jovanivića 99, Pančevo, Srbija',
+      addressValue: 'Braće Jovanovića 99, Pančevo, Srbija',
       phoneLabel: 'Phone',
       phoneValue: '+381 62 1478 438',
       emailLabel: 'Email',
@@ -559,7 +585,7 @@ export const dictionaries = {
       label: 'Свяжитесь с нами',
       title: 'Будем рады вашему сообщению',
       addressLabel: 'Адрес',
-      addressValue: 'Braće Jovanivića 99, Pančevo, Srbija',
+      addressValue: 'Braće Jovanovića 99, Pančevo, Srbija',
       phoneLabel: 'Телефон',
       phoneValue: '+381 62 1478 438',
       emailLabel: 'Email',
@@ -661,7 +687,7 @@ export const dictionaries = {
       label: 'Kontakt',
       title: 'Rado cemo vas cuti',
       addressLabel: 'Adresa',
-      addressValue: 'Braće Jovanivića 99, Pančevo, Srbija',
+      addressValue: 'Braće Jovanovića 99, Pančevo, Srbija',
       phoneLabel: 'Telefon',
       phoneValue: '+381 62 1478 438',
       emailLabel: 'Email',
