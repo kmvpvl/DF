@@ -58,7 +58,7 @@ const PROCESS_MAPS_QUERY = `
       ingredients {
         id
         product { id name caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
-        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
+        material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         amount
         unit
       }
@@ -87,7 +87,7 @@ const CREATE_PROCESS_MAP_MUTATION = `
       ingredients {
         id
         product { id name }
-        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio }
+        material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
       }
@@ -116,7 +116,7 @@ const UPDATE_PROCESS_MAP_MUTATION = `
       ingredients {
         id
         product { id name }
-        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio }
+        material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
       }
@@ -138,7 +138,7 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
       ingredients {
         id
         product { id name }
-        material { id name consumptionUnit VAT Price purchaseUnitAmount ratio }
+        material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
       }
     }
