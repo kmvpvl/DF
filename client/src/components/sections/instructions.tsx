@@ -24,7 +24,7 @@ export default class Instructions extends Proto <IInstructionsProps, IInstructio
             <h2 className="section-title">{this.ML(content.title)}</h2>
             <div className="section-desc">
             {content.items.map((s) => (
-                <div key={s.name} className="stat" id={`instrictions-${s.anchorId}`} style={{textAlign: "left"}}>
+                <div key={s.name} className="stat" id={`instructions-${s.anchorId}`} style={{textAlign: "left"}}>
                 <div className="stat-value">{this.ML(s.name)}</div>
                 <div className="stat-label" dangerouslySetInnerHTML={{__html: this.ML(s.description)}}/>
                 </div>
