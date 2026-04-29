@@ -372,6 +372,7 @@ interface StaffProductsState {
   materials: MaterialOption[];
   productAutoCostLoading: boolean;
   productAutoCosts: Record<string, number | null>;
+  productAutoCostMarginals: Record<string, number | null>;
   productAutoCostWeights: Record<string, number | null>;
   productAutoCostUnits: Record<string, string | null>;
   productIngredientOutcomeUnits: Record<string, string>;
@@ -441,6 +442,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
     materials: [],
     productAutoCostLoading: false,
     productAutoCosts: {},
+    productAutoCostMarginals: {},
     productAutoCostWeights: {},
     productAutoCostUnits: {},
     productIngredientOutcomeUnits: {},
@@ -1035,6 +1037,7 @@ const maps = this.processMapsForCostCache.get(productId);
       this.setState({
         productAutoCostLoading: false,
         productAutoCosts: {},
+        productAutoCostMarginals: {},
         productAutoCostWeights: {},
         productAutoCostUnits: {},
       });
@@ -1046,6 +1049,7 @@ const maps = this.processMapsForCostCache.get(productId);
       this.setState({
         productAutoCostLoading: false,
         productAutoCosts: {},
+        productAutoCostMarginals: {},
         productAutoCostWeights: {},
         productAutoCostUnits: {},
       });
@@ -1062,7 +1066,7 @@ const maps = this.processMapsForCostCache.get(productId);
           const maps = await this.loadProcessMapsForCost(product.id);
           const selectedMap = this.getMainProcessMapForProduct(product.id, maps);
           if (!selectedMap) {
-            return [product.id, null, null, null] as const;
+            return [product.id, null, null, null, null] as const;
           }
 
           const productMarginalCoefficient =
@@ -1086,7 +1090,7 @@ const maps = this.processMapsForCostCache.get(productId);
 
           const outcome = Number(selectedMap.outcome);
           if (!Number.isFinite(outcome) || outcome <= 0) {
-            return [product.id, null, null, null] as const;
+            return [product.id, null, null, null, null] as const;
           }
 
           const productRateOfLoss =
@@ -1121,7 +1125,7 @@ const maps = this.processMapsForCostCache.get(productId);
 
           const effectiveOutcome = outcome * (1 - productRateOfLoss / 100);
           if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
-            return [product.id, null, null, null] as const;
+            return [product.id, null, null, null, null] as const;
           }
 
           const costPerGramWithoutVat =
@@ -1131,7 +1135,7 @@ const maps = this.processMapsForCostCache.get(productId);
             weightedCostWithoutVat * (1 + productVat / 100) + productContainerCost;
 
           const resolvedUnit = selectedMap.outcomeUnit.trim() || null;
-          return [product.id, totalCostWithVat, productWeight, resolvedUnit] as const;
+          return [product.id, totalCostWithVat, productWeight, resolvedUnit, productMarginalCoefficient] as const;
         })
       );
 
@@ -1140,6 +1144,10 @@ const maps = this.processMapsForCostCache.get(productId);
         productAutoCosts: Object.fromEntries(
           pairs.map(([productId, total]) => [productId, total])
         ),
+        productAutoCostMarginals: Object.fromEntries(
+          pairs.map(([productId, , , , marginal]) => [productId, marginal])
+        ),
+
         productAutoCostWeights: Object.fromEntries(
           pairs.map(([productId, , productWeight]) => [productId, productWeight ?? null])
         ) as Record<string, number | null>,
@@ -1846,6 +1854,7 @@ const maps = this.processMapsForCostCache.get(productId);
       materials,
       productAutoCostLoading,
       productAutoCosts,
+      productAutoCostMarginals,
       productAutoCostWeights,
       productAutoCostUnits,
       processMaps,
@@ -2548,7 +2557,7 @@ const maps = this.processMapsForCostCache.get(productId);
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Batch prefix</th>
+                  <th>Marginal</th>
                   <th>kcal</th>
                   <th>Fat</th>
                   <th>Protein</th>
@@ -2571,7 +2580,10 @@ const maps = this.processMapsForCostCache.get(productId);
                         <strong>{product.name}</strong>
                         <div className="material-description">{product.description || 'No description'}</div>
                       </td>
-                      <td>{product.batchPrefix}</td>
+                      <td>{productAutoCostLoading
+                        ? '...': productAutoCostMarginals[product.id] != null 
+                        ? productAutoCostMarginals[product.id]: '-'}
+                      </td>
                       <td>{product.caloriesKcal}</td>
                       <td>{product.fatGrams}</td>
                       <td>{product.proteinGrams}</td>
