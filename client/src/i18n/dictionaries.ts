@@ -2,12 +2,145 @@ export const dictionaries = {
   en: {
     products: {
       chapterLabels: {
+        soups: 'Soups',
         desserts: 'Desserts',
         cheeses: 'Cheeses',
         related: 'Related',
       },
-      chapterOrder: ['desserts', 'cheeses', 'related'],
+      chapterOrder: ['soups', 'desserts', 'cheeses', 'related'],
       items: [
+        {
+          id: 201,
+          name: 'Beef soup (Ready-to-eat)',
+          description: `Najdelikatnija niskokalorična teleća čorba 
+          <br>Složeni: voda, govedina,  krompir, šargarepa, crni luk, pšenično brašno, začini
+          <br><b>U svakoj porciji se nalazi najmanje 90g probrane posne teletine</b>`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/tc-1.webp',
+          ],
+          priceVariations: [
+            {
+              label: '400g',
+              price: 319,
+              legalEntityPrice: 229,
+              unit: 'din',
+              weight: 400,
+              weightUnit: 'g',
+            },
+          ]
+        },
+        {
+          id: 202,
+          name: 'Sea fish soup (Ready-to-eat)',
+          description: `Čorba od fileta morske ribe. Pogodno za dane posta (sreda/petak).
+<br>	Sastav: fileti morske ribe, crni luk, šargarepa, stabljike celera, začini.
+<br>	<b>U svakoj porciji se nalazi najmanje 80 g ribljeg fileta bez kostiju</b>.
+`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/rc-1.jpg',
+          ],
+          priceVariations: [
+            {
+              label: '360g',
+              price: 289,
+              legalEntityPrice: 189,
+              unit: 'din',
+              weight: 360,
+              weightUnit: 'g',
+            },
+          ]
+        },
+        {
+          id: 203,
+          name: 'Borshch (Ready-to-eat)',
+          description: `Klasičan recept ukrajinskog boršča.
+<br>	Sastav: junetina, cvekla, kupus, krompir, šargarepa, crni luk, paradajz, začini.
+<br>	<b>U svakoj porciji se nalazi najmanje 80 g probrane posne junetine</b>.
+`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/borsc-2.jfif',
+            '/assets/images/products/borsc-1.jpg',
+          ],
+          priceVariations: [
+            {
+              label: '480g',
+              price: 319,
+              legalEntityPrice: 220,
+              unit: 'din',
+              weight: 480,
+              weightUnit: 'g',
+            },
+          ]
+        },
+        {
+          id: 204,
+          name: 'Solyanka (Ready-to-eat)',
+          description: `Staroruska domaća soljanka.
+<br>	Sastav: junetina, dimljena svinjetina, suvomesnata svinjska kobasica, crni luk, kiseli krastavci, paradajz, masline, začini.
+<br><b>	U svakoj porciji se nalazi najmanje 130 g mesa.</b>
+`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/soljanka-1.jfif',
+          ],
+          priceVariations: [
+            {
+              label: '520g',
+              price: 450,
+              legalEntityPrice: 399,
+              unit: 'din',
+              weight: 520,
+              weightUnit: 'g',
+            },
+          ]
+        },
+        {
+          id: 205,
+          name: 'Krem supa sa piletinom i spanaćem (Ready-to-eat)',
+          description: `Visokoenergetsko jelo bogatog i zasićenog ukusa. 
+<br>	Sastav: pileći file, pavlaka za kuvanje, šargarepa, crni luk, spanać, začini. 
+<br><b>	U svakoj porciji se nalazi najmanje 90 g pilećeg mesa. </b>
+`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/slivochn_sup_shpinat.jpg',
+          ],
+          priceVariations: [
+            {
+              label: '450g',
+              price: 299,
+              legalEntityPrice: 209,
+              unit: 'din',
+              weight: 450,
+              weightUnit: 'g',
+            },
+          ]
+        },
+        {
+          id: 206,
+          name: 'Gulaš čorba (Ready-to-eat)',
+          description: `Klasičan mađarski recept. Visokoenergetsko jelo bogatog ukusa. 
+<br>Sastav: junetina, crni luk, paradajz, šargarepa, krompir, slatka paprika, beli luk, začini. 
+<br> <b>U svakoj porciji se nalazi najmanje 150 g junetine. </b>
+`,
+          chapter: 'soups',
+          photos: [
+            '/assets/images/products/4b94ee35-5e18-48eb-9dc9-34743957ef1d_420_420.webp',
+          ],
+          priceVariations: [
+            {
+              label: '450g',
+              price: 299,
+              legalEntityPrice: 209,
+              unit: 'din',
+              weight: 450,
+              weightUnit: 'g',
+            },
+          ]
+        },
         {
           id: 1,
           name: 'Tiramisu',

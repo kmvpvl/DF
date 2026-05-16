@@ -567,8 +567,8 @@ class Products extends Proto<ProductsProps, ProductsState> {
                         <div className="product-name">
                           {this.ML(product.name).toString()}
                         </div>
-                        <div className="product-desc">
-                          {this.ML(product.description).toString()}
+                        <div className="product-desc" dangerouslySetInnerHTML={{__html: this.ML(product.description).toString()}}>
+                          
                         </div>
                         {this.getDiscountLabels(product).length > 0 && (
                           <ul className="product-discounts">
