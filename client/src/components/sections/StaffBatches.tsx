@@ -63,6 +63,7 @@ const PROCESS_MAPS_QUERY = `
       id
       name
       rateOfLoss
+      outcome
       parameters {
         id
         name
@@ -139,6 +140,7 @@ interface ProcessMapData {
   id: string;
   name: string;
   rateOfLoss: number;
+  outcome: number;
   parameters: ProcessParameterData[];
   ingredients: {
     id: string;
@@ -429,10 +431,11 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       return;
     }
 
-    const ingredientAmountSum = selectedMap.ingredients.reduce((sum, ingredient) => {
+    const ingredientAmountSum = selectedMap.outcome;
+    /*ingredients.reduce((sum, ingredient) => {
       const amount = Number(ingredient.amount);
       return Number.isFinite(amount) && amount > 0 ? sum + amount : sum;
-    }, 0);
+    }, 0);*/
 
     if (!Number.isFinite(ingredientAmountSum) || ingredientAmountSum <= 0) {
       this.setState({ error: 'Selected process map has no valid ingredient proportions.' });
@@ -452,11 +455,11 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
         if (!Number.isFinite(amount) || amount <= 0) {
           return null;
         }
-        const proportion = amount / ingredientAmountSum;
+        const proportion = requiredInputWeight / selectedMap.outcome;
         return {
           id: ingredient.id,
           name: ingredient.product?.name ?? ingredient.material?.name ?? 'Unknown ingredient',
-          amount: requiredInputWeight * proportion,
+          amount: amount * proportion,
           unit: ingredient.unit,
         };
       })
