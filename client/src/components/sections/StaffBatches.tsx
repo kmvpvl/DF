@@ -683,9 +683,38 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                 </div>
               )}
 
-              {adding && this.renderBatchPreview()}
-
               <div className="material-grid">
+                {adding && this.renderBatchPreview()}
+
+                  {form.productId && (
+                    <div className="cj-label">
+                      <span>Process map</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                        <select
+                          className="cj-select batch-select"
+                          value={form.processMapId}
+                          disabled={processMapLoading}
+                          onChange={(event) =>
+                            this.setState({
+                              form: { ...form, processMapId: event.target.value },
+                              calculatedIngredients: [],
+                              calculatedProcessMapName: '',
+                              calculatedInputWeight: null,
+                              calculatedRateOfLoss: null,
+                            })
+                          }
+                        >
+                          <option value="">None</option>
+                          {processMaps.map((pm) => (
+                            <option key={pm.id} value={pm.id}>
+                              {pm.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                  {adding && calculatedIngredients.length > 0 ? this.renderCalculatedIngredients() : <div></div>}
                 <label className="cj-label">
                   Netto weight
                   <input
@@ -801,36 +830,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                 />
               </label>
 
-              {form.productId && (
-                <div className="cj-label">
-                  <span>Process map</span>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                    <select
-                      className="cj-select batch-select"
-                      value={form.processMapId}
-                      disabled={processMapLoading}
-                      onChange={(event) =>
-                        this.setState({
-                          form: { ...form, processMapId: event.target.value },
-                          calculatedIngredients: [],
-                          calculatedProcessMapName: '',
-                          calculatedInputWeight: null,
-                          calculatedRateOfLoss: null,
-                        })
-                      }
-                    >
-                      <option value="">None</option>
-                      {processMaps.map((pm) => (
-                        <option key={pm.id} value={pm.id}>
-                          {pm.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {adding && calculatedIngredients.length > 0 && this.renderCalculatedIngredients()}
 
               <div className="material-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
