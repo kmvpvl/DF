@@ -18,7 +18,7 @@ const CERTIFICATE_FIELDS = `
     numberStr
     createdAt
     nettoWeight
-    storageDurationHours
+    storageDurationDays
     processDeviations
     product {
       id
@@ -117,7 +117,7 @@ interface CertificateData {
     numberStr: string;
     createdAt: string;
     nettoWeight: number;
-    storageDurationHours: number;
+    storageDurationDays: number;
     processDeviations: string | null;
     product: ProductOption;
     storageCondition: {

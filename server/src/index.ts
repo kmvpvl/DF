@@ -208,7 +208,7 @@ interface UpdateProductInput {
 interface CreateBatchInput {
   productId: string;
   nettoWeight: number;
-  storageDurationHours: number;
+  storageDurationDays: number;
   storageConditionId?: string;
   storageConditionName?: string;
   processDeviations?: string;
@@ -218,7 +218,7 @@ interface CreateBatchInput {
 
 interface UpdateBatchInput {
   nettoWeight?: number;
-  storageDurationHours?: number;
+  storageDurationDays?: number;
   storageConditionId?: string;
   storageConditionName?: string;
   processDeviations?: string;
@@ -799,7 +799,7 @@ async function buildCertificateDocumentPayload(certificateId: string): Promise<{
   }
 
   const expiresTo = new Date(certificate.batch.createdAt);
-  expiresTo.setHours(expiresTo.getHours() + certificate.batch.storageDurationHours);
+  expiresTo.setDate(expiresTo.getDate() + certificate.batch.storageDurationDays);
 
   const samplesList = certificate.batch.samples
     .map(sample => {
@@ -1143,7 +1143,7 @@ const typeDefs = `
     nettoWeight: Float!
     number: Int!
     numberStr: String!
-    storageDurationHours: Int!
+    storageDurationDays: Int!
     storageCondition: StorageCondition!
     processMap: ProcessMap
     samples: [Sample!]!
@@ -1170,7 +1170,7 @@ const typeDefs = `
     numberStr: String!
     createdAt: String!
     nettoWeight: Float!
-    storageDurationHours: Int!
+    storageDurationDays: Int!
     processDeviations: String
     product: Product!
     storageCondition: StorageCondition!
@@ -1328,7 +1328,7 @@ const typeDefs = `
   input CreateBatchInput {
     productId: ID!
     nettoWeight: Float!
-    storageDurationHours: Int!
+    storageDurationDays: Int!
     storageConditionId: ID
     storageConditionName: String
     processDeviations: String
@@ -1338,7 +1338,7 @@ const typeDefs = `
 
   input UpdateBatchInput {
     nettoWeight: Float
-    storageDurationHours: Int
+    storageDurationDays: Int
     storageConditionId: ID
     storageConditionName: String
     processDeviations: String
@@ -2537,7 +2537,7 @@ const resolvers = {
       if (!Number.isFinite(input.nettoWeight) || input.nettoWeight <= 0) {
         throw new Error('Netto weight must be greater than 0');
       }
-      if (!Number.isInteger(input.storageDurationHours) || input.storageDurationHours < 0) {
+      if (!Number.isInteger(input.storageDurationDays) || input.storageDurationDays < 0) {
         throw new Error('Storage duration must be a non-negative integer');
       }
       if (
@@ -2562,7 +2562,7 @@ const resolvers = {
           nettoWeight: input.nettoWeight,
           number: preview.number,
           numberStr: preview.numberStr,
-          storageDurationHours: input.storageDurationHours,
+          storageDurationDays: input.storageDurationDays,
           storageCondition: { connect: { id: storageConditionId } },
           processDeviations: input.processDeviations?.trim() || null,
           ...(input.processMapId ? { processMap: { connect: { id: input.processMapId } } } : {}),
@@ -2599,7 +2599,7 @@ const resolvers = {
 
       const data: {
         nettoWeight?: number;
-        storageDurationHours?: number;
+        storageDurationDays?: number;
         storageConditionId?: string;
         processDeviations?: string | null;
         processMapId?: string | null;
@@ -2612,14 +2612,14 @@ const resolvers = {
         data.nettoWeight = input.nettoWeight;
       }
 
-      if (input.storageDurationHours !== undefined) {
+      if (input.storageDurationDays !== undefined) {
         if (
-          !Number.isInteger(input.storageDurationHours) ||
-          input.storageDurationHours < 0
+          !Number.isInteger(input.storageDurationDays) ||
+          input.storageDurationDays < 0
         ) {
           throw new Error('Storage duration must be a non-negative integer');
         }
-        data.storageDurationHours = input.storageDurationHours;
+        data.storageDurationDays = input.storageDurationDays;
       }
 
       if (input.storageConditionId !== undefined || input.storageConditionName !== undefined) {

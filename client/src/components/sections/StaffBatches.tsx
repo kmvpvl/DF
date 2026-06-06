@@ -18,7 +18,7 @@ const INITIAL_QUERY = `
       number
       numberStr
       nettoWeight
-      storageDurationHours
+      storageDurationDays
       processDeviations
       createdAt
       updatedAt
@@ -163,7 +163,7 @@ interface StaffBatchData {
   number: number;
   numberStr: string;
   nettoWeight: number;
-  storageDurationHours: number;
+  storageDurationDays: number;
   processDeviations: string | null;
   createdAt: string;
   updatedAt: string;
@@ -175,7 +175,7 @@ interface StaffBatchData {
 interface BatchForm {
   productId: string;
   nettoWeight: string;
-  storageDurationHours: string;
+  storageDurationDays: string;
   storageConditionId: string;
   storageConditionName: string;
   processDeviations: string;
@@ -208,7 +208,7 @@ interface StaffBatchesState {
 const INITIAL_FORM: BatchForm = {
   productId: '',
   nettoWeight: '',
-  storageDurationHours: '',
+  storageDurationDays: '',
   storageConditionId: '',
   storageConditionName: '',
   processDeviations: '',
@@ -362,7 +362,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       form: {
         productId: batch.product.id,
         nettoWeight: String(batch.nettoWeight),
-        storageDurationHours: String(batch.storageDurationHours),
+        storageDurationDays: String(batch.storageDurationDays),
         storageConditionId: batch.storageCondition.id,
         storageConditionName: '',
         processDeviations: batch.processDeviations ?? '',
@@ -510,15 +510,15 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
   private saveBatch = async () => {
     const { adding, editingBatch, form } = this.state;
     const nettoWeight = Number.parseFloat(form.nettoWeight);
-    const storageDurationHours = Number.parseInt(form.storageDurationHours, 10);
+    const storageDurationDays = Number.parseInt(form.storageDurationDays, 10);
     const sampleCount = Number.parseInt(form.sampleCount, 10);
 
     if (
       (adding && !form.productId) ||
       !Number.isFinite(nettoWeight) ||
       nettoWeight <= 0 ||
-      !Number.isInteger(storageDurationHours) ||
-      storageDurationHours < 0 ||
+      !Number.isInteger(storageDurationDays) ||
+      storageDurationDays < 0 ||
       (adding && (!Number.isInteger(sampleCount) || sampleCount < 0)) ||
       (!form.storageConditionId.trim() && !form.storageConditionName.trim())
     ) {
@@ -537,7 +537,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
           input: {
             productId: form.productId,
             nettoWeight,
-            storageDurationHours,
+            storageDurationDays,
             storageConditionId: form.storageConditionId.trim() || null,
             storageConditionName: form.storageConditionName.trim() || null,
             processDeviations: form.processDeviations.trim() || null,
@@ -567,7 +567,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
           id: editingBatch.id,
           input: {
             nettoWeight,
-            storageDurationHours,
+            storageDurationDays,
             storageConditionId: form.storageConditionId.trim() || null,
             storageConditionName: form.storageConditionName.trim() || null,
             processDeviations: form.processDeviations.trim() || null,
@@ -746,15 +746,15 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                 </label>
 
                 <label className="cj-label">
-                  Storage duration (hours)
+                  Storage duration (days)
                   <input
                     className="cj-input material-input"
                     type="number"
                     step="1"
                     min="0"
-                    value={form.storageDurationHours}
+                    value={form.storageDurationDays}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, storageDurationHours: event.target.value } })
+                      this.setState({ form: { ...form, storageDurationDays: event.target.value } })
                     }
                     required
                   />
@@ -876,7 +876,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       </td>
                       <td>{batch.product.name}</td>
                       <td>{batch.nettoWeight}</td>
-                      <td>{batch.storageDurationHours} h</td>
+                      <td>{batch.storageDurationDays} h</td>
                       <td>{batch.storageCondition.name}</td>
                       <td>
                         {batch.processMap ? (
