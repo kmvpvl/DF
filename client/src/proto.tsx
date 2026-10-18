@@ -11,6 +11,7 @@ export enum ProtoErrorCode {
 
 export interface IProtoProps {}
 
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 export interface IProtoState {}
 export default class Proto<
   IProps extends IProtoProps,
@@ -72,4 +73,25 @@ export default class Proto<
       :
       x.toLocaleString([this.getLanguage()], { dateStyle: 'short', timeStyle: 'short' })
   }
+
+  protected gql = async (query: string, variables: Record<string, unknown> = {}) => {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const json = (await response.json()) as {
+      data?: Record<string, unknown>;
+      errors?: { message: string }[];
+    };
+
+    if (json.errors?.length) {
+      throw new Error(json.errors[0].message);
+    }
+
+    return json.data as Record<string, unknown>;
+  };
+
 }

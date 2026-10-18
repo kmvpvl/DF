@@ -1,8 +1,6 @@
 import { type ChangeEvent, createRef } from 'react';
 import Proto from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-
 const MATERIAL_FIELDS = `
   id
   name
@@ -175,26 +173,6 @@ class Material extends Proto<Record<string, never>, MaterialState> {
   componentDidMount() {
     void this.fetchMaterials();
   }
-
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-
-    const json = (await response.json()) as {
-      data?: Record<string, unknown>;
-      errors?: { message: string }[];
-    };
-
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data as Record<string, unknown>;
-  };
 
   private fetchMaterials = async () => {
     this.setState({ loading: true, error: null });

@@ -1,7 +1,5 @@
 import { type ChangeEvent, createRef } from 'react';
-import Proto from '../../proto';
-
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const PRODUCT_FIELDS = `
   id
@@ -367,7 +365,7 @@ interface ImportProductsCsvResult {
   errors: string[];
 }
 
-interface StaffProductsState {
+interface IStaffProductsState extends IProtoState{
   products: StaffProductData[];
   materials: MaterialOption[];
   productAutoCostLoading: boolean;
@@ -424,11 +422,11 @@ const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
   outcomeUnit: 'g',
 };
 
-interface StaffProductsProps {
+interface IStaffProductsProps extends IProtoProps {
   userId?: string;
 }
 
-class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
+class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
   private readonly productUnitPriceCache = new Map<string, number>();
   private readonly processMapsForCostCache = new Map<string, ProcessMapForCost[]>();
@@ -437,7 +435,7 @@ class StaffProducts extends Proto<StaffProductsProps, StaffProductsState> {
   private productWeightById: Record<string, number> = {};
   private productVatById: Record<string, number> = {};
   private productMainProcessMapById: Record<string, string> = {};
-  state: StaffProductsState = {
+  state: IStaffProductsState = {
     products: [],
     materials: [],
     productAutoCostLoading: false,
@@ -754,7 +752,7 @@ const maps = this.processMapsForCostCache.get(productId);
     const silent = options.silent ?? false;
     const getValidationState = (
       message: string
-    ): Pick<StaffProductsState, 'processMapCostResult' | 'error'> => ({
+    ): Pick<IStaffProductsState, 'processMapCostResult' | 'error'> => ({
       processMapCostResult: null,
       error: silent ? null : message,
     });
@@ -853,7 +851,7 @@ const maps = this.processMapsForCostCache.get(productId);
       });
     } catch (error) {
       const failureState: Pick<
-        StaffProductsState,
+        IStaffProductsState,
         'processMapCostCalculating' | 'processMapCostResult' | 'error'
       > = {
         processMapCostCalculating: false,
@@ -1177,25 +1175,6 @@ const maps = this.processMapsForCostCache.get(productId);
       : this.toFixed(weight);
   };
 
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-
-    const json = (await response.json()) as {
-      data?: Record<string, unknown>;
-      errors?: { message: string }[];
-    };
-
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data as Record<string, unknown>;
-  };
 
   private fetchProducts = async () => {
     this.setState({ loading: true, error: null });
