@@ -1,7 +1,5 @@
 import Proto from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-
 const INITIAL_QUERY = `
   query {
     products {
@@ -242,26 +240,6 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
   componentDidMount() {
     void this.fetchData();
   }
-
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-
-    const json = (await response.json()) as {
-      data?: Record<string, unknown>;
-      errors?: { message: string }[];
-    };
-
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data as Record<string, unknown>;
-  };
 
   private fetchData = async () => {
     this.setState({ loading: true, error: null });
@@ -876,7 +854,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       </td>
                       <td>{batch.product.name}</td>
                       <td>{batch.nettoWeight}</td>
-                      <td>{batch.storageDurationDays} h</td>
+                      <td>{batch.storageDurationDays} d</td>
                       <td>{batch.storageCondition.name}</td>
                       <td>
                         {batch.processMap ? (

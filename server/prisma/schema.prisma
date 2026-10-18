@@ -186,17 +186,38 @@ model StorageCondition {
   batches   Batch[]
 }
 
-model Order {
-  id        String   @id @default(cuid())
-  orderNumber String   @unique
-  customerName String
-  customerUserId String?
-  orderDate   DateTime
-  orderDateReady DateTime?
-  products  OrderProduct[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  IN_PRODUCTION
+  READY
+  SHIPPED
+  COMPLETED
+  CANCELLED
 }
+
+model Order {
+  id              String       @id @default(cuid())
+  orderNumber     String       @unique
+  orderNumberInt  Int
+  customerName    String
+  customerUserId  String?
+  orderDate       DateTime
+  orderDateReady  DateTime?
+  status          OrderStatus  @default(DRAFT)
+  totalPrice      Float        @default(0)
+  isPaid          Boolean      @default(false)
+  paymentMethod   String?
+  deliveryAddress String?
+  shippingMethod  String?
+  trackingNumber  String?
+  managerId       String?
+  notes           String?      @db.Text
+  products        OrderProduct[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
 
 model OrderProduct {
   id        String   @id @default(cuid())
@@ -208,6 +229,7 @@ model OrderProduct {
   product   Product  @relation(fields: [productId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sortOrder Int
 
   @@index([orderId], map: "OrderProduct_orderId_fkey")
   @@index([productId], map: "OrderProduct_productId_fkey")

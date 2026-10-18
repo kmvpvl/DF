@@ -1153,6 +1153,29 @@ const typeDefs = `
     updatedAt: String!
   }
 
+  type Order {
+    id: ID!
+    orderNumber: String!
+    orderNumberInt: Int!
+    customerName: String
+    customerUserId: ID
+    orderDate: String!
+    orderDateReady: String
+    products: [OrderProduct!]!
+    createdAt: String!
+    updatedAt: String!
+  }
+  type OrderProduct {
+    id: ID!
+    orderId: ID!
+    productId: ID!
+    quantity: Float!
+    dateReady: String
+    createdAt: String!
+    updatedAt: String!
+    sortOrder: Int!
+  }
+
   type Certificate {
     id: ID!
     number: Int!
@@ -1417,6 +1440,7 @@ const typeDefs = `
     processMaps(productId: ID!): [ProcessMap!]!
     batches: [Batch!]!
     certificateBatchOptions: [CertificateBatchOption!]!
+    orders: [Order!]!
     certificates: [Certificate!]!
     searchCertificates(input: SearchCertificatesInput!): [Certificate!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
@@ -1603,6 +1627,17 @@ const resolvers = {
         orderBy: { name: 'asc' },
       });
     },
+    orders: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
+      if (!req.session.userId) throw new Error('Not authenticated');
+      return await prisma.order.findMany({
+        include: {
+          products: false,
+
+        },
+        orderBy: [{ createdAt: 'desc' }],
+      });
+    },
+
     batches: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
       if (!req.session.userId) throw new Error('Not authenticated');
       return await prisma.batch.findMany({

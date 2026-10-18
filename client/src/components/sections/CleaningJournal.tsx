@@ -1,8 +1,6 @@
 import Proto from '../../proto';
 import { type User } from '../../App';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-
 const EQUIPMENTS_QUERY = `query { equipments { id numId fullName } }`;
 const USERS_QUERY = `query { users { id name fullName } }`;
 const CLEAN_ACTIONS_QUERY = `
@@ -177,18 +175,6 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
         },
       };
     });
-  };
-
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-    const json = (await response.json()) as { data?: unknown; errors?: { message: string }[] };
-    if (json.errors?.length) throw new Error(json.errors[0].message);
-    return json.data as Record<string, unknown>;
   };
 
   private fetchEquipments = async () => {

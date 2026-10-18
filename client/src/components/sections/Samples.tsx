@@ -1,8 +1,6 @@
 import { type ChangeEvent } from 'react';
 import Proto from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-
 const SAMPLE_FIELDS = `
   id
   number
@@ -103,26 +101,6 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
   componentDidMount() {
     void this.fetchSamples();
   }
-
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-
-    const json = (await response.json()) as {
-      data?: Record<string, unknown>;
-      errors?: { message: string }[];
-    };
-
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data as Record<string, unknown>;
-  };
 
   private fetchSamples = async () => {
     this.setState({ loading: true, error: null, notice: null });

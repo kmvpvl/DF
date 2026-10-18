@@ -6,6 +6,7 @@ import StaffBatches from './StaffBatches';
 import StaffProducts from './StaffProducts';
 import Samples from './Samples';
 import Certificates from './Certificates';
+import Orders from './StaffOrders';
 
 interface ToolProps {
   activeChapter: string;
@@ -30,6 +31,8 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
           <Samples />
         ) : activeChapter === 'Certificates' ? (
           <Certificates />
+        ) : activeChapter === 'Orders' ? (
+          <Orders user={user}/>
         ) : (
           <div className="section-inner tool-page-inner">
             <p className="section-label">Staff</p>

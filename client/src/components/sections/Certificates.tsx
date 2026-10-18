@@ -1,7 +1,6 @@
 import { type ChangeEvent } from 'react';
 import Proto from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 const REST_API_URL = `${import.meta.env.VITE_API_BASE_URL}`;
 
 const CERTIFICATE_FIELDS = `
@@ -203,26 +202,6 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
   componentDidMount() {
     void this.fetchInitialData();
   }
-
-  private gql = async (query: string, variables: Record<string, unknown> = {}) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ query, variables }),
-    });
-
-    const json = (await response.json()) as {
-      data?: Record<string, unknown>;
-      errors?: { message: string }[];
-    };
-
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
-    }
-
-    return json.data as Record<string, unknown>;
-  };
 
   private fetchInitialData = async () => {
     this.setState({ loading: true, error: null, notice: null });
