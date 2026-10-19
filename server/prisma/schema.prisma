@@ -7,6 +7,51 @@ datasource db {
   provider = "mysql"
 }
 
+enum Role {
+  CUSTOMER
+  EMPLOYEE
+  MANAGER
+  ADMIN
+  SUPERVISOR
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  employees User[]
+  userLocationRoles UserLocationRoles[]
+  movements Movement[]
+  equipments Equipment[]
+  orders    Order[]
+  batches   Batch[]
+
+  // ...
+}
+
+model UserLocationRoles {
+  id        String   @id @default(cuid())
+  locationId String
+  location Location @relation(fields: [locationId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  @@unique([userId, locationId])
+  role      Role     @default(EMPLOYEE)
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  products  Product[]
+  materials Material[]
+  storageCondition StorageCondition[]
+  locations Location[]
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id                String        @id @default(cuid())
   name              String
@@ -25,6 +70,9 @@ model User {
   updatedAt         DateTime      @updatedAt
   cleanActions      CleanAction[] @relation("PerformerRelation")
   supervisedActions CleanAction[] @relation("SupervisorRelation")
+  companies         Company[]
+  locations         Location[]
+  userLocationRoles UserLocationRoles[]
 }
 
 model Equipment {
@@ -34,6 +82,8 @@ model Equipment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   cleanActions CleanAction[] @relation("EquipmentRelation")
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
 }
 
 model CleanAction {
@@ -88,6 +138,8 @@ model Material {
   consumptionUnit       String
   rateOfLoss            Float @default(0.0)
   ratio                 Float
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 }
 
 model Product {
@@ -108,6 +160,10 @@ model Product {
   fiberGrams         Decimal  @default(0) @db.Decimal(10, 3)
   saltGrams          Decimal  @default(0) @db.Decimal(10, 3)
   ingredients        Ingredient[]
+  standardDose Float        @default(100.0) // Добавили стандартную порцию
+  movements    Movement[]
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 }
 
 model Batch {
@@ -129,6 +185,9 @@ model Batch {
   certificate Certificate?
 
   @@index([productId], map: "Batch_productId_fkey")
+  movements    Movement[]
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
 }
 
 model ProcessMap {
@@ -184,6 +243,8 @@ model StorageCondition {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   batches   Batch[]
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 }
 
 enum OrderStatus {
@@ -216,6 +277,8 @@ model Order {
   products        OrderProduct[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
 }
 
 
@@ -277,4 +340,44 @@ model Certificate {
   extraCertificateData String @db.Text
 
   @@unique([numberYear, number], map: "Certificate_numberYear_number_key")
+}
+
+// 1. Добавим ENUM для видов движения
+enum MovementType {
+  PURCHASE     // Покупка/Поступление
+  PRODUCTION   // Изготовление
+  SALE         // Сбыт/Продажа
+  WRITE_OFF    // Списание
+  RETURN       // Возврат
+  MOVE_IN         // Перемещение
+  MOVE_OUT
+}
+
+// 2. Добавим модель Movement
+model Movement {
+  id           String       @id @default(cuid())
+  type         MovementType
+  productId    String
+  batchId      String?
+  quantity     Float
+  createdAt    DateTime     @default(now())
+  
+  product      Product      @relation(fields: [productId], references: [id])
+  batch        Batch?       @relation(fields: [batchId], references: [id])
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  // Опционально: ссылка на группу перемещения
+  groupId   String?      
+  group     MovementGroup? @relation(fields: [groupId], references: [id])
+}
+
+model MovementGroup {
+  id           String      @id @default(cuid())
+  fromLocationId String
+  toLocationId   String
+  createdAt    DateTime    @default(now())
+  
+  // Две записи движений: списание из одной и оприходование в другую
+  movements    Movement[]
+	@@map("MovementGroup")
 }

@@ -1,0 +1,599 @@
+enum EntityType {
+    INDIVIDUAL
+    LEGAL_ENTITY
+}
+
+enum ContactRequestType {
+    FEEDBACK
+    FREE_TEST_BATCH
+}
+
+enum Role {
+    CUSTOMER
+    EMPLOYEE
+    MANAGER
+    ADMIN
+    SUPERVISOR
+}
+
+type User {
+    id: ID!
+    name: String!
+    fullName: String!
+    entityType: EntityType!
+    phone: String
+    email: String!
+    bio: String
+    tgId: String
+    pib: String
+    mbr: String
+    account: String
+    bank: String
+    passwordHash: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Company {
+    id: ID!
+    name: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Location {
+    id: ID!
+    name: String!
+    companyId: ID!
+}
+
+type Movement {
+    id: ID!
+    type: String!
+    productId: ID!
+    batchId: ID
+    quantity: Float!
+    locationId: ID!
+    groupId: ID
+    createdAt: String!
+}
+
+type MovementGroup {
+    id: ID!
+    fromLocationId: ID!
+    toLocationId: ID!
+    createdAt: String!
+}
+
+input CreateUserInput {
+    name: String!
+    fullName: String!
+    entityType: EntityType
+    phone: String
+    email: String!
+    bio: String
+    tgId: String
+    pib: String
+    mbr: String
+    account: String
+    bank: String
+    password: String!
+}
+
+input SendContactMessageInput {
+    type: ContactRequestType!
+    name: String!
+    email: String
+    phone: String
+    subject: String!
+    message: String!
+}
+
+input OrderItemInput {
+    productId: Int!
+    name: String!
+    qty: Int!
+    unitPrice: Float!
+    lineTotal: Float!
+    variationLabel: String
+    weightGrams: Float
+}
+
+input SendOrderInput {
+    customerName: String!
+    customerEmail: String!
+    customerPhone: String!
+    note: String
+    items: [OrderItemInput!]!
+    total: Float!
+}
+
+input UpdateSessionUserInput {
+    name: String!
+    fullName: String!
+    entityType: EntityType
+    phone: String
+    email: String!
+    pib: String
+    mbr: String
+    account: String
+    bank: String
+}
+
+enum CleaningType {
+    GENERAL
+    CURRENT
+    DISINFECTION
+}
+
+type Equipment {
+    id: ID!
+    numId: Int!
+    fullName: String!
+    locationId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type CleanAction {
+    id: ID!
+    equipment: Equipment!
+    performer: User!
+    supervisor: User!
+    cleaningType: CleaningType!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Material {
+    id: ID!
+    name: String!
+    description: String
+    selfProduced: Boolean!
+    isPublicComposition: Boolean!
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    VAT: Float!
+    Price: Float!
+    purchaseUnit: String!
+    purchaseUnitAmount: Float!
+    consumptionUnit: String!
+    rateOfLoss: Float!
+    ratio: Float!
+    companyId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Product {
+    id: ID!
+    name: String!
+    batchPrefix: String!
+    description: String
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    standardDose: Float!
+    companyId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type StorageCondition {
+    id: ID!
+    name: String!
+    companyId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type ProcessParameter {
+    id: ID!
+    name: String!
+    value: String!
+    unit: String!
+}
+
+type Ingredient {
+    id: ID!
+    product: Product
+    material: Material
+    amount: Float!
+    unit: String!
+}
+
+type ProcessMap {
+    id: ID!
+    name: String!
+    outcome: Float!
+    rateOfLoss: Float!
+    VAT: Float!
+    containerCost: Float!
+    dose: Float!
+    marginalCoefficient: Float!
+    productId: ID!
+    parameters: [ProcessParameter!]!
+    ingredients: [Ingredient!]!
+    createdAt: String!
+    updatedAt: String!
+    outcomeUnit: String!
+}
+
+type Sample {
+    id: ID!
+    number: Int!
+    numberStr: String!
+    createdAt: String!
+    updatedAt: String!
+    studyAt: String
+    result: String
+    note: String
+    batch: Batch!
+}
+
+type Batch {
+    id: ID!
+    product: Product!
+    nettoWeight: Float!
+    number: Int!
+    numberStr: String!
+    storageDurationDays: Int!
+    storageCondition: StorageCondition!
+    processMap: ProcessMap
+    samples: [Sample!]!
+    processDeviations: String
+    certificate: Certificate
+    locationId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type Order {
+    id: ID!
+    orderNumber: String!
+    orderNumberInt: Int!
+    customerName: String
+    customerUserId: ID
+    orderDate: String!
+    orderDateReady: String
+    products: [OrderProduct!]!
+    locationId: ID!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type OrderProduct {
+    id: ID!
+    orderId: ID!
+    productId: ID!
+    quantity: Float!
+    dateReady: String
+    createdAt: String!
+    updatedAt: String!
+    sortOrder: Int!
+}
+
+type Certificate {
+    id: ID!
+    number: Int!
+    numberYear: Int!
+    numberStr: String!
+    createdAt: String!
+    updatedAt: String!
+    batch: Batch!
+    extraCertificateData: String!
+}
+
+type CertificateBatchOption {
+    id: ID!
+    number: Int!
+    numberStr: String!
+    createdAt: String!
+    nettoWeight: Float!
+    storageDurationDays: Int!
+    processDeviations: String
+    product: Product!
+    storageCondition: StorageCondition!
+    processMap: ProcessMap
+    samples: [Sample!]!
+}
+
+type CertificateDocument {
+    fileName: String!
+    mimeType: String!
+    base64: String!
+}
+
+type BatchNumberPreview {
+    number: Int!
+    numberStr: String!
+}
+
+type ImportMaterialsCsvResult {
+    importedCount: Int!
+    skippedCount: Int!
+    errors: [String!]!
+}
+
+type ImportProductsCsvResult {
+    importedCount: Int!
+    skippedCount: Int!
+    errors: [String!]!
+}
+
+input CreateEquipmentInput {
+    numId: Int!
+    fullName: String!
+    locationId: ID!
+}
+
+input UpdateEquipmentInput {
+    numId: Int
+    fullName: String
+    locationId: ID
+}
+
+input CreateCleanActionInput {
+    equipmentId: ID!
+    performerId: ID!
+    supervisorId: ID!
+    cleaningType: CleaningType!
+}
+
+input CreateMaterialInput {
+    name: String!
+    description: String
+    selfProduced: Boolean!
+    isPublicComposition: Boolean
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    VAT: Float!
+    Price: Float!
+    purchaseUnit: String!
+    purchaseUnitAmount: Float!
+    consumptionUnit: String!
+    rateOfLoss: Float!
+    ratio: Float!
+    companyId: ID!
+}
+
+input UpdateMaterialInput {
+    name: String
+    description: String
+    selfProduced: Boolean
+    isPublicComposition: Boolean
+    caloriesKcal: Float
+    fatGrams: Float
+    proteinGrams: Float
+    carbohydratesGrams: Float
+    sugarsGrams: Float
+    fiberGrams: Float
+    saltGrams: Float
+    VAT: Float
+    Price: Float
+    purchaseUnit: String
+    purchaseUnitAmount: Float
+    consumptionUnit: String
+    rateOfLoss: Float
+    ratio: Float
+}
+
+input CreateProductInput {
+    name: String!
+    batchPrefix: String!
+    description: String
+    caloriesKcal: Float!
+    fatGrams: Float!
+    proteinGrams: Float!
+    carbohydratesGrams: Float!
+    sugarsGrams: Float!
+    fiberGrams: Float!
+    saltGrams: Float!
+    companyId: ID!
+}
+
+input UpdateProductInput {
+    name: String
+    batchPrefix: String
+    description: String
+    caloriesKcal: Float
+    fatGrams: Float
+    proteinGrams: Float
+    carbohydratesGrams: Float
+    sugarsGrams: Float
+    fiberGrams: Float
+    saltGrams: Float
+}
+
+input CreateProcessParameterInput {
+    name: String!
+    value: String!
+    unit: String!
+}
+
+input IngredientInput {
+    productId: ID
+    materialId: ID
+    amount: Float!
+}
+
+input CreateProcessMapInput {
+    productId: ID!
+    name: String!
+    outcome: Float!
+    rateOfLoss: Float
+    VAT: Float
+    containerCost: Float
+    dose: Float
+    marginalCoefficient: Float
+    parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
+    outcomeUnit: String
+}
+
+input UpdateProcessMapInput {
+    name: String
+    outcome: Float
+    rateOfLoss: Float
+    VAT: Float
+    containerCost: Float
+    dose: Float
+    marginalCoefficient: Float
+    parameters: [CreateProcessParameterInput!]
+    ingredients: [IngredientInput!]
+    outcomeUnit: String
+}
+
+input CreateBatchInput {
+    productId: ID!
+    nettoWeight: Float!
+    storageDurationDays: Int!
+    storageConditionId: ID
+    storageConditionName: String
+    processDeviations: String
+    processMapId: ID
+    sampleCount: Int
+    locationId: ID!
+}
+
+input UpdateBatchInput {
+    nettoWeight: Float
+    storageDurationDays: Int
+    storageConditionId: ID
+    storageConditionName: String
+    processDeviations: String
+    processMapId: ID
+    locationId: ID
+}
+
+input UpdateSampleInput {
+    result: String
+    note: String
+    studyAt: String
+}
+
+input SearchSamplesInput {
+    fromDate: String
+    toDate: String
+    sampleNumber: Int
+}
+
+input CreateCertificateInput {
+    batchId: ID!
+    extraCertificateData: String
+}
+
+input UpdateCertificateInput {
+    extraCertificateData: String
+}
+
+input SearchCertificatesInput {
+    fromDate: String
+    toDate: String
+    number: Int
+    productId: ID
+    batchNumber: String
+}
+
+type CostSettings {
+    id: ID!
+    marginalCoefficient: Float!
+    containerCost: Float!
+    productVat: Float!
+    productWeight: Float!
+    productContainerCosts: String!
+    productMarginalCoefficients: String!
+    productWeights: String!
+    productVats: String!
+    productMainProcessMaps: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+input UpdateCostSettingsInput {
+    marginalCoefficient: Float
+    containerCost: Float
+    productVat: Float
+    productWeight: Float
+    productContainerCosts: String
+    productMarginalCoefficients: String
+    productWeights: String
+    productVats: String
+    productMainProcessMaps: String
+}
+
+type Query {
+    hello: String
+    userById(id: ID!): User!
+    userInfo(id: ID, email: String): User
+    sessionUser: User
+    equipments: [Equipment!]!
+    users: [User!]!
+    cleanActions(
+        cleaningType: CleaningType
+        fromDate: String
+        toDate: String
+    ): [CleanAction!]!
+    materials: [Material!]!
+    materialsCsv: String!
+    products: [Product!]!
+    productsCsv: String!
+    storageConditions: [StorageCondition!]!
+    processMaps(productId: ID!): [ProcessMap!]!
+    batches: [Batch!]!
+    certificateBatchOptions: [CertificateBatchOption!]!
+    orders: [Order!]!
+    certificates: [Certificate!]!
+    searchCertificates(input: SearchCertificatesInput!): [Certificate!]!
+    nextBatchPreview(productId: ID!): BatchNumberPreview!
+    searchSamples(input: SearchSamplesInput!): [Sample!]!
+    costSettings: CostSettings!
+}
+
+type Mutation {
+    createUser(input: CreateUserInput!): User!
+    login(email: String!, password: String!): User!
+    updateSessionUser(input: UpdateSessionUserInput!): User!
+    sendContactMessage(input: SendContactMessageInput!): Boolean!
+    sendOrderByEmail(input: SendOrderInput!): Boolean!
+    createEquipment(input: CreateEquipmentInput!): Equipment!
+    updateEquipment(id: ID!, input: UpdateEquipmentInput!): Equipment!
+    deleteEquipment(id: ID!): Boolean!
+    createCleanAction(input: CreateCleanActionInput!): CleanAction!
+    createMaterial(input: CreateMaterialInput!): Material!
+    updateMaterial(id: ID!, input: UpdateMaterialInput!): Material!
+    deleteMaterial(id: ID!): Boolean!
+    importMaterialsCsv(
+        csv: String!
+        overwriteExisting: Boolean = true
+    ): ImportMaterialsCsvResult!
+    createProduct(input: CreateProductInput!): Product!
+    updateProduct(id: ID!, input: UpdateProductInput!): Product!
+    importProductsCsv(
+        csv: String!
+        overwriteExisting: Boolean = true
+    ): ImportProductsCsvResult!
+    createProcessMap(input: CreateProcessMapInput!): ProcessMap!
+    updateProcessMap(id: ID!, input: UpdateProcessMapInput!): ProcessMap!
+    createBatch(input: CreateBatchInput!): Batch!
+    updateBatch(id: ID!, input: UpdateBatchInput!): Batch!
+    updateSample(id: ID!, input: UpdateSampleInput!): Sample!
+    createCertificate(input: CreateCertificateInput!): Certificate!
+    updateCertificate(id: ID!, input: UpdateCertificateInput!): Certificate!
+    generateCertificateDocument(id: ID!): CertificateDocument!
+    updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
+}
