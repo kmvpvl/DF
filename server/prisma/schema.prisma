@@ -15,6 +15,10 @@ enum Role {
   SUPERVISOR
 }
 
+// company  088e3a63cbcd11f1ba2cd256a398ea10
+// location 233c58f8cbcd11f1ba2cd256a398ea10
+
+
 model Location {
   id        String   @id @default(cuid())
   name      String
@@ -82,7 +86,7 @@ model Equipment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   cleanActions CleanAction[] @relation("EquipmentRelation")
-  locationId String
+  locationId String @default("233c58f8cbcd11f1ba2cd256a398ea10")
   location   Location @relation(fields: [locationId], references: [id])
 }
 
@@ -138,7 +142,7 @@ model Material {
   consumptionUnit       String
   rateOfLoss            Float @default(0.0)
   ratio                 Float
-  companyId String
+  companyId String @default("088e3a63cbcd11f1ba2cd256a398ea10")
   company   Company @relation(fields: [companyId], references: [id])
 }
 
@@ -162,7 +166,7 @@ model Product {
   ingredients        Ingredient[]
   standardDose Float        @default(100.0) // Добавили стандартную порцию
   movements    Movement[]
-  companyId String
+  companyId String @default("088e3a63cbcd11f1ba2cd256a398ea10")
   company   Company @relation(fields: [companyId], references: [id])
 }
 
@@ -186,7 +190,7 @@ model Batch {
 
   @@index([productId], map: "Batch_productId_fkey")
   movements    Movement[]
-  locationId String
+  locationId String @default("233c58f8cbcd11f1ba2cd256a398ea10")
   location   Location @relation(fields: [locationId], references: [id])
 }
 
@@ -243,7 +247,7 @@ model StorageCondition {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   batches   Batch[]
-  companyId String
+  companyId String @default("088e3a63cbcd11f1ba2cd256a398ea10")
   company   Company @relation(fields: [companyId], references: [id])
 }
 
