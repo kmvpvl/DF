@@ -365,7 +365,6 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       purchaseUnitAmount,
       consumptionUnit: form.consumptionUnit.trim(),
       rateOfLoss: rateOfLoss,
-      companyId: "088e3a63cbcd11f1ba2cd256a398ea10",
       ratio,
     };
 

@@ -1052,7 +1052,7 @@ const corsOptions: CorsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'df-company-id', 'df-location-id'],
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
     optionsSuccessStatus: 204,
 };
@@ -1151,7 +1151,10 @@ const server = new ApolloServer({
         '/graphql',
         expressMiddleware(server, {
             context: async ({ req, res }) => {
-                return ({ req, res, prisma, companyId: "088e3a63cbcd11f1ba2cd256a398ea10", locationId: "233c58f8cbcd11f1ba2cd256a398ea10", userId: req.session.userId })
+                return ({ req, res, prisma, 
+                    companyId: String(req.headers['df-company-id']), 
+                    locationId: String(req.headers['df-location-id']), 
+                    userId: req.session.userId })
             },
         })
     );

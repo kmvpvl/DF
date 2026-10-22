@@ -44,7 +44,6 @@ type Company {
 type Location {
     id: ID!
     name: String!
-    companyId: ID!
 }
 
 type Movement {
@@ -53,7 +52,6 @@ type Movement {
     productId: ID!
     batchId: ID
     quantity: Float!
-    locationId: ID!
     groupId: ID
     createdAt: String!
 }
@@ -130,7 +128,6 @@ type Equipment {
     id: ID!
     numId: Int!
     fullName: String!
-    locationId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -165,7 +162,6 @@ type Material {
     consumptionUnit: String!
     rateOfLoss: Float!
     ratio: Float!
-    companyId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -183,7 +179,6 @@ type Product {
     fiberGrams: Float!
     saltGrams: Float!
     standardDose: Float!
-    companyId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -191,7 +186,6 @@ type Product {
 type StorageCondition {
     id: ID!
     name: String!
-    companyId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -252,7 +246,6 @@ type Batch {
     samples: [Sample!]!
     processDeviations: String
     certificate: Certificate
-    locationId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -266,7 +259,6 @@ type Order {
     orderDate: String!
     orderDateReady: String
     products: [OrderProduct!]!
-    locationId: ID!
     createdAt: String!
     updatedAt: String!
 }
@@ -333,13 +325,11 @@ type ImportProductsCsvResult {
 input CreateEquipmentInput {
     numId: Int!
     fullName: String!
-    locationId: ID!
 }
 
 input UpdateEquipmentInput {
     numId: Int
     fullName: String
-    locationId: ID
 }
 
 input CreateCleanActionInput {
@@ -368,7 +358,6 @@ input CreateMaterialInput {
     consumptionUnit: String!
     rateOfLoss: Float!
     ratio: Float!
-    companyId: ID!
 }
 
 input UpdateMaterialInput {
@@ -403,7 +392,6 @@ input CreateProductInput {
     sugarsGrams: Float!
     fiberGrams: Float!
     saltGrams: Float!
-    companyId: ID!
 }
 
 input UpdateProductInput {
@@ -467,7 +455,6 @@ input CreateBatchInput {
     processDeviations: String
     processMapId: ID
     sampleCount: Int
-    locationId: ID!
 }
 
 input UpdateBatchInput {
@@ -477,7 +464,6 @@ input UpdateBatchInput {
     storageConditionName: String
     processDeviations: String
     processMapId: ID
-    locationId: ID
 }
 
 input UpdateSampleInput {

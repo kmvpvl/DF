@@ -77,7 +77,11 @@ export default class Proto<
   protected gql = async (query: string, variables: Record<string, unknown> = {}) => {
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json' ,
+        'df-company-id': '088e3a63cbcd11f1ba2cd256a398ea10',
+        'df-location-id': '233c58f8cbcd11f1ba2cd256a398ea10'
+      },
       credentials: 'include',
       body: JSON.stringify({ query, variables }),
     });
