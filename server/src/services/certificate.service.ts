@@ -22,7 +22,7 @@ const CERTIFICATE_DOTX_MIME =
 
 export class CertificateService {
     static async getAll(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.certificate.findMany({
             include: {
                 batch: {
@@ -46,7 +46,7 @@ export class CertificateService {
     }
 
     static async getBatchOptions(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.batch.findMany({
             where: { certificate: null, locationId: ctx.locationId },
             include: {
@@ -67,7 +67,7 @@ export class CertificateService {
     }
 
     static async generateDocument(id: string, ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         const { fileName, mimeType, fileBuffer } = await this.buildPayload(id);
         return {
             fileName,
@@ -80,7 +80,7 @@ export class CertificateService {
         input: { batchId: string; extraCertificateData?: string },
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         const batch = await prisma.batch.findUnique({
             where: { id: input.batchId },
             include: { certificate: true },
@@ -140,7 +140,7 @@ export class CertificateService {
         input: { extraCertificateData?: string },
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
 
         const data: Record<string, unknown> = {};
         if (input.extraCertificateData !== undefined) {

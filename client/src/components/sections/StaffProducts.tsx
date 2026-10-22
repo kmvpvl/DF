@@ -13,6 +13,7 @@ const PRODUCT_FIELDS = `
   sugarsGrams
   fiberGrams
   saltGrams
+  companyId
   createdAt
   updatedAt
 `;
@@ -1786,6 +1787,7 @@ const maps = this.processMapsForCostCache.get(productId);
       sugarsGrams,
       fiberGrams,
       saltGrams,
+      companyId: "088e3a63cbcd11f1ba2cd256a398ea10"
     };
 
     try {

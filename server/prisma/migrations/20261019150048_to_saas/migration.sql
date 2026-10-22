@@ -56,6 +56,13 @@ CREATE TABLE `UserLocationRoles` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+INSERT INTO `UserLocationRoles` (`id`, `locationId`, `userId`, `role`)
+SELECT REPLACE(UUID(), '-', '') AS clean_uuid, '233c58f8cbcd11f1ba2cd256a398ea10', 'cmmwb15ct0001favlab1tw2yi', 'ADMIN'
+FROM `User`
+WHERE `id` = 'cmmwb15ct0001favlab1tw2yi'
+LIMIT 1
+ON DUPLICATE KEY UPDATE `role` = VALUES(`role`);
+
 -- CreateTable
 CREATE TABLE `Movement` (
     `id` VARCHAR(191) NOT NULL,

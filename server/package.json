@@ -35,8 +35,9 @@
         "express-session": "^1.19.0",
         "graphql": "^16.13.1",
         "graphql-tag": "^2.12.7",
-        "nodemailer": "^8.0.2",
-        "pizzip": "^3.2.0"
+        "nodemailer": "^10.1.7",
+        "pizzip": "^3.2.0",
+        "web-push": "^3.6.7"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",
@@ -45,7 +46,8 @@
         "@types/node": "^20.19.37",
         "@types/nodemailer": "^7.0.11",
         "@types/supertest": "^7.2.0",
-        "nodemon": "^3.0.2",
+        "@types/web-push": "^3.6.4",
+        "nodemon": "^1.14.10",
         "prettier": "^3.8.1",
         "prisma": "^7.7.0",
         "supertest": "^7.2.2",

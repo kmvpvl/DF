@@ -6,7 +6,7 @@ import { authorize } from '../utils/auth';
 
 export class StorageConditionService {
     static async getAll(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.storageCondition.findMany({
             where: { companyId: ctx.companyId },
             orderBy: { name: 'asc' },
@@ -14,7 +14,7 @@ export class StorageConditionService {
     }
 
     static async create(name: string, ctx: GraphQLContext) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         return await prisma.storageCondition.create({
             data: {
                 name: name.trim(),

@@ -44,6 +44,16 @@ model UserLocationRoles {
   role      Role     @default(EMPLOYEE)
 }
 
+model UserCompanyRoles {
+  id        String   @id @default(cuid())
+  companyId String
+  company Company @relation(fields: [companyId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  @@unique([userId, companyId])
+  role      Role     @default(EMPLOYEE)
+}
+
 model Company {
   id        String   @id @default(cuid())
   name      String
@@ -52,6 +62,7 @@ model Company {
   storageCondition StorageCondition[]
   locations Location[]
   users     User[]
+  userCompanyRoles UserCompanyRoles[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -68,6 +79,7 @@ model User {
   phone             String?
   email             String        @unique
   bio               String?
+  pushSubscription  Json?
   tgId              String?
   passwordHash      String
   createdAt         DateTime      @default(now())
@@ -77,6 +89,7 @@ model User {
   companies         Company[]
   locations         Location[]
   userLocationRoles UserLocationRoles[]
+  userCompanyRoles  UserCompanyRoles[]
 }
 
 model Equipment {

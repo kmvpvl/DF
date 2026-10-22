@@ -1,3 +1,8 @@
+export const vapidKeys = {
+  publicKey: process.env.PUBLIC_VAPID_KEY!,
+  privateKey: process.env.PRIVATE_VAPID_KEY!
+};
+
 export function getYearRange(date: Date): { start: Date; end: Date } {
     const year = date.getFullYear();
     return {

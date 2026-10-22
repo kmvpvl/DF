@@ -26,7 +26,7 @@ type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
 
 export class ProductService {
     static async getAll(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.product.findMany({
             where: { companyId: ctx.companyId },
             orderBy: { name: 'asc' },
@@ -67,7 +67,7 @@ export class ProductService {
     }
 
     static async create(input: CreateProductInput, ctx: GraphQLContext) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         return await prisma.product.create({
             data: {
                 name: input.name.trim(),
@@ -90,7 +90,7 @@ export class ProductService {
         input: UpdateProductInput,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
 
         const data: any = {};
         if (input.name !== undefined) data.name = input.name.trim();
@@ -118,7 +118,7 @@ export class ProductService {
         overwriteExisting: boolean,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         const companyId = ctx.companyId!;
 
         const rows = ProductService.buildProductCsvRows(parseCsv(csv));
@@ -191,7 +191,7 @@ export class ProductService {
     }
 
     static async getProductsCsv(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
 
         const products = await prisma.product.findMany({
             where: { companyId: ctx.companyId },

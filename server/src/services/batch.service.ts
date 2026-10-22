@@ -26,7 +26,7 @@ export class BatchService {
         productId: string,
         date = new Date()
     ): Promise<BatchNumberPreview> {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         const product = await prisma.product.findUnique({
             where: { id: productId },
         });
@@ -96,7 +96,7 @@ export class BatchService {
     }
 
     static async create(data: CreateBatchInput, ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
 
         if (!Number.isFinite(data.nettoWeight) || data.nettoWeight <= 0) {
             throw new Error('Netto weight must be greater than 0');
@@ -128,7 +128,6 @@ export class BatchService {
         const sampleCount = data.sampleCount ?? 0;
         const sampleStartNumber =
             sampleCount > 0 ? await SampleService.getNextSampleNumber(now) : 0;
-
         return await prisma.batch.create({
             data: {
                 product: { connect: { id: data.productId } },
@@ -179,7 +178,7 @@ export class BatchService {
         input: UpdateBatchInput,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         const data: {
             nettoWeight?: number;
             storageDurationDays?: number;
@@ -243,7 +242,7 @@ export class BatchService {
     }
 
     static async getAll(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.batch.findMany({
             include: {
                 product: true,

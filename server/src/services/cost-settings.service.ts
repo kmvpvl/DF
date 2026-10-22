@@ -6,7 +6,7 @@ import { authorize } from '../utils/auth';
 
 export class CostSettingsService {
     static async get(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
 
         let settings = await prisma.costSettings.findUnique({
             where: { id: 'singleton' },
@@ -37,7 +37,7 @@ export class CostSettingsService {
     }
 
     static async update(input: Record<string, unknown>, ctx: GraphQLContext) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
 
         const updateData: Record<string, unknown> = {};
 

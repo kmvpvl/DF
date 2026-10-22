@@ -4,14 +4,10 @@ import express, { type Request, type Response } from 'express';
 import bcrypt from 'bcrypt';
 import cors, { type CorsOptions } from 'cors';
 import session from 'express-session';
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 import fs from 'node:fs';
 import path from 'node:path';
-import PizZip from 'pizzip';
-import Docxtemplater from 'docxtemplater';
-import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import 'dotenv/config';
-import { authorize } from './utils/auth';
 import { prisma } from './lib/prisma';
 import {
     CreateBatchInput,
@@ -114,7 +110,7 @@ interface SendOrderInput {
     total: number;
 }
 
-let smtpTransporter: nodemailer.Transporter | null = null;
+let smtpTransporter: Transporter | null = null;
 
 function parseBoolean(value: string | undefined, fallback = false): boolean {
     if (!value) return fallback;
@@ -143,7 +139,7 @@ async function getNextCertificateNumber(date = new Date()): Promise<number> {
     return (aggregate._max.number ?? 0) + 1;
 }
 
-function getSmtpTransporter(): nodemailer.Transporter {
+function getSmtpTransporter(): Transporter {
     if (smtpTransporter) {
         return smtpTransporter;
     }
@@ -461,16 +457,16 @@ const resolvers = {
         login: async (
             _: unknown,
             { email, password }: { email: string; password: string },
-            { req }: GraphQLContext
+            ctx: GraphQLContext
         ) => {
             const user = await prisma.user.findUnique({ where: { email } });
             if (!user) throw new Error('Invalid email or password');
             const valid = await bcrypt.compare(password, user.passwordHash);
             if (!valid) throw new Error('Invalid email or password');
-
-            req.session.userId = user.id;
+            ctx.req.session.userId = user.id;
+            ctx.userId = user.id;
             await new Promise<void>((resolve, reject) => {
-                req.session.save((error) => {
+                ctx.req.session.save((error) => {
                     if (error) {
                         reject(error);
                         return;
@@ -753,14 +749,14 @@ const resolvers = {
             { input }: { input: CreateBatchInput },
             cnt: GraphQLContext
         ) => {
-            return BatchService.create(input, cnt);
+            return await BatchService.create(input, cnt);
         },
         updateBatch: async (
             _: unknown,
             { id, input }: { id: string; input: UpdateBatchInput },
             cnt: GraphQLContext
         ) => {
-            return BatchService.update(id, input, cnt);
+            return await BatchService.update(id, input, cnt);
         },
         updateSample: async (
             _: unknown,
@@ -1063,7 +1059,10 @@ const corsOptions: CorsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+// 
+//app.use(cors({ origin: '*' }));
 app.use(express.json());
+
 app.use(
     session({
         name: 'dolceforte.sid',
@@ -1079,7 +1078,6 @@ app.use(
         },
     })
 );
-
 app.get('/', (req, res) => {
     res.json({ message: 'DolceForte API' });
 });
@@ -1120,7 +1118,7 @@ app.get('/certificates/:id/document', async (req, res) => {
 
 export default app;
 const schemaString = fs.readFileSync(
-    path.join(__dirname, 'schema.graphql'),
+    path.join(import.meta.dirname, 'schema.graphql'),
     'utf8'
 );
 const typeDefs = gql`
@@ -1129,6 +1127,10 @@ const typeDefs = gql`
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    formatError: (formattedError, error) => {
+        console.log("ERROR raised", JSON.stringify(error));
+        return formattedError;
+    }
 });
 
 (async () => {
@@ -1148,7 +1150,9 @@ const server = new ApolloServer({
     app.use(
         '/graphql',
         expressMiddleware(server, {
-            context: async ({ req, res }) => ({ req, res, prisma }),
+            context: async ({ req, res }) => {
+                return ({ req, res, prisma, companyId: "088e3a63cbcd11f1ba2cd256a398ea10", locationId: "233c58f8cbcd11f1ba2cd256a398ea10", userId: req.session.userId })
+            },
         })
     );
 

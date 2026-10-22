@@ -20,6 +20,7 @@ const MATERIAL_FIELDS = `
   purchaseUnitAmount
   consumptionUnit
   ratio
+  companyId
   rateOfLoss
   createdAt
   updatedAt
@@ -91,6 +92,7 @@ interface MaterialData {
   consumptionUnit: string;
   rateOfLoss: number;
   ratio: number;
+  companyId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -363,6 +365,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       purchaseUnitAmount,
       consumptionUnit: form.consumptionUnit.trim(),
       rateOfLoss: rateOfLoss,
+      companyId: "088e3a63cbcd11f1ba2cd256a398ea10",
       ratio,
     };
 

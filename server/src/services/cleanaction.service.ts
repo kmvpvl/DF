@@ -11,7 +11,7 @@ export class CleanActionService {
         fromDate?: string,
         toDate?: string
     ) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
 
         const where: Record<string, any> = {
             // Изоляция по локации (оборудование привязано к локации)
@@ -41,7 +41,7 @@ export class CleanActionService {
     }
 
     static async create(input: CreateCleanActionInput, ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE); // Предположим, что это действие требует надзора
+        await authorize(ctx, Role.EMPLOYEE); // Предположим, что это действие требует надзора
 
         return await prisma.cleanAction.create({
             data: {

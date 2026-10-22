@@ -10,7 +10,7 @@ import { authorize } from '../utils/auth';
 
 export class ProcessMapService {
     static async getAll(productId: string, ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.processMap.findMany({
             where: { productId },
             include: {
@@ -22,7 +22,7 @@ export class ProcessMapService {
     }
 
     static async create(input: CreateProcessMapInput, ctx: GraphQLContext) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
 
         // Валидация
         if (!input.name.trim()) throw new Error('Process map name is required');
@@ -96,7 +96,7 @@ export class ProcessMapService {
         input: UpdateProcessMapInput,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
 
         // Удаляем старые связанные данные перед обновлением
         await prisma.$transaction([

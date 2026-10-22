@@ -520,6 +520,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
             storageConditionName: form.storageConditionName.trim() || null,
             processDeviations: form.processDeviations.trim() || null,
             processMapId: form.processMapId.trim() || null,
+            locationId: "233c58f8cbcd11f1ba2cd256a398ea10",
             sampleCount,
           },
         });

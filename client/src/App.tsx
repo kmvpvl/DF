@@ -100,6 +100,7 @@ export interface Product {
   photos?: string[];
   discounts?: DiscountTier[];
   priceVariations?: ProductPriceVariation[];
+  companyId: string;
 }
 
 export interface BasketItem {

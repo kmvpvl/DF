@@ -37,7 +37,7 @@ type MaterialCsvHeader = (typeof MATERIAL_CSV_HEADERS)[number];
 
 export class MaterialService {
     static async getAll(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
         return await prisma.material.findMany({
             where: { companyId: ctx.companyId },
             orderBy: { name: 'asc' },
@@ -45,7 +45,7 @@ export class MaterialService {
     }
 
     static async create(input: CreateMaterialInput, ctx: GraphQLContext) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         return await prisma.material.create({
             data: {
                 ...input,
@@ -61,7 +61,7 @@ export class MaterialService {
         input: UpdateMaterialInput,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         return await prisma.material.update({
             where: { id },
             data: {
@@ -73,7 +73,7 @@ export class MaterialService {
     }
 
     static async delete(id: string, ctx: GraphQLContext) {
-        authorize(ctx, Role.ADMIN);
+        await authorize(ctx, Role.ADMIN);
         await prisma.material.delete({ where: { id } });
         return true;
     }
@@ -83,7 +83,7 @@ export class MaterialService {
         overwriteExisting: boolean,
         ctx: GraphQLContext
     ) {
-        authorize(ctx, Role.MANAGER);
+        await authorize(ctx, Role.MANAGER);
         const companyId = ctx.companyId!;
 
         const rows = MaterialService.buildMaterialCsvRows(parseCsv(csv));
@@ -208,7 +208,7 @@ export class MaterialService {
     // В server/src/services/material.service.ts
 
     static async getMaterialsCsv(ctx: GraphQLContext) {
-        authorize(ctx, Role.EMPLOYEE);
+        await authorize(ctx, Role.EMPLOYEE);
 
         const materials = await prisma.material.findMany({
             where: { companyId: ctx.companyId },
