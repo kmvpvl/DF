@@ -13,7 +13,6 @@ const PRODUCT_FIELDS = `
   sugarsGrams
   fiberGrams
   saltGrams
-  companyId
   createdAt
   updatedAt
 `;
