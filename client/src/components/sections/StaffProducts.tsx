@@ -13,6 +13,7 @@ const PRODUCT_FIELDS = `
   sugarsGrams
   fiberGrams
   saltGrams
+  standardDose
   createdAt
   updatedAt
 `;
@@ -217,6 +218,7 @@ interface StaffProductData {
   sugarsGrams: number;
   fiberGrams: number;
   saltGrams: number;
+  standardDose: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -355,6 +357,7 @@ interface StaffProductForm {
   proteinGrams: string;
   carbohydratesGrams: string;
   sugarsGrams: string;
+  standardDose: string;
   fiberGrams: string;
   saltGrams: string;
 }
@@ -407,6 +410,7 @@ const INITIAL_FORM: StaffProductForm = {
   sugarsGrams: '0',
   fiberGrams: '0',
   saltGrams: '0',
+  standardDose: '100.0',
 };
 
 const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
@@ -1347,6 +1351,7 @@ const maps = this.processMapsForCostCache.get(productId);
         sugarsGrams: String(product.sugarsGrams),
         fiberGrams: String(product.fiberGrams),
         saltGrams: String(product.saltGrams),
+        standardDose: String(product.standardDose),
       },
       processMapPanel: 'none',
       processMapEditingId: null,
@@ -1755,6 +1760,7 @@ const maps = this.processMapsForCostCache.get(productId);
     const sugarsGrams = Number.parseFloat(form.sugarsGrams);
     const fiberGrams = Number.parseFloat(form.fiberGrams);
     const saltGrams = Number.parseFloat(form.saltGrams);
+    const standardDose = Number.parseFloat(form.standardDose);
 
     if (
       !form.name.trim() ||
@@ -1765,7 +1771,8 @@ const maps = this.processMapsForCostCache.get(productId);
       !Number.isFinite(carbohydratesGrams) ||
       !Number.isFinite(sugarsGrams) ||
       !Number.isFinite(fiberGrams) ||
-      !Number.isFinite(saltGrams)
+      !Number.isFinite(saltGrams) ||
+      !Number.isFinite(standardDose)
     ) {
       this.setState({
         error: 'Please fill all required fields with valid values.',
@@ -1786,6 +1793,7 @@ const maps = this.processMapsForCostCache.get(productId);
       sugarsGrams,
       fiberGrams,
       saltGrams,
+      standardDose
     };
 
     try {
@@ -2059,6 +2067,20 @@ const maps = this.processMapsForCostCache.get(productId);
                     required
                   />
                 </label>
+                <label className="cj-label">
+                  Standard Dose, g
+                  <input
+                    className="cj-input material-input"
+                    type="number"
+                    step="1"
+                    value={form.standardDose}
+                    onChange={(event) =>
+                      this.setState({ form: { ...form, standardDose: event.target.value } })
+                    }
+                    required
+                  />
+                </label>
+
               </div>
 
               {editingProduct && (

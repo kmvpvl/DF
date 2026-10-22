@@ -392,6 +392,7 @@ input CreateProductInput {
     sugarsGrams: Float!
     fiberGrams: Float!
     saltGrams: Float!
+    standardDose: Float!
 }
 
 input UpdateProductInput {
@@ -405,6 +406,7 @@ input UpdateProductInput {
     sugarsGrams: Float
     fiberGrams: Float
     saltGrams: Float
+    standardDose: Float!
 }
 
 input CreateProcessParameterInput {

@@ -20,6 +20,7 @@ const PRODUCT_CSV_HEADERS = [
     'sugarsGrams',
     'fiberGrams',
     'saltGrams',
+    'standardDose',
 ] as const;
 
 type ProductCsvHeader = (typeof PRODUCT_CSV_HEADERS)[number];
@@ -80,6 +81,7 @@ export class ProductService {
                 sugarsGrams: input.sugarsGrams,
                 fiberGrams: input.fiberGrams,
                 saltGrams: input.saltGrams,
+                standardDose: input.standardDose,
                 companyId: ctx.companyId!,
             },
         });
@@ -109,6 +111,7 @@ export class ProductService {
             data.sugarsGrams = input.sugarsGrams;
         if (input.fiberGrams !== undefined) data.fiberGrams = input.fiberGrams;
         if (input.saltGrams !== undefined) data.saltGrams = input.saltGrams;
+        if (input.standardDose !== undefined) data.standardDose = input.standardDose;
 
         return await prisma.product.update({ where: { id }, data });
     }

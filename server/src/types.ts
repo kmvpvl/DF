@@ -112,6 +112,7 @@ export interface CreateProductInput {
     sugarsGrams: number;
     fiberGrams: number;
     saltGrams: number;
+    standardDose: number;
     companyId: string;
 }
 
@@ -126,6 +127,7 @@ export interface UpdateProductInput {
     sugarsGrams?: number;
     fiberGrams?: number;
     saltGrams?: number;
+    standardDose: number;
     companyId: string;
 }
 
