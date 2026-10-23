@@ -1,0 +1,84 @@
+.mlstring-editor-container {
+    width: 100%;
+    display: grid;
+    gap: 0.1em;
+    --font-size: 50%;
+}
+
+.mlstring-editor-default  {
+    width: 100%;
+    overflow: hidden;
+}
+
+.mlstring-editor-default > input, .mlstring-editor-value > input {
+
+    width: 100%;
+}
+
+.mlstring-editor-value {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 0.5em;
+    width: 100%;
+    overflow: hidden;
+}
+
+.mlstring-editor-value-toolbar {
+    cursor: pointer;
+}
+
+.mlstring-editor-compact {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: min-content min-content;
+}
+
+.mlstring-editor-compact > input, .mlstring-editor-compact > input:focus {
+    grid-column: span 2;
+    border-bottom: 1px solid;
+    border-left: 1px solid;
+    border-right: 1px solid;
+    border-top: 0px solid;
+    outline: none;
+}
+
+.mlstring-editor-compact > span:first-child {
+    font-size: 80%;
+    border-left: 1px solid;
+    border-top: 1px solid;
+    border-bottom: 1px dashed;
+    border-top-left-radius: .2em;
+    padding-left: .2em;
+    padding-right: .2em;
+    font-weight: bold;
+}
+
+.mlstring-editor-compact > span:nth-child(2) {
+    font-size: 80%;
+    border-bottom-left-radius: .2em;
+    border-left: 1px solid;
+    border-bottom: 1px solid;
+    --padding: .2em;
+    padding-right: .2em;
+    justify-content: right;
+    display: flex;
+    gap: .2em;
+    border-right: 1px dashed;
+    border-top: 1px dashed;
+    border-top-right-radius: .2em;
+}
+
+.mlstring-editor-compact > span:nth-child(2) > span {
+    border-radius: .2em;
+    min-width: 1em;
+    text-align: center;
+    padding-left: .1em;
+    padding-right: .1em;
+    cursor: pointer;
+    text-wrap:nowrap;
+}
+
+
+.mlstring-editor-compact > span:nth-child(2) > span.selected, .mlstring-editor-compact > span:nth-child(2) > span:hover {
+    font-weight: bold;
+}

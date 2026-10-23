@@ -1,10 +1,12 @@
+import { MLString } from '../../mlstring';
 import Proto from '../../proto';
+import { MLSTRING_FIELDS } from './StaffProducts';
 
 const INITIAL_QUERY = `
   query {
     products {
       id
-      name
+      name ${MLSTRING_FIELDS}
       batchPrefix
     }
     storageConditions {
@@ -22,7 +24,7 @@ const INITIAL_QUERY = `
       updatedAt
       product {
         id
-        name
+        name ${MLSTRING_FIELDS}
         batchPrefix
       }
       storageCondition {
@@ -248,7 +250,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       const data = await this.gql(INITIAL_QUERY);
       this.setState({
         loading: false,
-        products: data.products as BatchProductOption[],
+        products: (data.products as BatchProductOption[]).sort((a, b)=>new MLString(a.name).toString().localeCompare(new MLString(b.name).toString())),
         storageConditions: data.storageConditions as StorageConditionOption[],
         batches: data.batches as StaffBatchData[],
         productMainProcessMapById: (() => {
@@ -648,7 +650,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                     <option value="">Select product</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.name} ({product.batchPrefix})
+                        {new MLString(product.name).toString()} ({product.batchPrefix})
                       </option>
                     ))}
                   </select>
@@ -852,7 +854,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                           <div className="material-description">{batch.processDeviations}</div>
                         ) : null}
                       </td>
-                      <td>{batch.product.name}</td>
+                      <td>{new MLString(batch.product.name).toString()}</td>
                       <td>{batch.nettoWeight}</td>
                       <td>{batch.storageDurationDays} d</td>
                       <td>{batch.storageCondition.name}</td>

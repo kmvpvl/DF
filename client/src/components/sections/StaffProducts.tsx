@@ -1,11 +1,14 @@
 import { type ChangeEvent, createRef } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
+import { IMLString, MLString } from '../../mlstring';
+import MLStringEditor from '../mlstring/mlstring';
+export const MLSTRING_FIELDS = `{default ts}`
 
 const PRODUCT_FIELDS = `
   id
-  name
+  name ${MLSTRING_FIELDS}
   batchPrefix
-  description
+  description ${MLSTRING_FIELDS}
   caloriesKcal
   fatGrams
   proteinGrams
@@ -56,7 +59,7 @@ const PROCESS_MAPS_QUERY = `
       }
       ingredients {
         id
-        product { id name caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
+        product { id name ${MLSTRING_FIELDS} caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         amount
         unit
@@ -85,7 +88,7 @@ const CREATE_PROCESS_MAP_MUTATION = `
       }
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
@@ -114,7 +117,7 @@ const UPDATE_PROCESS_MAP_MUTATION = `
       }
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
@@ -136,7 +139,7 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
       marginalCoefficient
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
       }
@@ -208,9 +211,9 @@ const UPDATE_COST_SETTINGS_MUTATION = `
 
 interface StaffProductData {
   id: string;
-  name: string;
+  name: IMLString;
   batchPrefix: string;
-  description: string | null;
+  description: IMLString;
   caloriesKcal: number;
   fatGrams: number;
   proteinGrams: number;
@@ -349,9 +352,9 @@ interface CostSettingsStorage {
 }
 
 interface StaffProductForm {
-  name: string;
+  name: IMLString;
   batchPrefix: string;
-  description: string;
+  description: IMLString;
   caloriesKcal: string;
   fatGrams: string;
   proteinGrams: string;
@@ -400,9 +403,9 @@ interface IStaffProductsState extends IProtoState{
 }
 
 const INITIAL_FORM: StaffProductForm = {
-  name: '',
+  name: {default: '', ts:{}},
   batchPrefix: '',
-  description: '',
+  description: {default: '', ts:{}},
   caloriesKcal: '0',
   fatGrams: '0',
   proteinGrams: '0',
@@ -1185,7 +1188,7 @@ const maps = this.processMapsForCostCache.get(productId);
 
     try {
       const data = await this.gql(PRODUCTS_QUERY);
-      const products = data.products as StaffProductData[];
+      const products = (data.products as StaffProductData[]).sort((a, b)=>new MLString(a.name).toString().localeCompare(new MLString(b.name).toString()));
       this.setState({
         loading: false,
         products,
@@ -1343,7 +1346,7 @@ const maps = this.processMapsForCostCache.get(productId);
       form: {
         name: product.name,
         batchPrefix: product.batchPrefix,
-        description: product.description ?? '',
+        description: product.description,
         caloriesKcal: String(product.caloriesKcal),
         fatGrams: String(product.fatGrams),
         proteinGrams: String(product.proteinGrams),
@@ -1763,8 +1766,9 @@ const maps = this.processMapsForCostCache.get(productId);
     const standardDose = Number.parseFloat(form.standardDose);
 
     if (
-      !form.name.trim() ||
+      !form.name ||
       !form.batchPrefix.trim() ||
+      !form.description ||
       !Number.isFinite(caloriesKcal) ||
       !Number.isFinite(fatGrams) ||
       !Number.isFinite(proteinGrams) ||
@@ -1783,9 +1787,9 @@ const maps = this.processMapsForCostCache.get(productId);
     this.setState({ saving: true, error: null });
 
     const input = {
-      name: form.name.trim(),
+      name: form.name,
       batchPrefix: form.batchPrefix.trim(),
-      description: form.description.trim() || null,
+      description: form.description,
       caloriesKcal,
       fatGrams,
       proteinGrams,
@@ -1803,6 +1807,7 @@ const maps = this.processMapsForCostCache.get(productId);
           input,
         });
         const updated = data.updateProduct as StaffProductData;
+        console.log(1)
 
         this.setState((prevState) => ({
           saving: false,
@@ -1811,7 +1816,7 @@ const maps = this.processMapsForCostCache.get(productId);
           form: { ...INITIAL_FORM },
           products: prevState.products
             .map((product) => (product.id === updated.id ? updated : product))
-            .sort((a, b) => a.name.localeCompare(b.name)),
+            .sort((a, b) => new MLString(a.name).toString().localeCompare(new MLString(b.name).toString())),
         }), () => {
           this.triggerProductTableAutoCostCalculation();
         });
@@ -1823,9 +1828,7 @@ const maps = this.processMapsForCostCache.get(productId);
           saving: false,
           adding: false,
           form: { ...INITIAL_FORM },
-          products: [...prevState.products, created].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          ),
+          products: [...prevState.products, created].sort((a, b) =>new MLString(a.name).toString().localeCompare(new MLString(b.name).toString())),
         }), () => {
           this.triggerProductTableAutoCostCalculation();
         });
@@ -1921,14 +1924,14 @@ const maps = this.processMapsForCostCache.get(productId);
             >
               <label className="cj-label">
                 Name
-                <input
+                <MLStringEditor
+                  caption='Name'
                   className="cj-input material-input"
-                  type="text"
-                  value={form.name}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, name: event.target.value } })
+                  //type="text"
+                  defaultValue={form.name}
+                  onChange={(val) =>
+                    this.setState({ form: { ...form, name: val } })
                   }
-                  required
                 />
               </label>
 
@@ -1947,11 +1950,11 @@ const maps = this.processMapsForCostCache.get(productId);
 
               <label className="cj-label">
                 Description
-                <textarea
+                <MLStringEditor
                   className="cj-input material-textarea"
-                  value={form.description}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, description: event.target.value } })
+                  defaultValue={form.description}
+                  onChange={(val) =>
+                    this.setState({ form: { ...form, description: val } })
                   }
                 />
               </label>
@@ -2481,7 +2484,7 @@ const maps = this.processMapsForCostCache.get(productId);
                                   <option value="">Select product</option>
                                   {products.map(p => (
                                     <option key={p.id} value={p.id}>
-                                      {p.name}
+                                      {p.name.toString()}
                                     </option>
                                   ))}
                                 </select>
@@ -2578,8 +2581,8 @@ const maps = this.processMapsForCostCache.get(productId);
                   products.map((product) => (
                     <tr key={product.id}>
                       <td>
-                        <strong>{product.name}</strong>
-                        <div className="material-description">{product.description || 'No description'}</div>
+                        <strong>{new MLString(product.name).toString()}</strong>
+                        <div className="material-description">{new MLString(product.description).toString()}</div>
                       </td>
                       <td>{productAutoCostLoading
                         ? '...': productAutoCostMarginals[product.id] != null 

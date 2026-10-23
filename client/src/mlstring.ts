@@ -1,60 +1,48 @@
 //
-export type IMLString =
-  | string
-  | {
-      default: string;
-      values: [string, string][];
-    };
+export type IMLString = string | {
+    default: string;
+    // Используем простой объект вместо массива кортежей
+    ts: Record<string, string>; 
+};
 export class MLString extends String {
-  private _map?: Map<string, string> = new Map<string, string>();
-  constructor();
-  constructor(str: string);
-  constructor(mlString: IMLString);
-  constructor(...arg: any[]) {
-    super(
-      arg.length === 0
-        ? ''
-        : typeof arg[0] === 'object'
-          ? arg[0].default
-          : arg[0]
-    );
-    switch (arg.length) {
-      case 0:
-        return;
-      case 1:
-        if (typeof arg[0] === 'object') {
-          this._map = new Map<string, string>(arg[0].map);
+    private _translations: Record<string, string> = {};
+    constructor(input?: IMLString) {
+        super(input?(typeof input === 'object'?input.default:input):'');
+        if (!input) {
+            this._translations = {};
+        } else if (typeof input === 'string') {
+            this._translations = {};
+        } else {
+            this._translations = input.ts;
         }
     }
-  }
-  toString(): string;
-  toString(lang: string): string;
-  toString(...arg: any[]): string | undefined {
-    switch (arg.length) {
-      case 0:
+
+    toString(lang?: string): string {
+        if (lang && this._translations[lang]) {
+            return this._translations[lang] as string;
+        }
         return super.toString();
-      default:
-        return this._map?.has(arg[0])
-          ? (this._map.get(arg[0]) as string)
-          : super.toString();
     }
-  }
-  get json(): IMLString {
-    return this._map === undefined
-      ? this.toString()
-      : {
-          default: this.toString(),
-          values: Array.from(this._map),
-        };
-  }
-  public static getLang(): string {
-    const params: string[] = window.location.search.substring(1).split('&');
-    let lang = window.navigator.language.split('-')[0];
-    const lang_param = params.filter((v) => v.split('=')[0] === 'lang');
-    if (lang_param !== undefined && lang_param.length > 0)
-      lang = lang_param[0].split('=')[1];
-    return lang;
-  }
+
+    // Для удобного маппинга в UI
+    get entries(): [string, string | undefined][] {
+        return Object.entries(this._translations);
+    }
+    
+    public static getLang(): string {
+        const params: string[] = window.location.search.substring(1).split('&');
+        let lang = window.navigator.language.split('-')[0];
+        const lang_param = params.filter((v) => v.split('=')[0] === 'lang');
+        if (lang_param !== undefined && lang_param.length > 0)
+            lang = lang_param[0].split('=')[1];
+        return lang;
+    }
+    get Json(): IMLString {
+      return {
+          default: super.toString(),
+          ts: this._translations
+      };
+    }
 }
 
 export const mlStrings = new Map([

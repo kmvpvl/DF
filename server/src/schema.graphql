@@ -16,6 +16,13 @@ enum Role {
     SUPERVISOR
 }
 
+scalar JSON
+
+type MLString {
+    default: String!
+    ts: JSON!
+}
+
 type User {
     id: ID!
     name: String!
@@ -168,9 +175,9 @@ type Material {
 
 type Product {
     id: ID!
-    name: String!
+    name: MLString!
     batchPrefix: String!
-    description: String
+    description: MLString!
     caloriesKcal: Float!
     fatGrams: Float!
     proteinGrams: Float!
@@ -382,9 +389,9 @@ input UpdateMaterialInput {
 }
 
 input CreateProductInput {
-    name: String!
+    name: JSON!
     batchPrefix: String!
-    description: String
+    description: JSON!
     caloriesKcal: Float!
     fatGrams: Float!
     proteinGrams: Float!
@@ -396,9 +403,9 @@ input CreateProductInput {
 }
 
 input UpdateProductInput {
-    name: String
+    name: JSON
     batchPrefix: String
-    description: String
+    description: JSON
     caloriesKcal: Float
     fatGrams: Float
     proteinGrams: Float

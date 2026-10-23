@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { User } from '../../App';
+import { MLSTRING_FIELDS } from './StaffProducts';
 
 export interface IOrdersProps extends IProtoProps {
     user: User | null;
@@ -84,7 +85,7 @@ const INITIAL_QUERY = `
     }
     products {
       id
-      name
+      name ${MLSTRING_FIELDS}
       batchPrefix
     }
     orders {

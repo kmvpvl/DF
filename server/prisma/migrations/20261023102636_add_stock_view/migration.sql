@@ -1,5 +1,5 @@
 -- migration.sql
-CREATE VIEW view_stock_free_balance AS
+CREATE OR REPLACE VIEW view_stock_free_balance AS
 SELECT 
     m.productId,
     m.locationId,

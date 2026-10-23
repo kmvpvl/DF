@@ -8,6 +8,7 @@ import {
 } from '../types';
 import { authorize } from '../utils/auth';
 import { parseCsv, parseCsvNumber, escapeCsvValue } from '../utils/common';
+import { MLString } from '../lib/mlstring';
 
 const PRODUCT_CSV_HEADERS = [
     'name',
@@ -71,9 +72,9 @@ export class ProductService {
         await authorize(ctx, Role.MANAGER);
         return await prisma.product.create({
             data: {
-                name: input.name.trim(),
+                name: input.name,
                 batchPrefix: input.batchPrefix.trim(),
-                description: input.description?.trim() || null,
+                description: input.description,
                 caloriesKcal: input.caloriesKcal,
                 fatGrams: input.fatGrams,
                 proteinGrams: input.proteinGrams,
@@ -95,11 +96,11 @@ export class ProductService {
         await authorize(ctx, Role.MANAGER);
 
         const data: any = {};
-        if (input.name !== undefined) data.name = input.name.trim();
+        if (input.name !== undefined) data.name = new MLString(input.name).Json;
         if (input.batchPrefix !== undefined)
             data.batchPrefix = input.batchPrefix.trim();
         if (input.description !== undefined)
-            data.description = input.description.trim() || null;
+            data.description = new MLString(input.description).Json || null;
         if (input.caloriesKcal !== undefined)
             data.caloriesKcal = input.caloriesKcal;
         if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;
@@ -152,9 +153,9 @@ export class ProductService {
                     throw new Error('batchPrefix is required');
 
                 const data = {
-                    name: row.name.trim(),
+                    name: row.name,
                     batchPrefix: row.batchPrefix.trim(),
-                    description: row.description.trim() || null,
+                    description: row.description,
                     caloriesKcal: parseCsvNumber(row.caloriesKcal),
                     fatGrams: parseCsvNumber(row.fatGrams),
                     proteinGrams: parseCsvNumber(row.proteinGrams),

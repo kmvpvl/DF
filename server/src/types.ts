@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
 import { MovementType } from '@prisma/client';
+import { IMLString } from './lib/mlstring';
 
 export interface GraphQLContext {
     req: Request;
@@ -111,9 +112,9 @@ export interface UpdateMaterialInput {
 }
 
 export interface CreateProductInput {
-    name: string;
+    name: IMLString;
     batchPrefix: string;
-    description?: string;
+    description: IMLString;
     caloriesKcal: number;
     fatGrams: number;
     proteinGrams: number;
@@ -126,9 +127,9 @@ export interface CreateProductInput {
 }
 
 export interface UpdateProductInput {
-    name?: string;
+    name?: IMLString;
     batchPrefix?: string;
-    description?: string;
+    description?: IMLString;
     caloriesKcal?: number;
     fatGrams?: number;
     proteinGrams?: number;

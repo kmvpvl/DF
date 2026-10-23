@@ -161,9 +161,9 @@ model Material {
 
 model Product {
   id                 String   @id @default(cuid())
-  name               String
+  name               Json
   batchPrefix        String   @unique
-  description        String?
+  description        Json @default("{\"default\":\"\", \"ts\":{}}")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   batches            Batch[]
