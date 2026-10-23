@@ -1,31 +1,23 @@
 // server/src/services/movement.service.ts
-import { PrismaClient, MovementType } from '@prisma/client';
+import { MovementType, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { CreateMovementInput, GraphQLContext } from '../types';
+import { authorize } from '../utils/auth';
 
 export class MovementService {
     /**
      * Универсальный метод для создания проводки.
      * Может использоваться внутри транзакций через передачу контекста (tx).
      */
-    static async createMovement(
-        data: {
-            type: MovementType;
-            productId: string;
-            batchId?: string;
-            quantity: number;
-        },
+    static async create(
+        data: CreateMovementInput,
+        ctx: GraphQLContext,
         tx?: any // Принимает Prisma.TransactionClient для атомарности
     ) {
         const client = tx || prisma;
+        await authorize(ctx, Role.EMPLOYEE);
 
-        return await client.movement.create({
-            data: {
-                type: data.type,
-                productId: data.productId,
-                batchId: data.batchId,
-                quantity: data.quantity,
-            },
-        });
+        return await client.movement.create({data: data});
     }
 
     /**

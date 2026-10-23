@@ -1,5 +1,5 @@
 // server/src/services/batch.service.ts
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import {
     BatchNumberPreview,
@@ -95,7 +95,7 @@ export class BatchService {
         return created.id;
     }
 
-    static async create(data: CreateBatchInput, ctx: GraphQLContext) {
+    static async create(data: CreateBatchInput, ctx: GraphQLContext, tx?: Prisma.TransactionClient) {
         await authorize(ctx, Role.EMPLOYEE);
 
         if (!Number.isFinite(data.nettoWeight) || data.nettoWeight <= 0) {
@@ -128,7 +128,8 @@ export class BatchService {
         const sampleCount = data.sampleCount ?? 0;
         const sampleStartNumber =
             sampleCount > 0 ? await SampleService.getNextSampleNumber(now) : 0;
-        return await prisma.batch.create({
+        const prismaClient = tx || prisma;
+        return await prismaClient.batch.create({
             data: {
                 product: { connect: { id: data.productId } },
                 location: { connect: { id: ctx.locationId! } },

@@ -398,3 +398,13 @@ model MovementGroup {
   movements    Movement[]
 	@@map("MovementGroup")
 }
+
+model StockFreeBalance {
+  productId        String
+  locationId       String
+  physical_balance Float
+
+  @@id([productId, locationId]) // Нужно для Prisma, чтобы модель была валидной
+  @@map("view_stock_free_balance") // Имя таблицы в БД
+  @@ignore // Призма не будет создавать её через migrate
+}

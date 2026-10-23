@@ -36,6 +36,8 @@ import { ProductService } from './services/product.service';
 import { ProcessMapService } from './services/process-map.service';
 import { CostSettingsService } from './services/cost-settings.service';
 import { StorageConditionService } from './services/storage-condition.service';
+import { MovementService } from './services/movement.service';
+import { MovementType } from '@prisma/client';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -749,7 +751,26 @@ const resolvers = {
             { input }: { input: CreateBatchInput },
             cnt: GraphQLContext
         ) => {
-            return await BatchService.create(input, cnt);
+            const product = await prisma.product.findUnique({
+            where: {
+                id: input.productId, 
+            },
+            });
+            if (!product) throw Error(``);
+            return await prisma.$transaction(async (tx) => {
+                
+                // Передаем tx в каждую функцию
+                const batch = await BatchService.create(input, cnt, tx);
+                await MovementService.create({
+                    type: MovementType.PRODUCTION, 
+                    productId: input.productId, 
+                    batchId: batch.id, 
+                    quantity: Math.trunc(input.nettoWeight / product?.standardDose),
+                    locationId: cnt.locationId!
+                }, cnt, tx);
+
+                return batch;
+            });
         },
         updateBatch: async (
             _: unknown,

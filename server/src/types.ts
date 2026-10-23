@@ -1,6 +1,7 @@
 // server/src/types.ts
 import { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
+import { MovementType } from '@prisma/client';
 
 export interface GraphQLContext {
     req: Request;
@@ -55,6 +56,14 @@ export interface CreateCleanActionInput {
     performerId: string;
     supervisorId: string;
     cleaningType: 'GENERAL' | 'CURRENT' | 'DISINFECTION';
+}
+
+export interface CreateMovementInput {
+    type: MovementType;
+    productId: string;
+    batchId?: string;
+    quantity: number;
+    locationId: string;
 }
 
 export interface CreateMaterialInput {
