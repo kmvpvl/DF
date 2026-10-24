@@ -83,6 +83,8 @@ export class ProductService {
                 fiberGrams: input.fiberGrams,
                 saltGrams: input.saltGrams,
                 standardDose: input.standardDose,
+                tags: input.tags,
+                photos: input.photos as any,
                 companyId: ctx.companyId!,
             },
         });
@@ -100,7 +102,7 @@ export class ProductService {
         if (input.batchPrefix !== undefined)
             data.batchPrefix = input.batchPrefix.trim();
         if (input.description !== undefined)
-            data.description = new MLString(input.description).Json || null;
+            data.description = new MLString(input.description).Json;
         if (input.caloriesKcal !== undefined)
             data.caloriesKcal = input.caloriesKcal;
         if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;
@@ -113,6 +115,8 @@ export class ProductService {
         if (input.fiberGrams !== undefined) data.fiberGrams = input.fiberGrams;
         if (input.saltGrams !== undefined) data.saltGrams = input.saltGrams;
         if (input.standardDose !== undefined) data.standardDose = input.standardDose;
+        data.tags = input.tags;
+        data.photos = input.photos;
 
         return await prisma.product.update({ where: { id }, data });
     }

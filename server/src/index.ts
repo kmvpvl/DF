@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
 import { prisma } from './lib/prisma';
+import multer from 'multer';
 import {
     CreateBatchInput,
     CreateCertificateInput,
@@ -1136,6 +1137,18 @@ app.get('/certificates/:id/document', async (req, res) => {
         });
     }
 });
+
+const upload = multer({ dest: 'public/uploads/' })
+
+app.post('/api/upload-image', upload.single('image'), (req, res) => {
+    // req.file содержит информацию о загруженном файле
+    if (req){
+        const fileUrl = `/uploads/${req.file?.filename}`;
+        res.json({ url: fileUrl });
+    }
+});
+
+app.use('/uploads', express.static('public/uploads'));
 
 export default app;
 const schemaString = fs.readFileSync(

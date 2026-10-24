@@ -186,6 +186,8 @@ type Product {
     fiberGrams: Float!
     saltGrams: Float!
     standardDose: Float!
+    tags: JSON!
+    photos: JSON!
     createdAt: String!
     updatedAt: String!
 }
@@ -400,6 +402,8 @@ input CreateProductInput {
     fiberGrams: Float!
     saltGrams: Float!
     standardDose: Float!
+    photos: JSON!
+    tags: JSON!
 }
 
 input UpdateProductInput {
@@ -413,7 +417,9 @@ input UpdateProductInput {
     sugarsGrams: Float
     fiberGrams: Float
     saltGrams: Float
-    standardDose: Float!
+    standardDose: Float
+    photos: JSON
+    tags: JSON
 }
 
 input CreateProcessParameterInput {

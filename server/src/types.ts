@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { prisma } from './lib/prisma';
 import { MovementType } from '@prisma/client';
 import { IMLString } from './lib/mlstring';
+import { IPhoto, ITag } from './lib/photo';
 
 export interface GraphQLContext {
     req: Request;
@@ -123,6 +124,8 @@ export interface CreateProductInput {
     fiberGrams: number;
     saltGrams: number;
     standardDose: number;
+    tags: ITag[];
+    photos: IPhoto[];
     companyId: string;
 }
 
@@ -138,6 +141,8 @@ export interface UpdateProductInput {
     fiberGrams?: number;
     saltGrams?: number;
     standardDose: number;
+    tags: ITag[];
+    photos: IPhoto[];
     companyId: string;
 }
 

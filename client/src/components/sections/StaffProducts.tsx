@@ -2,6 +2,8 @@ import { type ChangeEvent, createRef } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { IMLString, MLString } from '../../mlstring';
 import MLStringEditor from '../mlstring/mlstring';
+import Tags, { ITags } from '../tags/tags';
+import Photos, { IPhoto } from '../photos/photos';
 export const MLSTRING_FIELDS = `{default ts}`
 
 const PRODUCT_FIELDS = `
@@ -17,6 +19,8 @@ const PRODUCT_FIELDS = `
   fiberGrams
   saltGrams
   standardDose
+  tags
+  photos
   createdAt
   updatedAt
 `;
@@ -222,6 +226,8 @@ interface StaffProductData {
   fiberGrams: number;
   saltGrams: number;
   standardDose: number;
+  tags: ITags;
+  photos: IPhoto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -363,6 +369,8 @@ interface StaffProductForm {
   standardDose: string;
   fiberGrams: string;
   saltGrams: string;
+  tags: ITags;
+  photos: IPhoto[];
 }
 
 interface ImportProductsCsvResult {
@@ -414,6 +422,8 @@ const INITIAL_FORM: StaffProductForm = {
   fiberGrams: '0',
   saltGrams: '0',
   standardDose: '100.0',
+  tags: [],
+  photos: [],
 };
 
 const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
@@ -1355,6 +1365,8 @@ const maps = this.processMapsForCostCache.get(productId);
         fiberGrams: String(product.fiberGrams),
         saltGrams: String(product.saltGrams),
         standardDose: String(product.standardDose),
+        tags: product.tags,
+        photos: product.photos,
       },
       processMapPanel: 'none',
       processMapEditingId: null,
@@ -1797,7 +1809,9 @@ const maps = this.processMapsForCostCache.get(productId);
       sugarsGrams,
       fiberGrams,
       saltGrams,
-      standardDose
+      standardDose,
+      tags: form.tags,
+      photos: form.photos,
     };
 
     try {
@@ -1923,7 +1937,6 @@ const maps = this.processMapsForCostCache.get(productId);
               }}
             >
               <label className="cj-label">
-                Name
                 <MLStringEditor
                   caption='Name'
                   className="cj-input material-input"
@@ -1949,9 +1962,9 @@ const maps = this.processMapsForCostCache.get(productId);
               </label>
 
               <label className="cj-label">
-                Description
                 <MLStringEditor
                   className="cj-input material-textarea"
+                  caption='Description'
                   defaultValue={form.description}
                   onChange={(val) =>
                     this.setState({ form: { ...form, description: val } })
@@ -2084,6 +2097,24 @@ const maps = this.processMapsForCostCache.get(productId);
                   />
                 </label>
 
+              </div>
+              <div>
+                <div>Customer information</div>
+                <div>
+                  <Photos
+                    defaultValue={form.photos}
+                    editMode={true}
+                  />
+                </div>
+                <div>
+                  <Tags 
+                    editMode={true} 
+                    defaultValue={form.tags}
+                    onChange={val => {
+                      this.setState({ form: {...form, tags: val}});
+                    }}
+                  />
+                </div>
               </div>
 
               {editingProduct && (

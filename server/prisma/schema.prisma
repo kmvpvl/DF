@@ -181,6 +181,8 @@ model Product {
   movements    Movement[]
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
+  photos Json @default("[]")
+  tags Json @default("[]")
 }
 
 model Batch {

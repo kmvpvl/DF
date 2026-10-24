@@ -1,0 +1,70 @@
+.photos-admin-edit-container {
+    width: 100%;
+    display: flex;
+    height: fit-content;
+}
+
+.photos-admin-list-container {
+    display: flex;
+    flex-flow: row;
+    flex-wrap: wrap;
+    overflow: auto;
+    height: 100%;
+    max-height: 15em;
+    justify-content:left;
+    gap: 0.5em;
+    width: 100%;
+    align-items: center;
+}
+
+.photo-admin-container {
+    width: 8em;
+    --height: 100%;
+    display: block;
+    text-align: center;
+}
+
+.photo-admin-container > img {
+    max-height: 100%;
+    max-width: 100%;
+    border-radius: 5px;
+    margin: auto;
+}
+
+.photos-container {
+    width: 100%;
+    --height: 100%;
+    --padding: 5px;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    text-align: center;
+    overflow: hidden;
+}
+
+.photo-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    overflow: hidden;
+}
+
+.photo-container > img {
+    max-height: 100%;
+    max-width: 100%;
+    border-radius: 5px;
+    margin-left: auto;
+    margin-right: auto;
+    object-fit: contain;
+}
+.photos-scroll {
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+    gap: 0.5em;
+    padding: 1px;
+}
+
+.photos-scroll > span {
+    cursor: pointer;
+}
+
