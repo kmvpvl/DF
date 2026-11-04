@@ -95,7 +95,11 @@ export class BatchService {
         return created.id;
     }
 
-    static async create(data: CreateBatchInput, ctx: GraphQLContext, tx?: Prisma.TransactionClient) {
+    static async create(
+        data: CreateBatchInput,
+        ctx: GraphQLContext,
+        tx?: Prisma.TransactionClient
+    ) {
         await authorize(ctx, Role.EMPLOYEE);
 
         if (!Number.isFinite(data.nettoWeight) || data.nettoWeight <= 0) {

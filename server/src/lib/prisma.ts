@@ -37,7 +37,7 @@ function createPrismaAdapter(): PrismaMariaDb {
         password: decodeURIComponent(parsedUrl.password),
         database: databaseName,
         ssl: false,
-        allowPublicKeyRetrieval: true, 
+        allowPublicKeyRetrieval: true,
     });
 }
 
@@ -45,7 +45,7 @@ export const prisma =
     globalForPrisma.prisma ||
     new PrismaClient({
         adapter: createPrismaAdapter(),
-        log: [/*'query', */'error', 'warn'], // Полезно для отладки
+        log: [/*'query', */ 'error', 'warn'], // Полезно для отладки
     }).$extends({
         query: {
             async $allOperations({ operation, model, args, query }) {

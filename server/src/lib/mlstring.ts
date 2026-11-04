@@ -1,10 +1,12 @@
 // server/src/lib/mlstring.ts
 
-export type IMLString = string | {
-    default: string;
-    // Используем простой объект вместо массива кортежей
-    ts: Record<string, string>; // translations
-};
+export type IMLString =
+    | string
+    | {
+          default: string;
+          // Используем простой объект вместо массива кортежей
+          ts: Record<string, string>; // translations
+      };
 
 export class MLString extends String {
     private _translations: Record<string, string> = {};
@@ -31,7 +33,7 @@ export class MLString extends String {
     get Json(): IMLString {
         return {
             default: super.toString(),
-            ts: this._translations
+            ts: this._translations,
         };
     }
 }

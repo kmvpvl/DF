@@ -1,4 +1,4 @@
-import { IMLString } from "./mlstring";
+import { IMLString } from './mlstring';
 
 export interface IPhoto {
     url: string;

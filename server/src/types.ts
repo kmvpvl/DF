@@ -127,6 +127,10 @@ export interface CreateProductInput {
     tags: ITag[];
     photos: IPhoto[];
     companyId: string;
+    chapters: IMLString[];
+    isPublic: boolean;
+    priority: number;
+    priceOptions: ProductPriceOptions;
 }
 
 export interface UpdateProductInput {
@@ -143,6 +147,10 @@ export interface UpdateProductInput {
     standardDose: number;
     tags: ITag[];
     photos: IPhoto[];
+    chapters: IMLString[];
+    isPublic: boolean;
+    priority: number;
+    priceOptions: ProductPriceOptions;
     companyId: string;
 }
 
@@ -202,6 +210,30 @@ export interface UpdateProcessMapInput {
     outcomeUnit?: string;
 }
 
+export interface ReservesInput {
+    locationId: string;
+    reserves: { productId: string; quantity: number }[];
+    editedMovementId?: string;
+}
+
+export interface MovementGroupInput {
+    label: string;
+}
+
+export interface MovementGroupResult {
+    id: string;
+    label: string | null;
+    movementIds: string[];
+    createdAt: Date;
+}
+
+export interface BasketMovementGroupResult {
+    id: string;
+    label: string | null;
+    basket: { productId: string; quantity: number }[];
+    createdAt: Date;
+}
+
 export interface ImportMaterialsCsvResult {
     importedCount: number;
     skippedCount: number;
@@ -212,4 +244,15 @@ export interface ImportProductsCsvResult {
     importedCount: number;
     skippedCount: number;
     errors: string[];
+}
+
+export interface ProductPriceOptions {
+    individualPrice?: number;
+    legalPrice?: number;
+    individualPriceCalc?: boolean;
+    legalPriceCalc?: boolean;
+    individualMarginK?: number;
+    legalMarginK?: number;
+    individualDiscountFromDoses?: number;
+    legalDiscountFromDoses?: number;
 }

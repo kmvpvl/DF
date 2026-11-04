@@ -465,7 +465,9 @@ main {
   padding: 0.6rem 1.3rem;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 .cj-sub-tab:hover {
   color: var(--primary);
@@ -598,7 +600,9 @@ main {
   font-family: inherit;
   cursor: pointer;
   color: var(--text-light);
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
   margin-left: 0.3rem;
 }
 .cj-btn-sm:hover {
@@ -727,8 +731,9 @@ main {
 }
 .material-json {
   min-height: 140px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
 }
 .material-checkbox-label {
   flex-direction: row;
@@ -1068,6 +1073,7 @@ main {
   cursor: pointer;
   border-radius: 8px;
   touch-action: pan-y;
+  aspect-ratio: 12/9;
 }
 .product-media-button:focus-visible {
   outline: 2px solid var(--primary);

@@ -2,7 +2,10 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products from './components/sections/Products';
+import Products, {
+  BasketItem,
+  PublicProductData,
+} from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
@@ -16,9 +19,9 @@ const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
 const STAFF_EMAILS_RAW =
   import.meta.env.VITE_STAFF_EMAILS ??
-  ((import.meta as { env?: Record<string, string | undefined> }).env
+  (import.meta as { env?: Record<string, string | undefined> }).env
     ?.STAFF_EMAILS ??
-    '');
+  '';
 //console.log('Loaded staff emails:', STAFF_EMAILS_RAW);
 const STAFF_EMAILS = new Set(
   STAFF_EMAILS_RAW.split(',')
@@ -86,43 +89,29 @@ export interface ProductPriceVariation {
   weightUnit?: string;
 }
 
-export interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  legalEntityPrice?: number;
-  priceUnit?: string;
-  selectedVariationLabel?: string;
-  selectedWeightGrams?: number;
-  emoji: string;
-  chapter: string;
-  photos?: string[];
-  discounts?: DiscountTier[];
-  priceVariations?: ProductPriceVariation[];
-  companyId: string;
-}
-
-export interface BasketItem {
-  product: Product;
-  qty: number;
-}
-
 interface AppState {
   user: User | null;
   currentPage: 'home' | 'tool';
   activeToolChapter: string;
   basket: BasketItem[];
+  isLoadingBasket: boolean;
   basketOpen: boolean;
   authOpen: boolean;
   authInitialTab: 'login' | 'signup';
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   authEditingUser: User | null;
-  pendingProduct: Product | null;
+  pendingProduct: PublicProductData | null;
+  editedMovementId: string | null; // <-- Храним ID брони здесь
 }
 
 interface SessionUserQueryData {
   sessionUser: User | null;
+}
+export interface BasketMovementGroupResult {
+  id: string;
+  label: string | null;
+  basket: { productId: string; quantity: number }[];
+  createdAt: Date;
 }
 
 class App extends Proto<Record<string, never>, AppState> {
@@ -138,12 +127,14 @@ class App extends Proto<Record<string, never>, AppState> {
         : 'home',
     activeToolChapter: 'Cleaning',
     basket: [],
+    isLoadingBasket: false,
     basketOpen: false,
     authOpen: false,
     authInitialTab: 'login',
     authInitialSignupEntityType: 'INDIVIDUAL',
     authEditingUser: null,
     pendingProduct: null,
+    editedMovementId: null,
   };
 
   componentDidMount() {
@@ -216,7 +207,9 @@ class App extends Proto<Record<string, never>, AppState> {
 
       const data = json.data as SessionUserQueryData | undefined;
       if (data?.sessionUser) {
-        this.setState({ user: data.sessionUser });
+        this.setState({ user: data.sessionUser }, () => {
+          this.getReserves();
+        });
       } else {
         this.setState({ user: null });
       }
@@ -225,34 +218,168 @@ class App extends Proto<Record<string, never>, AppState> {
     }
   };
 
-  addToBasket = (product: Product) => {
-    this.setState((prevState) => {
-      const existing = prevState.basket.find(
-        (i) =>
-          i.product.id === product.id &&
-          i.product.selectedVariationLabel === product.selectedVariationLabel &&
-          i.product.selectedWeightGrams === product.selectedWeightGrams
-      );
-      if (existing) {
+  private async getReserves() {
+    const GET_RESERVES_BY_USER = `
+      query Reserves {
+        reserves {
+          id
+          label
+          createdAt
+          basket {
+            productId
+            quantity
+          }
+        }
+        products {
+          id
+          name {
+            default
+            ts
+          }
+          priceOptions
+        }
+      }
+      `;
+    const data = await this.gql(GET_RESERVES_BY_USER);
+    console.log(data);
+    const reserves: BasketMovementGroupResult = (data as any).reserves;
+    const products: PublicProductData[] = (data as any).products;
+    if (!reserves) return;
+    this.setState(
+      (prevState) => {
         return {
-          basket: prevState.basket.map((i) =>
-            i.product.id === product.id &&
-            i.product.selectedVariationLabel ===
-              product.selectedVariationLabel &&
-            i.product.selectedWeightGrams === product.selectedWeightGrams
-              ? { ...i, qty: i.qty + 1 }
-              : i
-          ),
+          ...prevState,
+          editedMovementId: reserves.id,
+          isLoadingBasket: true,
+          basket: reserves.basket.map((el) => {
+            return {
+              id: el.productId,
+              quantity: el.quantity,
+              product: products.find((p) => p.id === el.productId)!,
+              price: products.find((p) => p.id === el.productId)?.priceOptions
+                .individualPrice!,
+              amount:
+                products.find((p) => p.id === el.productId)?.priceOptions
+                  .individualPrice! * el.quantity,
+            };
+          }),
         };
+      },
+      () => {
+        this.setState({ ...this.state, isLoadingBasket: false });
+      }
+    );
+  }
+
+  private async reserveBasket(basket: BasketItem[]) {
+    const RESERVE_MUTATION = `
+      mutation Reserve($input: UpdateReserveInput!) {
+        reserve(input: $input) {
+          id
+          label
+          createdAt
+          basket {
+            productId
+            quantity
+          }
+        }
+      }
+    `;
+
+    // Если корзина пустая, возможно, нужно очистить бронь на сервере или просто выйти
+    if (basket.length === 0) return null;
+    // Если запрос уже выполняется, выходим, чтобы не плодить фантомы
+    if (this.state.isLoadingBasket) return null;
+
+    // Включаем блокировку
+    //this.setState({ isLoadingBasket: true });
+
+    try {
+      const data = await this.gql(RESERVE_MUTATION, {
+        input: {
+          // Передаем существующий ID, чтобы сервер обновил старую бронь, а не создавал новую
+          editedMovementId: this.state.editedMovementId,
+
+          reserves: basket.map((el) => ({
+            productId: el.product.id,
+            quantity: el.quantity,
+          })),
+        },
+      });
+
+      const reserves: BasketMovementGroupResult = (data as any).reserves;
+      const products: PublicProductData[] = (data as any).products;
+      if (!reserves) return;
+      this.setState(
+        (prevState) => {
+          return {
+            ...prevState,
+            editedMovementId: reserves.id,
+            isLoadingBasket: true,
+            basket: reserves.basket.map((el) => {
+              return {
+                id: el.productId,
+                quantity: el.quantity,
+                product: products.find((p) => p.id === el.productId)!,
+                price: products.find((p) => p.id === el.productId)?.priceOptions
+                  .individualPrice!,
+                amount:
+                  products.find((p) => p.id === el.productId)?.priceOptions
+                    .individualPrice! * el.quantity,
+              };
+            }),
+          };
+        },
+        () => {
+          this.setState({ ...this.state, isLoadingBasket: false });
+        }
+      );
+    } catch (error) {
+      console.error('Ошибка при резервировании корзины:', error);
+      return null;
+    }
+  }
+
+  componentDidUpdate(_: Readonly<{}>, prevState: Readonly<AppState>) {
+    // Сравниваем только basket. Если изменился editedMovementId, запрос повторно не пойдет
+    if (prevState.basket !== this.state.basket) {
+      this.reserveBasket(this.state.basket);
+    }
+  }
+
+  // Метод добавления стал чистым и лаконичным
+  addToBasket = (product: PublicProductData) => {
+    this.setState((prevState) => {
+      const isExisting = prevState.basket.some(
+        (i) => i.product.id === product.id
+      );
+      let updatedBasket: BasketItem[];
+
+      if (isExisting) {
+        updatedBasket = prevState.basket.map((item) => {
+          if (item.product.id === product.id) {
+            const nextQuantity = item.quantity + 1;
+            return {
+              ...item,
+              quantity: nextQuantity,
+              amount: nextQuantity * item.price,
+            };
+          }
+          return item;
+        });
+      } else {
+        const price = product.priceOptions.individualPrice!;
+        updatedBasket = [
+          ...prevState.basket,
+          { product, quantity: 1, price, amount: price },
+        ];
       }
 
-      return {
-        basket: [...prevState.basket, { product, qty: 1 }],
-      };
-    });
+      return { basket: updatedBasket };
+    }); // Второй аргумент (колбэк) больше НЕ нужен!
   };
 
-  handleAddToBasket = (product: Product) => {
+  handleAddToBasket = (product: PublicProductData) => {
     if (!this.state.user) {
       this.setState({
         pendingProduct: product,
@@ -268,14 +395,19 @@ class App extends Proto<Record<string, never>, AppState> {
   };
 
   handleLegalEntityCtaClick = () => {
-    this.setState({
-      authOpen: true,
-      basketOpen: false,
-      pendingProduct: null,
-      authInitialTab: 'signup',
-      authInitialSignupEntityType: 'LEGAL_ENTITY',
-      authEditingUser: null,
-    });
+    this.setState(
+      {
+        authOpen: true,
+        basketOpen: false,
+        pendingProduct: null,
+        authInitialTab: 'signup',
+        authInitialSignupEntityType: 'LEGAL_ENTITY',
+        authEditingUser: null,
+      },
+      () => {
+        this.getReserves();
+      }
+    );
   };
 
   handleUserEditClick = () => {
@@ -306,6 +438,8 @@ class App extends Proto<Record<string, never>, AppState> {
         if (this.state.pendingProduct) {
           const product = this.state.pendingProduct;
           this.addToBasket(product);
+          this.getReserves();
+
           this.setState({ pendingProduct: null });
         }
       }
@@ -354,7 +488,7 @@ class App extends Proto<Record<string, never>, AppState> {
   handleIncreaseBasketItemQty = (index: number) => {
     this.setState((prevState) => ({
       basket: prevState.basket.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, qty: item.qty + 1 } : item
+        itemIndex === index ? { ...item, quantity: item.quantity + 1 } : item
       ),
     }));
   };
@@ -366,15 +500,17 @@ class App extends Proto<Record<string, never>, AppState> {
         return null;
       }
 
-      if (targetItem.qty <= 1) {
+      if (targetItem.quantity <= 1) {
         return {
-          basket: prevState.basket.filter((_, itemIndex) => itemIndex !== index),
+          basket: prevState.basket.filter(
+            (_, itemIndex) => itemIndex !== index
+          ),
         };
       }
 
       return {
         basket: prevState.basket.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, qty: item.qty - 1 } : item
+          itemIndex === index ? { ...item, quantity: item.quantity - 1 } : item
         ),
       };
     });
@@ -425,7 +561,7 @@ class App extends Proto<Record<string, never>, AppState> {
       authEditingUser,
       pendingProduct,
     } = this.state;
-    const basketCount = basket.reduce((sum, i) => sum + i.qty, 0);
+    const basketCount = basket.reduce((sum, i) => sum + i.quantity, 0);
     const isStaffUser = this.isStaffUser(user);
     const isToolPage = currentPage === 'tool';
     const canAccessTool = isToolPage && isStaffUser;
@@ -505,7 +641,7 @@ class App extends Proto<Record<string, never>, AppState> {
           <AuthModal
             onSuccess={this.handleAuthSuccess}
             onClose={this.handleCloseAuth}
-            pendingProductName={pendingProduct?.name ?? null}
+            pendingProductName={null}
             initialTab={authInitialTab}
             initialSignupEntityType={authInitialSignupEntityType}
             editingUser={authEditingUser}

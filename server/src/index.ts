@@ -19,6 +19,7 @@ import {
     CreateProcessMapInput,
     CreateProductInput,
     GraphQLContext,
+    ReservesInput,
     SearchCertificatesInput,
     UpdateBatchInput,
     UpdateCertificateInput,
@@ -455,6 +456,26 @@ const resolvers = {
         costSettings: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
             return await CostSettingsService.get(ctx);
         },
+        getPublicProductsWithStock: async (
+            _: unknown,
+            { locationId }: { locationId: string },
+            ctx: GraphQLContext
+        ) => {
+            const products = await ProductService.getPublicProductsWithStock(
+                locationId,
+                ctx
+            );
+
+            // Мапим результат, чтобы "stock" был простым числом, а не вложенным объектом
+            return products.map((p) => ({
+                ...p,
+                stock: p.stockBalances[0]?.physical_balance || 0,
+            }));
+        },
+
+        reserves: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+            return await MovementService.getReservesByCustomer(ctx);
+        },
     },
     Mutation: {
         login: async (
@@ -753,22 +774,27 @@ const resolvers = {
             cnt: GraphQLContext
         ) => {
             const product = await prisma.product.findUnique({
-            where: {
-                id: input.productId, 
-            },
+                where: {
+                    id: input.productId,
+                },
             });
             if (!product) throw Error(``);
             return await prisma.$transaction(async (tx) => {
-                
                 // Передаем tx в каждую функцию
                 const batch = await BatchService.create(input, cnt, tx);
-                await MovementService.create({
-                    type: MovementType.PRODUCTION, 
-                    productId: input.productId, 
-                    batchId: batch.id, 
-                    quantity: Math.trunc(input.nettoWeight / product?.standardDose),
-                    locationId: cnt.locationId!
-                }, cnt, tx);
+                await MovementService.create(
+                    {
+                        type: MovementType.PRODUCTION,
+                        productId: input.productId,
+                        batchId: batch.id,
+                        quantity: Math.trunc(
+                            input.nettoWeight / product?.standardDose
+                        ),
+                        locationId: cnt.locationId!,
+                    },
+                    cnt,
+                    tx
+                );
 
                 return batch;
             });
@@ -951,6 +977,13 @@ const resolvers = {
 
             return true;
         },
+        reserve: async (
+            _: unknown,
+            { input }: { input: ReservesInput },
+            ctx: GraphQLContext
+        ) => {
+            return await MovementService.Reserve(input, ctx);
+        },
     },
     User: {
         createdAt: (user: { createdAt: Date | string }) => {
@@ -1074,14 +1107,19 @@ const corsOptions: CorsOptions = {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'df-company-id', 'df-location-id'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'df-company-id',
+        'df-location-id',
+    ],
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
     optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-// 
+//
 //app.use(cors({ origin: '*' }));
 app.use(express.json());
 
@@ -1138,11 +1176,11 @@ app.get('/certificates/:id/document', async (req, res) => {
     }
 });
 
-const upload = multer({ dest: 'public/uploads/' })
+const upload = multer({ dest: 'public/uploads/' });
 
 app.post('/api/upload-image', upload.single('image'), (req, res) => {
     // req.file содержит информацию о загруженном файле
-    if (req){
+    if (req) {
         const fileUrl = `/uploads/${req.file?.filename}`;
         res.json({ url: fileUrl });
     }
@@ -1162,9 +1200,9 @@ const server = new ApolloServer({
     typeDefs,
     resolvers,
     formatError: (formattedError, error) => {
-        console.log("ERROR raised", JSON.stringify(error));
+        console.log('ERROR raised', JSON.stringify(error));
         return formattedError;
-    }
+    },
 });
 
 (async () => {
@@ -1184,11 +1222,20 @@ const server = new ApolloServer({
     app.use(
         '/graphql',
         expressMiddleware(server, {
-            context: async ({ req, res }) => {
-                return ({ req, res, prisma, 
-                    companyId: String(req.headers['df-company-id']), 
-                    locationId: String(req.headers['df-location-id']), 
-                    userId: req.session.userId })
+            context: async ({ req, res }): Promise<GraphQLContext> => {
+                const getHeader = (
+                    header: string | string[] | undefined
+                ): string | undefined => {
+                    return Array.isArray(header) ? header[0] : header;
+                };
+                return {
+                    req,
+                    res,
+                    prisma,
+                    companyId: getHeader(req.headers['df-company-id']),
+                    locationId: getHeader(req.headers['df-location-id']),
+                    userId: req.session.userId,
+                };
             },
         })
     );

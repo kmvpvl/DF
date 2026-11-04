@@ -1,444 +1,156 @@
-import { Product, ProductPriceVariation } from '../../App';
-import { dictionaries } from '../../i18n/dictionaries';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
+import { IMLString, MLString } from '../../mlstring';
 import Proto from '../../proto';
+import Photos, { IPhoto } from '../photos/photos';
+import { ITags } from '../tags/tags';
+import { MLSTRING_FIELDS } from './StaffProducts';
 
-const INDIVIDUAL_DISCOUNT_MIN_GRAMS = 1000;
-const INDIVIDUAL_DISCOUNT_RATE = 0.1;
-const WEIGHT_BASED_PRODUCT_IDS = new Set([13]);
-const SWIPE_THRESHOLD_PX = 30;
+const PUBLIC_PRODUCT_FIELDS = `
+    id
+    name ${MLSTRING_FIELDS}
+    description ${MLSTRING_FIELDS}
+    photos
+    tags
+    chapters
+    priority
+    priceOptions
+    standardDose
+    units ${MLSTRING_FIELDS}
+    stock
+    reserved
+`;
+
+const QUERY_PUBLIC_STOCKS = `
+query {
+  getPublicProductsWithStock {
+    ${PUBLIC_PRODUCT_FIELDS}
+  }
+}`;
 
 interface ProductsProps {
-  onAddToBasket: (product: Product) => void;
+  onAddToBasket: (product: PublicProductData) => void;
   onLegalEntityCtaClick: () => void;
   userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
 }
 
 interface ProductsState {
-  activePhotoByProductId: Record<number, number>;
-  activeVariationByProductId: Record<number, number>;
-  cheeseWeightByProductId: Record<number, string>;
-  cheeseWeightErrorByProductId: Record<number, boolean>;
+  loading: boolean;
+  error?: string;
+  products: PublicProductData[];
+  chapters: IMLString[];
+}
+
+interface ThresholdDiscount {
+  threshold: number;
+  discount: number;
+}
+
+interface PriceVariation {
+  label: IMLString;
+  locationId?: string;
+  currency?: IMLString;
+  individualPrice?: number;
+  legalPrice?: number;
+  individualDiscounts?: ThresholdDiscount[];
+  legalDiscount?: ThresholdDiscount[];
+  standardDose: number;
+  units: IMLString;
+}
+
+export interface PublicProductData {
+  id: string;
+  name: IMLString;
+  description: IMLString;
+  photos: IPhoto[];
+  tags: ITags;
+  chapters: IMLString[];
+  priority: number;
+  standardDose: number;
+  units: IMLString;
+  priceOptions: {
+    currency?: IMLString;
+    individualPrice?: number;
+    legalPrice?: number;
+    individualDiscounts?: ThresholdDiscount[];
+    legalDiscount?: ThresholdDiscount[];
+    variations?: PriceVariation[];
+  };
+  stock: number;
+  reserved: number;
+}
+
+export interface BasketItem {
+  product: PublicProductData;
+  choosenVariation?: PriceVariation;
+  discount?: ThresholdDiscount;
+  quantity: number;
+  price: number;
+  amount: number;
 }
 
 class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
-  private touchStartByProductId: Record<number, { x: number; y: number }> = {};
-  private suppressClickByProductId: Record<number, boolean> = {};
 
   state: ProductsState = {
-    activePhotoByProductId: {},
-    activeVariationByProductId: {},
-    cheeseWeightByProductId: {},
-    cheeseWeightErrorByProductId: {},
+    loading: false,
+    products: [],
+    chapters: [],
   };
 
-  private isCheeseProduct = (product: Product) => product.chapter === 'cheeses';
+  async fetchProducts() {
+    this.setState({ loading: true });
 
-  private isWeightBasedProduct = (product: Product) =>
-    WEIGHT_BASED_PRODUCT_IDS.has(product.id);
-
-  private usesWeightInput = (product: Product) =>
-    this.isWeightBasedProduct(product) ||
-    (this.isCheeseProduct(product) &&
-      !(product.priceVariations && product.priceVariations.length > 0));
-
-  private hasSyncedPhotoAndVariation = (product: Product) =>
-    Boolean(
-      product.photos?.length &&
-      product.priceVariations?.length &&
-      product.photos.length === product.priceVariations.length
-    );
-
-  private getDefaultVariationIndex = (product: Product) => {
-    if (!product.priceVariations?.length) {
-      return 0;
+    try {
+      const data = await this.gql(QUERY_PUBLIC_STOCKS);
+      const products = data.getPublicProductsWithStock as PublicProductData[];
+      const chapters = (
+        data.getPublicProductsWithStock as PublicProductData[]
+      ).flatMap((val) => val.chapters);
+      if (products.filter((el) => el.chapters.length === 0)) chapters.push('');
+      this.setState(
+        {
+          loading: false,
+          products,
+          chapters,
+        },
+        () => {}
+      );
+    } catch (error) {
+      this.setState({ loading: false, error: String(error) });
     }
+  }
 
-    const matchedIndex = product.priceVariations.findIndex(
-      (variation) =>
-        variation.price === product.price &&
-        (variation.unit ?? product.priceUnit) === product.priceUnit
-    );
+  componentDidMount(): void {
+    this.fetchProducts();
+  }
 
-    return matchedIndex >= 0 ? matchedIndex : 0;
-  };
-
-  private getActiveVariationIndex = (product: Product) => {
-    if (!product.priceVariations?.length) {
-      return 0;
-    }
-
-    return (
-      this.state.activeVariationByProductId[product.id] ??
-      this.getDefaultVariationIndex(product)
-    );
-  };
-
-  private getSelectedVariation = (product: Product) => {
-    if (!product.priceVariations?.length) {
-      return null;
-    }
-
-    return (
-      product.priceVariations[this.getActiveVariationIndex(product)] ?? null
-    );
-  };
-
-  private getActivePhotoIndex = (product: Product) => {
-    if (!product.photos?.length) {
-      return 0;
-    }
-
-    const defaultIndex = this.hasSyncedPhotoAndVariation(product)
-      ? this.getDefaultVariationIndex(product)
-      : 0;
-    const activeIndex =
-      this.state.activePhotoByProductId[product.id] ?? defaultIndex;
-    return Math.min(activeIndex, product.photos.length - 1);
-  };
-
-  private setActivePhoto = (productId: number, photoIndex: number) => {
-    this.setState((prevState) => ({
-      activePhotoByProductId: {
-        ...prevState.activePhotoByProductId,
-        [productId]: photoIndex,
-      },
-    }));
-  };
-
-  private setActiveVariation = (productId: number, variationIndex: number) => {
-    this.setState((prevState) => ({
-      activeVariationByProductId: {
-        ...prevState.activeVariationByProductId,
-        [productId]: variationIndex,
-      },
-    }));
-  };
-
-  private showNextPhoto = (product: Product) => {
-    if (!product.photos?.length) {
-      return;
-    }
-
-    const currentIndex = this.getActivePhotoIndex(product);
-    const nextIndex = (currentIndex + 1) % product.photos.length;
-    this.setActivePhoto(product.id, nextIndex);
-    if (this.hasSyncedPhotoAndVariation(product)) {
-      this.setActiveVariation(product.id, nextIndex);
-    }
-  };
-
-  private showPreviousPhoto = (product: Product) => {
-    if (!product.photos?.length) {
-      return;
-    }
-
-    const currentIndex = this.getActivePhotoIndex(product);
-    const previousIndex =
-      (currentIndex - 1 + product.photos.length) % product.photos.length;
-    this.setActivePhoto(product.id, previousIndex);
-    if (this.hasSyncedPhotoAndVariation(product)) {
-      this.setActiveVariation(product.id, previousIndex);
-    }
-  };
-
-  private handleMediaClick = (product: Product) => {
-    if (this.suppressClickByProductId[product.id]) {
-      this.suppressClickByProductId[product.id] = false;
-      return;
-    }
-
-    this.showNextPhoto(product);
-  };
-
-  private handleMediaTouchStart = (
-    productId: number,
-    event: React.TouchEvent<HTMLButtonElement>
-  ) => {
-    const touch = event.changedTouches[0];
-    this.touchStartByProductId[productId] = { x: touch.clientX, y: touch.clientY };
-  };
-
-  private handleMediaTouchEnd = (
-    product: Product,
-    event: React.TouchEvent<HTMLButtonElement>
-  ) => {
-    const start = this.touchStartByProductId[product.id];
-    if (!start) {
-      return;
-    }
-
-    const touch = event.changedTouches[0];
-    const deltaX = touch.clientX - start.x;
-    const deltaY = touch.clientY - start.y;
-    delete this.touchStartByProductId[product.id];
-
-    if (
-      Math.abs(deltaX) < SWIPE_THRESHOLD_PX ||
-      Math.abs(deltaX) <= Math.abs(deltaY)
-    ) {
-      return;
-    }
-
-    this.suppressClickByProductId[product.id] = true;
-
-    if (deltaX < 0) {
-      this.showNextPhoto(product);
-      return;
-    }
-
-    this.showPreviousPhoto(product);
-  };
-
-  private selectVariation = (product: Product, variationIndex: number) => {
-    this.setActiveVariation(product.id, variationIndex);
-    if (this.hasSyncedPhotoAndVariation(product)) {
-      this.setActivePhoto(product.id, variationIndex);
-    }
-  };
-
-  private formatPrice = (price: number, unit?: string) => {
-    if (unit) {
-      return `${this.toCurrency(price)} ${unit}`;
-    }
-
-    return `€${this.toCurrency(price)}`;
-  };
-
-  private getEffectivePrice = (
-    individualPrice: number,
-    legalEntityPrice?: number
-  ) => {
-    if (
-      this.props.userEntityType === 'LEGAL_ENTITY' &&
-      typeof legalEntityPrice === 'number'
-    ) {
-      return legalEntityPrice;
-    }
-
-    return individualPrice;
-  };
-
-  private applyWeightDiscount = (
-    product: Product,
-    price: number,
-    weightInGrams?: number,
-    isRelatedProduct = false
-  ) => {
-    if (isRelatedProduct || !weightInGrams) {
-      return price;
-    }
-
+  private getDiscountLabels = (product: PublicProductData) => {
     if (this.props.userEntityType === 'LEGAL_ENTITY') {
-      if (!product.discounts?.length) {
-        return price;
-      }
-
-      const weightInKg = weightInGrams / 1000;
-      const matchedTier = product.discounts
-        .slice()
-        .sort((a, b) => a.threshold - b.threshold)
-        .filter((tier) => weightInKg >= tier.threshold)
-        .pop();
-
-      if (!matchedTier) {
-        return price;
-      }
-
-      return Number((price * (1 - matchedTier.discount / 100)).toFixed(2));
-    }
-
-    if (weightInGrams < INDIVIDUAL_DISCOUNT_MIN_GRAMS) {
-      return price;
-    }
-
-    return Number((price * (1 - INDIVIDUAL_DISCOUNT_RATE)).toFixed(2));
-  };
-
-  private formatWeight = (weight?: number, unit?: string) => {
-    if (!weight || !unit) {
-      return null;
-    }
-
-    return `${this.toInteger(weight)} ${unit}`;
-  };
-
-  private shouldShowVariationWeight = (variation: ProductPriceVariation) => {
-    const formattedWeight = this.formatWeight(
-      variation.weight,
-      variation.weightUnit
-    );
-    if (!formattedWeight) {
-      return false;
-    }
-
-    const normalize = (value: string) =>
-      value.replace(/\s+/g, '').toLowerCase();
-    return normalize(variation.label) !== normalize(formattedWeight);
-  };
-
-  private getDiscountLabels = (product: Product) => {
-    if (product.chapter === 'related') {
-      return [] as string[];
-    }
-
-    const { language } = this.context as I18nContextValue;
-
-    if (this.props.userEntityType === 'LEGAL_ENTITY') {
-      if (!product.discounts?.length) {
+      if (!product.priceOptions.legalDiscount?.length) {
         return [] as string[];
       }
 
-      const weightUnit = language === 'ru' ? 'кг' : 'kg';
-      const orderPrefix =
-        language === 'ru'
-          ? 'Заказ'
-          : language === 'sr'
-            ? 'Porudzbina'
-            : 'Order';
-      return product.discounts.map(
-        (tier) =>
-          `${orderPrefix} ${tier.threshold}${weightUnit}+ → -${tier.discount}%`
+      return product.priceOptions.legalDiscount.map(
+        (tier) => `${tier.threshold}+ → -${tier.discount}%`
       );
     }
 
-    if (product.discounts?.length) {
-      return ['1000g+ → -10%'];
+    if (!product.priceOptions.individualDiscounts?.length) {
+      return [] as string[];
     }
 
-    return [] as string[];
-  };
-
-  private getProductForBasket = (product: Product) => {
-    const isRelatedProduct = product.chapter === 'related';
-    const selectedVariation = this.getSelectedVariation(product);
-
-    if (this.usesWeightInput(product)) {
-      const weightValue =
-        this.state.cheeseWeightByProductId[product.id] ?? '1000';
-      const weightInGrams = Number.parseFloat(weightValue);
-      if (!Number.isFinite(weightInGrams) || weightInGrams <= 0) {
-        return null;
-      }
-
-      const unitPrice = this.getEffectivePrice(
-        product.price,
-        product.legalEntityPrice
-      );
-      const discountedUnitPrice = this.applyWeightDiscount(
-        product,
-        unitPrice,
-        weightInGrams,
-        isRelatedProduct
-      );
-
-      return {
-        ...product,
-        name: selectedVariation
-          ? `${product.name} (${selectedVariation.label}, ${weightInGrams}g)`
-          : `${product.name} (${weightInGrams}g)`,
-        price: Number(
-          ((discountedUnitPrice * weightInGrams) / 1000).toFixed(2)
-        ),
-        selectedWeightGrams: weightInGrams,
-        selectedVariationLabel: selectedVariation?.label,
-      };
-    }
-
-    if (!selectedVariation) {
-      return product;
-    }
-
-    return {
-      ...product,
-      name: `${product.name} (${selectedVariation.label})`,
-      price: this.applyWeightDiscount(
-        product,
-        this.getEffectivePrice(
-          selectedVariation.price,
-          selectedVariation.legalEntityPrice
-        ),
-        selectedVariation.weight,
-        isRelatedProduct
-      ),
-      priceUnit: selectedVariation.unit ?? product.priceUnit,
-      selectedVariationLabel: selectedVariation.label,
-    };
-  };
-
-  private onCheeseWeightChange = (productId: number, value: string) => {
-    this.setState((prevState) => ({
-      cheeseWeightByProductId: {
-        ...prevState.cheeseWeightByProductId,
-        [productId]: value,
-      },
-      cheeseWeightErrorByProductId: {
-        ...prevState.cheeseWeightErrorByProductId,
-        [productId]: false,
-      },
-    }));
-  };
-
-  private getDisplayedPrice = (product: Product) => {
-    const isRelatedProduct = product.chapter === 'related';
-
-    if (!this.usesWeightInput(product)) {
-      const selectedVariation = this.getSelectedVariation(product);
-      if (selectedVariation) {
-        return this.applyWeightDiscount(
-          product,
-          this.getEffectivePrice(
-            selectedVariation.price,
-            selectedVariation.legalEntityPrice
-          ),
-          selectedVariation.weight,
-          isRelatedProduct
-        );
-      }
-
-      return this.applyWeightDiscount(
-        product,
-        this.getEffectivePrice(product.price, product.legalEntityPrice),
-        undefined,
-        isRelatedProduct
-      );
-    }
-
-    const weightValue =
-      this.state.cheeseWeightByProductId[product.id] ?? '1000';
-    const weightInGrams = Number.parseFloat(weightValue);
-    if (!Number.isFinite(weightInGrams) || weightInGrams <= 0) {
-      return this.getEffectivePrice(product.price, product.legalEntityPrice);
-    }
-
-    const unitPrice = this.getEffectivePrice(
-      product.price,
-      product.legalEntityPrice
+    return product.priceOptions.individualDiscounts.map(
+      (tier) => `${tier.threshold}+ → -${tier.discount}%`
     );
-    const discountedUnitPrice = this.applyWeightDiscount(
-      product,
-      unitPrice,
-      weightInGrams,
-      isRelatedProduct
-    );
-    return Number(((discountedUnitPrice * weightInGrams) / 1000).toFixed(2));
   };
 
-  private handleAddClick = (product: Product) => {
-    const productForBasket = this.getProductForBasket(product);
-    if (!productForBasket) {
-      this.setState((prevState) => ({
-        cheeseWeightErrorByProductId: {
-          ...prevState.cheeseWeightErrorByProductId,
-          [product.id]: true,
-        },
-      }));
-      return;
-    }
+  productEffectivePrice(product: PublicProductData): string {
+    return `${this.props.userEntityType === 'LEGAL_ENTITY' ? product.priceOptions.legalPrice : product.priceOptions.individualPrice} ${new MLString(product.priceOptions.currency).toString()}`;
+  }
 
-    this.props.onAddToBasket(productForBasket);
+  private handleAddClick = (product: PublicProductData) => {
+    this.props.onAddToBasket(product);
   };
 
   render() {
@@ -448,12 +160,14 @@ class Products extends Proto<ProductsProps, ProductsState> {
     }
 
     //const { dictionary } = dictionaries.en as I18nContextValue;
-    const products = dictionaries.en.products.items as unknown as Product[];
-    const chapterLabels = dictionaries.en.products.chapterLabels as Record<
+    //const products = dictionaries.en.products.items as unknown as Product[];
+    /*const chapterLabels = dictionaries.en.products.chapterLabels as Record<
       string,
       string
-    >;
-    const chapterOrder = dictionaries.en.products.chapterOrder as string[];
+    >;*/
+    //const chapterOrder = dictionaries.en.products.chapterOrder as string[];
+    const chapters = this.state.chapters.map((el) => new MLString(el));
+    const products = this.state.products;
 
     return (
       <div id="products" className="products-section">
@@ -492,12 +206,21 @@ class Products extends Proto<ProductsProps, ProductsState> {
             </button>
           )}
 
-          {chapterOrder.map((chapterId) => {
-            const items = products.filter((p) => p.chapter === chapterId);
+          {chapters.map((chapter, chapterId) => {
+            const items =
+              chapter.toString() === ''
+                ? products.filter((p) => p.chapters.length === 0)
+                : products.filter((p) =>
+                    p.chapters
+                      .map((el) => new MLString(el).toString())
+                      .includes(chapter.toString())
+                  );
             return (
               <div key={chapterId} className="products-chapter">
                 <h3 className="products-chapter-title">
-                  {this.ML(chapterLabels[chapterId]).toString() ?? chapterId}
+                  {chapter.toString() !== ''
+                    ? chapter.toString()
+                    : this.ML('Others')}
                 </h3>
                 {items.length > 0 ? (
                   <div className="products-grid">
@@ -505,211 +228,85 @@ class Products extends Proto<ProductsProps, ProductsState> {
                       <div key={product.id} className="product-card">
                         {product.photos && product.photos.length > 0 ? (
                           <>
-                            <button
-                              type="button"
+                            <Photos
                               className="product-media-button"
-                              onClick={() => this.handleMediaClick(product)}
-                              onTouchStart={(event) =>
-                                this.handleMediaTouchStart(product.id, event)
-                              }
-                              onTouchEnd={(event) =>
-                                this.handleMediaTouchEnd(product, event)
-                              }
-                              aria-label={`Show next photo for ${product.name}`}
-                            >
-                              <div className="product-media">
-                                <img
-                                  className="product-photo"
-                                  src={
-                                    product.photos[
-                                      this.getActivePhotoIndex(product)
-                                    ]
-                                  }
-                                  alt={product.name}
-                                />
-                              </div>
-                            </button>
+                              editMode={false}
+                              defaultValue={product.photos}
+                            />
                             <div
                               className="product-photo-dots"
                               aria-label={`${product.name} photos`}
-                            >
-                              {product.photos.map((photo, index) => (
-                                <button
-                                  key={photo}
-                                  type="button"
-                                  className={
-                                    index === this.getActivePhotoIndex(product)
-                                      ? 'product-photo-dot is-active'
-                                      : 'product-photo-dot'
-                                  }
-                                  onClick={() => {
-                                    this.setActivePhoto(product.id, index);
-                                    if (
-                                      this.hasSyncedPhotoAndVariation(product)
-                                    ) {
-                                      this.setActiveVariation(
-                                        product.id,
-                                        index
-                                      );
-                                    }
-                                  }}
-                                  aria-label={`Show photo ${index + 1} for ${product.name}`}
-                                  aria-pressed={
-                                    index === this.getActivePhotoIndex(product)
-                                  }
-                                />
-                              ))}
-                            </div>
+                            ></div>
                           </>
                         ) : (
-                          <div className="product-emoji">{product.emoji}</div>
+                          ''
                         )}
                         <div className="product-name">
-                          {this.ML(product.name).toString()}
+                          {new MLString(product.name).toString()}
                         </div>
-                        <div className="product-desc" dangerouslySetInnerHTML={{__html: this.ML(product.description).toString()}}>
-                          
-                        </div>
-                        {this.getDiscountLabels(product).length > 0 && (
-                          <ul className="product-discounts">
-                            {this.getDiscountLabels(product).map(
-                              (discountLabel) => (
-                                <li
-                                  key={discountLabel}
-                                  className="product-discount-tier"
-                                >
-                                  <strong>{discountLabel}</strong>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        )}
-                        {product.priceVariations &&
-                          product.priceVariations.length > 0 && (
+                        <div
+                          className="product-desc"
+                          dangerouslySetInnerHTML={{
+                            __html: new MLString(
+                              product.description
+                            ).toString(),
+                          }}
+                        ></div>
+                        {product.priceOptions.variations &&
+                        product.priceOptions.variations.filter(
+                          (el) =>
+                            el.locationId === '' || el.locationId === undefined
+                        ).length > 0 ? (
+                          <div>
                             <ul className="product-price-variations">
-                              {(
-                                product.priceVariations as ProductPriceVariation[]
-                              ).map((variation) => (
-                                <li
-                                  key={variation.label}
-                                  className="product-price-variation-row"
+                              <li className="product-price-variation-row">
+                                <button
+                                  type="button"
+                                  className="product-price-variation-button is-active"
+                                  onClick={() => {}}
+                                  aria-label=""
+                                  aria-pressed={true}
                                 >
-                                  <button
-                                    type="button"
-                                    className={
-                                      this.getSelectedVariation(product)
-                                        ?.label === variation.label
-                                        ? 'product-price-variation-button is-active'
-                                        : 'product-price-variation-button'
-                                    }
-                                    onClick={() =>
-                                      this.selectVariation(
-                                        product,
-                                        product.priceVariations?.findIndex(
-                                          (candidate) =>
-                                            candidate.label === variation.label
-                                        ) ?? 0
-                                      )
-                                    }
-                                    aria-label={`Select ${variation.label} option for ${product.name}`}
-                                    aria-pressed={
-                                      this.getSelectedVariation(product)
-                                        ?.label === variation.label
-                                    }
-                                  >
-                                    <span className="product-price-variation-label-group">
-                                      <span className="product-price-variation-label">
-                                        {(variation.label as string).includes(
-                                          'g'
-                                        )
-                                          ? variation.label
-                                          : this.ML(variation.label).toString()}
-                                      </span>
-                                      {this.shouldShowVariationWeight(
-                                        variation
-                                      ) && (
-                                        <span className="product-price-variation-weight">
-                                          {this.formatWeight(
-                                            variation.weight,
-                                            variation.weightUnit
-                                          )}
-                                        </span>
-                                      )}
+                                  <span className="product-price-variation-label-group">
+                                    <span className="product-price-variation-label">
+                                      {product.standardDose}
+                                      {product.units
+                                        ? new MLString(product.units).toString()
+                                        : 'g'}
                                     </span>
-                                    <strong className="product-price-variation-value">
-                                      {this.formatPrice(
-                                        this.applyWeightDiscount(
-                                          product,
-                                          this.getEffectivePrice(
-                                            variation.price,
-                                            variation.legalEntityPrice
-                                          ),
-                                          variation.weight,
-                                          product.chapter === 'related'
-                                        ),
-                                        variation.unit
-                                      )}
-                                    </strong>
-                                  </button>
-                                </li>
-                              ))}
+                                  </span>
+                                  <strong className="product-price-variation-value">
+                                    {this.productEffectivePrice(product)}
+                                  </strong>
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        ) : (
+                          <></>
+                        )}
+                        <div>
+                          {this.getDiscountLabels(product).length > 0 && (
+                            <ul className="product-discounts">
+                              {this.getDiscountLabels(product).map(
+                                (discountLabel) => (
+                                  <li
+                                    key={discountLabel}
+                                    className="product-discount-tier"
+                                  >
+                                    <strong>{discountLabel}</strong>
+                                  </li>
+                                )
+                              )}
                             </ul>
                           )}
-                        {this.usesWeightInput(product) && (
-                          <div className="product-weight-block">
-                            <label
-                              className="product-weight-label"
-                              htmlFor={`weight-${product.id}`}
-                            >
-                              {this.ML('Weight (g)').toString()}
-                            </label>
-                            <input
-                              id={`weight-${product.id}`}
-                              className={
-                                this.state.cheeseWeightErrorByProductId[
-                                  product.id
-                                ]
-                                  ? 'product-weight-input is-invalid'
-                                  : 'product-weight-input'
-                              }
-                              type="number"
-                              min="1"
-                              step="1"
-                              inputMode="numeric"
-                              value={
-                                this.state.cheeseWeightByProductId[
-                                  product.id
-                                ] ?? '1000'
-                              }
-                              onChange={(e) =>
-                                this.onCheeseWeightChange(
-                                  product.id,
-                                  e.target.value
-                                )
-                              }
-                              placeholder={this.ML('Type grams').toString()}
-                            />
-                            {this.state.cheeseWeightErrorByProductId[
-                              product.id
-                            ] && (
-                              <div className="product-weight-error">
-                                {this.ML(
-                                  'Weight in grams is required'
-                                ).toString()}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        </div>
                         <div className="product-footer">
                           <span
                             className="product-price"
                             data-testid={`product-price-${product.id}`}
                           >
-                            {this.formatPrice(
-                              this.getDisplayedPrice(product),
-                              this.getSelectedVariation(product)?.unit ??
-                                product.priceUnit
-                            )}
+                            {this.productEffectivePrice(product)}
                           </span>
                           <button
                             className="add-btn"
@@ -717,6 +314,12 @@ class Products extends Proto<ProductsProps, ProductsState> {
                           >
                             {this.ML('Add to basket').toString()}
                           </button>
+                        </div>
+                        <div className="product-footer">
+                          <span className="product-desc">
+                            {this.ML('Доступно прямо сейчас')}
+                          </span>
+                          <strong>{product.stock}</strong>
                         </div>
                       </div>
                     ))}

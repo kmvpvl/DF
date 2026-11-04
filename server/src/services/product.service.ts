@@ -85,6 +85,10 @@ export class ProductService {
                 standardDose: input.standardDose,
                 tags: input.tags,
                 photos: input.photos as any,
+                chapters: input.chapters,
+                isPublic: input.isPublic,
+                priority: input.priority,
+                priceOptions: input.priceOptions as any,
                 companyId: ctx.companyId!,
             },
         });
@@ -114,9 +118,14 @@ export class ProductService {
             data.sugarsGrams = input.sugarsGrams;
         if (input.fiberGrams !== undefined) data.fiberGrams = input.fiberGrams;
         if (input.saltGrams !== undefined) data.saltGrams = input.saltGrams;
-        if (input.standardDose !== undefined) data.standardDose = input.standardDose;
+        if (input.standardDose !== undefined)
+            data.standardDose = input.standardDose;
         data.tags = input.tags;
         data.photos = input.photos;
+        data.isPublic = input.isPublic;
+        data.chapters = input.chapters;
+        data.priority = input.priority;
+        data.priceOptions = input.priceOptions;
 
         return await prisma.product.update({ where: { id }, data });
     }
@@ -224,5 +233,49 @@ export class ProductService {
         );
 
         return [PRODUCT_CSV_HEADERS.join(','), ...rows].join('\n');
+    }
+    static async getPublicProductsWithStock(
+        locationId: string,
+        ctx: GraphQLContext
+    ) {
+        if (ctx.locationId === undefined && locationId === undefined)
+            throw Error('LocationId not defined!');
+        // Выбираем только то, что нужно для магазина
+        let companyId = ctx.companyId;
+        if (companyId === undefined) {
+            const location = await prisma.location.findUnique({
+                where: { id: locationId ? locationId : ctx.locationId },
+                select: {
+                    companyId: true,
+                },
+            });
+            companyId = location?.companyId;
+        }
+
+        return await prisma.product.findMany({
+            where: {
+                isPublic: true,
+                companyId: companyId,
+            },
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                photos: true,
+                tags: true,
+                chapters: true,
+                priority: true,
+                standardDose: true,
+                units: true,
+                priceOptions: true,
+                // Делаем join только для конкретной локации
+                stockBalances: {
+                    where: {
+                        locationId: locationId ? locationId : ctx.locationId,
+                    },
+                    select: { physical_balance: true },
+                },
+            },
+        });
     }
 }

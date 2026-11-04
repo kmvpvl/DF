@@ -53,6 +53,13 @@ type Location {
     name: String!
 }
 
+type StockBalance {
+    productId: String!
+    locationId: String!
+    physicalBalance: Float!
+    reservedBalance: Float!
+}
+
 type Movement {
     id: ID!
     type: String!
@@ -60,13 +67,6 @@ type Movement {
     batchId: ID
     quantity: Float!
     groupId: ID
-    createdAt: String!
-}
-
-type MovementGroup {
-    id: ID!
-    fromLocationId: ID!
-    toLocationId: ID!
     createdAt: String!
 }
 
@@ -188,8 +188,29 @@ type Product {
     standardDose: Float!
     tags: JSON!
     photos: JSON!
+    chapters: JSON!
+    isPublic: Boolean!
+    priority: Int!
+    priceOptions: JSON!
     createdAt: String!
     updatedAt: String!
+}
+
+type PublicProduct {
+    id: ID!
+    name: MLString!
+    description: MLString!
+    photos: JSON!
+    tags: JSON!
+    chapters: JSON!
+    isPublic: Boolean!
+    priority: Int!
+    standardDose: Float!
+    units: MLString
+    priceOptions: JSON!
+
+    stock: Float # вычисляемое или просто первый элемент массива
+    reserved: Float
 }
 
 type StorageCondition {
@@ -404,6 +425,10 @@ input CreateProductInput {
     standardDose: Float!
     photos: JSON!
     tags: JSON!
+    chapters: JSON!
+    isPublic: Boolean!
+    priority: Int!
+    priceOptions: JSON!
 }
 
 input UpdateProductInput {
@@ -420,6 +445,10 @@ input UpdateProductInput {
     standardDose: Float
     photos: JSON
     tags: JSON
+    chapters: JSON!
+    isPublic: Boolean!
+    priority: Int!
+    priceOptions: JSON!
 }
 
 input CreateProcessParameterInput {
@@ -510,6 +539,28 @@ input SearchCertificatesInput {
     batchNumber: String
 }
 
+type ReservedProduct {
+    productId: ID!
+    quantity: Float!
+}
+
+input ReservedProductInput {
+    productId: ID!
+    quantity: Float!
+}
+
+input UpdateReserveInput {
+    reserves: [ReservedProductInput!]!
+    editedMovementId: ID
+}
+
+type BasketMovementGroupResult {
+    id: ID!
+    label: String
+    createdAt: String!
+    basket: [ReservedProduct!]!
+}
+
 type CostSettings {
     id: ID!
     marginalCoefficient: Float!
@@ -563,6 +614,8 @@ type Query {
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
     costSettings: CostSettings!
+    getPublicProductsWithStock(locationId: String): [PublicProduct!]!
+    reserves: BasketMovementGroupResult
 }
 
 type Mutation {
@@ -597,4 +650,5 @@ type Mutation {
     updateCertificate(id: ID!, input: UpdateCertificateInput!): Certificate!
     generateCertificateDocument(id: ID!): CertificateDocument!
     updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
+    reserve(input: UpdateReserveInput!): BasketMovementGroupResult
 }

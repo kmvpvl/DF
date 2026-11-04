@@ -68,19 +68,27 @@ export default class Proto<
     }).format(x);
   }
   protected toLocalDate(x: string | Date) {
-    return typeof x === 'string' ?
-      new Date(x).toLocaleString([this.getLanguage()], { dateStyle: 'short', timeStyle: 'short' })
-      :
-      x.toLocaleString([this.getLanguage()], { dateStyle: 'short', timeStyle: 'short' })
+    return typeof x === 'string'
+      ? new Date(x).toLocaleString([this.getLanguage()], {
+          dateStyle: 'short',
+          timeStyle: 'short',
+        })
+      : x.toLocaleString([this.getLanguage()], {
+          dateStyle: 'short',
+          timeStyle: 'short',
+        });
   }
 
-  protected gql = async (query: string, variables: Record<string, unknown> = {}) => {
+  protected gql = async (
+    query: string,
+    variables: Record<string, unknown> = {}
+  ) => {
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json' ,
+      headers: {
+        'Content-Type': 'application/json',
         'df-company-id': '088e3a63cbcd11f1ba2cd256a398ea10',
-        'df-location-id': '233c58f8cbcd11f1ba2cd256a398ea10'
+        'df-location-id': '233c58f8cbcd11f1ba2cd256a398ea10',
       },
       credentials: 'include',
       body: JSON.stringify({ query, variables }),
@@ -97,5 +105,4 @@ export default class Proto<
 
     return json.data as Record<string, unknown>;
   };
-
 }

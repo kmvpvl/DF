@@ -2,9 +2,9 @@ import webpush from 'web-push';
 import { vapidKeys } from './common';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
 webpush.setVapidDetails(
-  'mailto:admin@dolceforte.rs',
-  vapidKeys.publicKey,
-  vapidKeys.privateKey
+    'mailto:admin@dolceforte.rs',
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
 );
 /*
 // Эндпоинт сохранения подписки с фронтенда

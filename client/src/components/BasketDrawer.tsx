@@ -1,10 +1,12 @@
 import React from 'react';
-import type { BasketItem, User } from '../App';
+import type { User } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 import Proto from '../proto';
+import { BasketItem } from './sections/Products';
+import { MLString } from '../mlstring';
 
 export interface OrderItemPayload {
-  productId: number;
+  productId: string;
   name: string;
   qty: number;
   unitPrice: number;
@@ -62,7 +64,10 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   }
 
   componentDidUpdate(prevProps: BasketDrawerProps) {
-    if (prevProps.user !== this.props.user || prevProps.isOpen !== this.props.isOpen) {
+    if (
+      prevProps.user !== this.props.user ||
+      prevProps.isOpen !== this.props.isOpen
+    ) {
       this.hydrateCustomerFields();
     }
   }
@@ -73,7 +78,11 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     }
 
     this.setState((prevState) => ({
-      customerName: prevState.customerName || this.props.user?.fullName || this.props.user?.name || '',
+      customerName:
+        prevState.customerName ||
+        this.props.user?.fullName ||
+        this.props.user?.name ||
+        '',
       customerEmail: prevState.customerEmail || this.props.user?.email || '',
       customerPhone: prevState.customerPhone || this.props.user?.phone || '',
     }));
@@ -82,17 +91,16 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   private formatPrice = (value: number) => `${this.toCurrency(value)} din`;
 
   private getOrderTotal = () =>
-    this.props.items.reduce((sum, item) => sum + item.product.price * item.qty, 0);
+    this.props.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   private buildOrderItems = (): OrderItemPayload[] =>
     this.props.items.map((item) => ({
       productId: item.product.id,
-      name: item.product.name,
-      qty: item.qty,
-      unitPrice: item.product.price,
-      lineTotal: item.product.price * item.qty,
-      variationLabel: item.product.selectedVariationLabel,
-      weightGrams: item.product.selectedWeightGrams,
+      name: new MLString(item.product.name).toString(),
+      qty: item.quantity,
+      unitPrice: item.price,
+      lineTotal: item.price * item.quantity,
+      variationLabel: new MLString(item.choosenVariation?.label).toString(),
     }));
 
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -138,7 +146,8 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       this.setState({
         loading: false,
         sent: false,
-        error: error instanceof Error ? error.message : 'Failed to place order.',
+        error:
+          error instanceof Error ? error.message : 'Failed to place order.',
       });
     }
   };
@@ -153,12 +162,23 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     return (
       <div
         className="basket-overlay"
-        onClick={(event) => event.target === event.currentTarget && this.props.onClose()}
+        onClick={(event) =>
+          event.target === event.currentTarget && this.props.onClose()
+        }
       >
-        <aside className="basket-drawer" role="dialog" aria-modal="true" aria-label="Basket">
+        <aside
+          className="basket-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Basket"
+        >
           <div className="basket-header">
             <h2>Basket</h2>
-            <button className="modal-close" onClick={this.props.onClose} aria-label="Close basket">
+            <button
+              className="modal-close"
+              onClick={this.props.onClose}
+              aria-label="Close basket"
+            >
               x
             </button>
           </div>
@@ -169,10 +189,15 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <>
               <ul className="basket-items">
                 {this.props.items.map((item, index) => (
-                  <li key={`${item.product.id}-${item.product.selectedVariationLabel ?? 'default'}-${item.product.selectedWeightGrams ?? 'none'}`} className="basket-item">
+                  <li
+                    key={`${item.product.id}-${item.choosenVariation?.label ?? 'default'}- none'}`}
+                    className="basket-item"
+                  >
                     <div className="basket-item-main">
-                      <strong>{item.product.name}</strong>
-                      <span>{this.formatPrice(item.product.price)}</span>
+                      <strong>
+                        {new MLString(item.product.name).toString()}
+                      </strong>
+                      <span>{this.formatPrice(item.price)}</span>
                     </div>
                     <div className="basket-item-controls">
                       <button
@@ -183,7 +208,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                       >
                         -
                       </button>
-                      <span className="basket-qty-value">{item.qty}</span>
+                      <span className="basket-qty-value">{item.quantity}</span>
                       <button
                         type="button"
                         className="basket-qty-btn"
@@ -215,7 +240,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <input
               className="form-input"
               value={this.state.customerName}
-              onChange={(event) => this.setState({ customerName: event.target.value })}
+              onChange={(event) =>
+                this.setState({ customerName: event.target.value })
+              }
               placeholder="Full name"
               required
             />
@@ -223,7 +250,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               className="form-input"
               type="email"
               value={this.state.customerEmail}
-              onChange={(event) => this.setState({ customerEmail: event.target.value })}
+              onChange={(event) =>
+                this.setState({ customerEmail: event.target.value })
+              }
               placeholder="Email"
               required
             />
@@ -231,7 +260,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               className="form-input"
               type="tel"
               value={this.state.customerPhone}
-              onChange={(event) => this.setState({ customerPhone: event.target.value })}
+              onChange={(event) =>
+                this.setState({ customerPhone: event.target.value })
+              }
               placeholder="Phone"
               required
             />
@@ -242,14 +273,20 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               placeholder="Order note (optional)"
             />
 
-            {this.state.error && <p className="modal-error">{this.state.error}</p>}
+            {this.state.error && (
+              <p className="modal-error">{this.state.error}</p>
+            )}
             {this.state.sent && (
               <p className="basket-order-success">
                 Order sent to sales@dolceforte.rs. We will contact you soon.
               </p>
             )}
 
-            <button className="btn-primary" type="submit" disabled={this.state.loading || this.props.items.length === 0}>
+            <button
+              className="btn-primary"
+              type="submit"
+              disabled={this.state.loading || this.props.items.length === 0}
+            >
               {this.state.loading ? 'Sending order...' : 'Place order'}
             </button>
           </form>

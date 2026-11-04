@@ -1,48 +1,51 @@
 //
-export type IMLString = string | {
-    default: string;
-    // Используем простой объект вместо массива кортежей
-    ts: Record<string, string>; 
-};
+export type IMLString =
+  | string
+  | {
+      default: string;
+      // Используем простой объект вместо массива кортежей
+      ts: Record<string, string>;
+    };
 export class MLString extends String {
-    private _translations: Record<string, string> = {};
-    constructor(input?: IMLString) {
-        super(input?(typeof input === 'object'?input.default:input):'');
-        if (!input) {
-            this._translations = {};
-        } else if (typeof input === 'string') {
-            this._translations = {};
-        } else {
-            this._translations = input.ts;
-        }
+  private _translations: Record<string, string> = {};
+  constructor(input?: IMLString) {
+    super(input ? (typeof input === 'object' ? input.default : input) : '');
+    if (!input) {
+      this._translations = {};
+    } else if (typeof input === 'string') {
+      this._translations = {};
+    } else {
+      this._translations = input.ts;
     }
+  }
 
-    toString(lang?: string): string {
-        if (lang && this._translations[lang]) {
-            return this._translations[lang] as string;
-        }
-        return super.toString();
+  toString(lang?: string): string {
+    if (!lang) lang = MLString.getLang();
+    if (lang && this._translations[lang]) {
+      return this._translations[lang] as string;
     }
+    return super.toString();
+  }
 
-    // Для удобного маппинга в UI
-    get entries(): [string, string | undefined][] {
-        return Object.entries(this._translations);
-    }
-    
-    public static getLang(): string {
-        const params: string[] = window.location.search.substring(1).split('&');
-        let lang = window.navigator.language.split('-')[0];
-        const lang_param = params.filter((v) => v.split('=')[0] === 'lang');
-        if (lang_param !== undefined && lang_param.length > 0)
-            lang = lang_param[0].split('=')[1];
-        return lang;
-    }
-    get Json(): IMLString {
-      return {
-          default: super.toString(),
-          ts: this._translations
-      };
-    }
+  // Для удобного маппинга в UI
+  get entries(): [string, string | undefined][] {
+    return Object.entries(this._translations);
+  }
+
+  public static getLang(): string {
+    const params: string[] = window.location.search.substring(1).split('&');
+    let lang = window.navigator.language.split('-')[0];
+    const lang_param = params.filter((v) => v.split('=')[0] === 'lang');
+    if (lang_param !== undefined && lang_param.length > 0)
+      lang = lang_param[0].split('=')[1];
+    return lang;
+  }
+  get Json(): IMLString {
+    return {
+      default: super.toString(),
+      ts: this._translations,
+    };
+  }
 }
 
 export const mlStrings = new Map([
@@ -1035,9 +1038,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Мы рекомендуем размещать заказы как минимум за 24 часа, чтобы обеспечить наивысшую свежесть доставки'],
+      [
+        `ru`,
+        'Мы рекомендуем размещать заказы как минимум за 24 часа, чтобы обеспечить наивысшую свежесть доставки',
+      ],
       [`it`, undefined],
-      [`sr`, 'Preporučujemo da narudžbine budu izvršene najmanje 24 sata unapred kako bi se osigurala najviša svežina dostave'],
+      [
+        `sr`,
+        'Preporučujemo da narudžbine budu izvršene najmanje 24 sata unapred kako bi se osigurala najviša svežina dostave',
+      ],
     ]),
   ],
   [
@@ -1057,9 +1066,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Каждый заказ упакован в термоконтролируемые, экологически чистые коробки, чтобы прибыть в идеальном состоянии'],
+      [
+        `ru`,
+        'Каждый заказ упакован в термоконтролируемые, экологически чистые коробки, чтобы прибыть в идеальном состоянии',
+      ],
       [`it`, undefined],
-      [`sr`, 'Svaka porudžbina je upakovana u kutije sa kontrolisanom temperaturom, ekološki prihvatljive, kako bi stigla savršena'],
+      [
+        `sr`,
+        'Svaka porudžbina je upakovana u kutije sa kontrolisanom temperaturom, ekološki prihvatljive, kako bi stigla savršena',
+      ],
     ]),
   ],
   [
@@ -1079,9 +1094,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Мы доставляем по Панчево (бесплатно), Белграду (345 дин) и окрестностям (звоните). Пожалуйста, введите ваш почтовый индекс при оформлении заказа, чтобы подтвердить доступность'],
+      [
+        `ru`,
+        'Мы доставляем по Панчево (бесплатно), Белграду (345 дин) и окрестностям (звоните). Пожалуйста, введите ваш почтовый индекс при оформлении заказа, чтобы подтвердить доступность',
+      ],
       [`it`, undefined],
-      [`sr`, 'Dostavljamo u Pančevu (besplatno), Beogradu (345 din) i okolnim područjima (pozovite). Molimo unesite vaš poštanski broj prilikom plaćanja kako biste potvrdili dostupnost'],
+      [
+        `sr`,
+        'Dostavljamo u Pančevu (besplatno), Beogradu (345 din) i okolnim područjima (pozovite). Molimo unesite vaš poštanski broj prilikom plaćanja kako biste potvrdili dostupnost',
+      ],
     ]),
   ],
   [
@@ -1145,9 +1166,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Здесь находятся рецепты приготовления блюд. Пожалуйста, прочитайте внимательно, чтобы получить идеальный результат, который порадует Вас и Вашу семью'],
+      [
+        `ru`,
+        'Здесь находятся рецепты приготовления блюд. Пожалуйста, прочитайте внимательно, чтобы получить идеальный результат, который порадует Вас и Вашу семью',
+      ],
       [`it`, undefined],
-      [`sr`, 'Evo nekoliko recepata za kuvanje. Pažljivo ih pročitajte kako biste osigurali savršene rezultate koji će oduševiti vas i vašu porodicu.'],
+      [
+        `sr`,
+        'Evo nekoliko recepata za kuvanje. Pažljivo ih pročitajte kako biste osigurali savršene rezultate koji će oduševiti vas i vašu porodicu.',
+      ],
     ]),
   ],
   [
@@ -1156,9 +1183,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, '<p>Сырники это традиционный русский завтрак. Сырники готовятся из творога, муки и яйца. Сырники необходимо обжарить до готовности на сковороде с небольшим количеством рафинированного подсолнечного масла. Мы продаем сырники в замороженном виде в вакуумной упаковке. </p><p>1) разогрейте сковороду достаточного размера и налейте немного рафинированного растительного масла, </p><p>2) сделайте малый огонь, </p><p>3) выложите замороженные или размороженные сырники на сковороду и обжаривайте на каждой стороне по 7 минут, если сырники заморожены, то накройте сковороду крышкой, </p><p>4) пропеките сырники до однородной консистенции (внутри они не должны быть жидкими), </p><p>5) подавайте сырники со сметаной, сладким сгущеным молоком или фруктовым или ягодным пюре.</p>'],
+      [
+        `ru`,
+        '<p>Сырники это традиционный русский завтрак. Сырники готовятся из творога, муки и яйца. Сырники необходимо обжарить до готовности на сковороде с небольшим количеством рафинированного подсолнечного масла. Мы продаем сырники в замороженном виде в вакуумной упаковке. </p><p>1) разогрейте сковороду достаточного размера и налейте немного рафинированного растительного масла, </p><p>2) сделайте малый огонь, </p><p>3) выложите замороженные или размороженные сырники на сковороду и обжаривайте на каждой стороне по 7 минут, если сырники заморожены, то накройте сковороду крышкой, </p><p>4) пропеките сырники до однородной консистенции (внутри они не должны быть жидкими), </p><p>5) подавайте сырники со сметаной, сладким сгущеным молоком или фруктовым или ягодным пюре.</p>',
+      ],
       [`it`, undefined],
-      [`sr`, '<p>Sirnici su tradicionalni ruski doručak. Prave se od svežeg sira, brašna i jajeta. Prže se u tiganju sa malom količinom rafinisanog suncokretovog ulja dok ne budu gotovi. Prodajemo zamrznute, vakuumski upakovane sirnike. </p><p>1) Zagrejte tiganj dovoljne veličine i sipajte malo rafinisanog biljnog ulja, </p><p>2) Smanjite vatru na najslabije, </p><p>3) Stavite zamrznute ili odmrznute sirnike u tiganj i pržite 7 minuta sa svake strane. Ako su sirnici zamrznuti, pokrijte tiganj poklopcem. </p><p>4) Pecite sirnike dok ne postanu glatki (ne smeju biti tečni unutra). </p><p>5) Poslužite sa pavlakom, zaslađenim kondenzovanim mlekom ili pireom od voća ili bobičastog voća.</p>'],
+      [
+        `sr`,
+        '<p>Sirnici su tradicionalni ruski doručak. Prave se od svežeg sira, brašna i jajeta. Prže se u tiganju sa malom količinom rafinisanog suncokretovog ulja dok ne budu gotovi. Prodajemo zamrznute, vakuumski upakovane sirnike. </p><p>1) Zagrejte tiganj dovoljne veličine i sipajte malo rafinisanog biljnog ulja, </p><p>2) Smanjite vatru na najslabije, </p><p>3) Stavite zamrznute ili odmrznute sirnike u tiganj i pržite 7 minuta sa svake strane. Ako su sirnici zamrznuti, pokrijte tiganj poklopcem. </p><p>4) Pecite sirnike dok ne postanu glatki (ne smeju biti tečni unutra). </p><p>5) Poslužite sa pavlakom, zaslađenim kondenzovanim mlekom ili pireom od voća ili bobičastog voća.</p>',
+      ],
     ]),
   ],
   [
@@ -1197,7 +1230,9 @@ We do not recommend reheating our dishes in a microwave oven, as microwaves caus
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, `<p>Все супы готовятся при температуре ниже 100°C, чтобы сохранить полезные свойства всех ингредиентов. Поэтому мы рекомендуем использовать один из двух способов сервировки.</p><p>
+      [
+        `ru`,
+        `<p>Все супы готовятся при температуре ниже 100°C, чтобы сохранить полезные свойства всех ингредиентов. Поэтому мы рекомендуем использовать один из двух способов сервировки.</p><p>
 
 Способ 1. Подходит для большинства пользователей. Кухонными ножницами отрежьте один край пакета и вылейте содержимое в кастрюлю или сотейник. Нагрейте суп до 60°C и разлейте по тарелкам.</p><p>
 
@@ -1205,9 +1240,12 @@ We do not recommend reheating our dishes in a microwave oven, as microwaves caus
 
 ЗАПРЕЩЕНО разогревать пакет в микроволновой печи. Если используете микроволновую печь, то предварительно вылейте содержимое пакета в тарелку и разогревайте суп в тарелке. </p><p>
 
-Мы не рекомендуем разогрев изготовленных нами блюд в микроволновой печи, так как СВЧ приводит к протеканию электрического тока в жидкости, что порождает самые неожиданные химические реакции. СВЧ внутри печи из-за многочисленных отражений от стенок внутри формирует стоячие волны, что приводит к неравномерному нагреванию супа даже в процессе вращения тарелки внутри печи. В результате возникают локальные перегревы, что может негативно сказаться на свойствах блюда</p>`],
+Мы не рекомендуем разогрев изготовленных нами блюд в микроволновой печи, так как СВЧ приводит к протеканию электрического тока в жидкости, что порождает самые неожиданные химические реакции. СВЧ внутри печи из-за многочисленных отражений от стенок внутри формирует стоячие волны, что приводит к неравномерному нагреванию супа даже в процессе вращения тарелки внутри печи. В результате возникают локальные перегревы, что может негативно сказаться на свойствах блюда</p>`,
+      ],
       [`it`, undefined],
-      [`sr`, `<p>Sve supe se kuvaju na temperaturi ispod 100°C kako bi se sačuvala korisna svojstva svih sastojaka. Stoga preporučujemo upotrebu jednog od dva načina serviranja.</p><p>
+      [
+        `sr`,
+        `<p>Sve supe se kuvaju na temperaturi ispod 100°C kako bi se sačuvala korisna svojstva svih sastojaka. Stoga preporučujemo upotrebu jednog od dva načina serviranja.</p><p>
 
 Metod 1. Pogodno za većinu korisnika. Kuhinjskim makazama odsecite jedan kraj kesice i sipajte sadržaj u šerpu ili tiganj. Zagrejte supu na 60°C i sipajte u činije.</p><p>
 
@@ -1215,7 +1253,8 @@ Metod 2. Samo za profesionalce. Zagrejte vodu u šerpi ili tiganju i potopite ke
 
 NE zagrevajte kesicu u mikrotalasnoj pećnici. Ako koristite mikrotalasnu, prvo ispraznite sadržaj kesice u činiju i ponovo zagrejte supu u činiji.</p><p>
 
-Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrotalasi izazivaju protok električne struje kroz tečnost, što može izazvati neočekivane hemijske reakcije. Mikrotalasi unutar rerne, zbog brojnih refleksija od zidova, stvaraju stojeće talase, što dovodi do neravnomernog zagrevanja supe, čak i dok se tanjir okreće unutar rerne. To rezultira lokalizovanim pregrevanjem, što može negativno uticati na kvalitet jela</p>`],
+Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrotalasi izazivaju protok električne struje kroz tečnost, što može izazvati neočekivane hemijske reakcije. Mikrotalasi unutar rerne, zbog brojnih refleksija od zidova, stvaraju stojeće talase, što dovodi do neravnomernog zagrevanja supe, čak i dok se tanjir okreće unutar rerne. To rezultira lokalizovanim pregrevanjem, što može negativno uticati na kvalitet jela</p>`,
+      ],
     ]),
   ],
   [
