@@ -1,7 +1,7 @@
 // server/src/utils/auth.ts
 import { prisma } from '../lib/prisma';
 import { Role } from '@prisma/client';
-import { GraphQLContext } from '../types';
+import { GraphQLContext } from '../types/types';
 
 export async function authorize(
     ctx: GraphQLContext,

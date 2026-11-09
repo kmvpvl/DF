@@ -5,7 +5,7 @@ import {
     CreateProductInput,
     UpdateProductInput,
     GraphQLContext,
-} from '../types';
+} from '../types/types';
 import { authorize } from '../utils/auth';
 import { parseCsv, parseCsvNumber, escapeCsvValue } from '../utils/common';
 import { MLString } from '../lib/mlstring';
@@ -235,8 +235,8 @@ export class ProductService {
         return [PRODUCT_CSV_HEADERS.join(','), ...rows].join('\n');
     }
     static async getPublicProductsWithStock(
-        locationId: string,
-        ctx: GraphQLContext
+        ctx: GraphQLContext,
+        locationId?: string
     ) {
         if (ctx.locationId === undefined && locationId === undefined)
             throw Error('LocationId not defined!');
@@ -273,7 +273,7 @@ export class ProductService {
                     where: {
                         locationId: locationId ? locationId : ctx.locationId,
                     },
-                    select: { physical_balance: true },
+                    select: { physical_balance: true, reserved_balance: true },
                 },
             },
         });

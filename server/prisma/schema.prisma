@@ -83,6 +83,7 @@ model User {
   pushSubscription  Json?
   tgId              String?
   passwordHash      String
+  lang              String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   cleanActions      CleanAction[] @relation("PerformerRelation")
@@ -287,11 +288,11 @@ enum OrderStatus {
 
 model Order {
   id              String       @id @default(cuid())
-  orderNumber     String       @unique
-  orderNumberInt  Int
+  number     String       @unique
+  numberInt  Int
   customerName    String
   customerUserId  String?
-  orderDate       DateTime
+  orderDate       DateTime?
   orderDateReady  DateTime?
   status          OrderStatus  @default(DRAFT)
   totalPrice      Float        @default(0)
@@ -321,6 +322,8 @@ model OrderProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sortOrder Int
+  variationLabel String?
+  price Float
 
   @@index([orderId], map: "OrderProduct_orderId_fkey")
   @@index([productId], map: "OrderProduct_productId_fkey")
@@ -379,7 +382,6 @@ enum MovementType {
   RETURN       // Возврат
   MOVE_IN         // Перемещение
   MOVE_OUT
-  RESERVE
 }
 
 // 2. Добавим модель Movement
@@ -419,7 +421,7 @@ view StockFreeBalance {
   productId        String
   locationId       String
   physical_balance Float
-  //reserved_balance Float
+  reserved_balance Float
   product          Product  @relation(fields: [productId], references: [id])
 
   @@unique([productId, locationId]) // Нужно для Prisma, чтобы модель была валидной

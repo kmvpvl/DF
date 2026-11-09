@@ -6,7 +6,7 @@ import {
     CreateBatchInput,
     GraphQLContext,
     UpdateBatchInput,
-} from '../types';
+} from '../types/types';
 import { authorize } from '../utils/auth';
 import { getYearRange } from '../utils/common';
 import { SampleService } from './sample.service';

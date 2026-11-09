@@ -37,6 +37,8 @@ type User {
     account: String
     bank: String
     passwordHash: String!
+    pushSubscription: JSON
+    lang: String
     createdAt: String!
     updatedAt: String!
 }
@@ -83,6 +85,7 @@ input CreateUserInput {
     account: String
     bank: String
     password: String!
+    lang: String
 }
 
 input SendContactMessageInput {
@@ -123,6 +126,8 @@ input UpdateSessionUserInput {
     mbr: String
     account: String
     bank: String
+    lang: String
+    pushSubscription: JSON
 }
 
 enum CleaningType {
@@ -280,28 +285,99 @@ type Batch {
     updatedAt: String!
 }
 
+scalar DateTime
+
+enum OrderStatus {
+    DRAFT
+    PENDING
+    COMPLETED
+    CANCELLED
+}
+
 type Order {
     id: ID!
-    orderNumber: String!
-    orderNumberInt: Int!
-    customerName: String
-    customerUserId: ID
-    orderDate: String!
-    orderDateReady: String
+    number: String!
+    numberInt: Int!
+    customerName: String!
+    customerUserId: String
+    orderDate: DateTime!
+    orderDateReady: DateTime
+    status: OrderStatus!
+    totalPrice: Float!
+    isPaid: Boolean!
+    paymentMethod: String
+    deliveryAddress: String
+    shippingMethod: String
+    trackingNumber: String
+    managerId: String
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+    locationId: String!
+
+    # Связи (Relations)
     products: [OrderProduct!]!
-    createdAt: String!
-    updatedAt: String!
+    # location: Location! # Раскомментируйте, когда добавите тип Location
 }
 
 type OrderProduct {
     id: ID!
-    orderId: ID!
-    productId: ID!
+    orderId: String!
+    productId: String!
     quantity: Float!
-    dateReady: String
-    createdAt: String!
-    updatedAt: String!
+    dateReady: DateTime
+    createdAt: DateTime!
+    updatedAt: DateTime!
     sortOrder: Int!
+    totalPrice: Float!
+    # Связи (Relations)
+    order: Order!
+    product: Product! # Раскомментируйте, когда добавите тип Product
+}
+
+# Inputs для мутаций (DTO)
+input CreateOrderInput {
+    id: ID
+    number: String
+    numberInt: Int
+    customerName: String
+    customerUserId: String
+    orderDate: DateTime
+    orderDateReady: DateTime
+    status: OrderStatus!
+    totalPrice: Float
+    isPaid: Boolean
+    paymentMethod: String
+    deliveryAddress: String
+    shippingMethod: String
+    trackingNumber: String
+    managerId: String
+    notes: String
+    createdAt: DateTime
+    updatedAt: DateTime
+    locationId: String
+
+    # Связи (Relations)
+    products: [OrderProductInput!]!
+    # location: Location! # Раскомментируйте, когда добавите тип Location
+}
+
+input OrderProductInput {
+    id: ID
+    orderId: String
+    productId: String!
+    quantity: Float!
+    dateReady: DateTime
+    createdAt: DateTime
+    updatedAt: DateTime
+    sortOrder: Int
+    totalPrice: Float
+    # Связи (Relations)
+}
+
+input UpdateOrderInput {
+    status: OrderStatus
+    products: [OrderProductInput!]!
 }
 
 type Certificate {
@@ -539,28 +615,6 @@ input SearchCertificatesInput {
     batchNumber: String
 }
 
-type ReservedProduct {
-    productId: ID!
-    quantity: Float!
-}
-
-input ReservedProductInput {
-    productId: ID!
-    quantity: Float!
-}
-
-input UpdateReserveInput {
-    reserves: [ReservedProductInput!]!
-    editedMovementId: ID
-}
-
-type BasketMovementGroupResult {
-    id: ID!
-    label: String
-    createdAt: String!
-    basket: [ReservedProduct!]!
-}
-
 type CostSettings {
     id: ID!
     marginalCoefficient: Float!
@@ -588,6 +642,10 @@ input UpdateCostSettingsInput {
     productMainProcessMaps: String
 }
 
+input SearchOrderInput {
+    status: OrderStatus
+}
+
 type Query {
     hello: String
     userById(id: ID!): User!
@@ -608,14 +666,14 @@ type Query {
     processMaps(productId: ID!): [ProcessMap!]!
     batches: [Batch!]!
     certificateBatchOptions: [CertificateBatchOption!]!
-    orders: [Order!]!
     certificates: [Certificate!]!
     searchCertificates(input: SearchCertificatesInput!): [Certificate!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
     costSettings: CostSettings!
     getPublicProductsWithStock(locationId: String): [PublicProduct!]!
-    reserves: BasketMovementGroupResult
+    orders(input: SearchOrderInput): [Order!]
+    getDraft: Order
 }
 
 type Mutation {
@@ -650,5 +708,7 @@ type Mutation {
     updateCertificate(id: ID!, input: UpdateCertificateInput!): Certificate!
     generateCertificateDocument(id: ID!): CertificateDocument!
     updateCostSettings(input: UpdateCostSettingsInput!): CostSettings!
-    reserve(input: UpdateReserveInput!): BasketMovementGroupResult
+    createOrder(input: CreateOrderInput!): Order!
+    updateOrder(input: UpdateOrderInput!): Order!
+    draft(input: CreateOrderInput!): Order!
 }

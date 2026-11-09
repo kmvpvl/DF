@@ -2,8 +2,9 @@ import React from 'react';
 import type { User } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 import Proto from '../proto';
-import { BasketItem } from './sections/Products';
 import { MLString } from '../mlstring';
+import { IOrderProduct } from './sections/Orders';
+import { PublicProductData } from './sections/Products';
 
 export interface OrderItemPayload {
   productId: string;
@@ -27,12 +28,14 @@ export interface OrderPayload {
 interface BasketDrawerProps {
   isOpen: boolean;
   user: User | null;
-  items: BasketItem[];
+  items?: IOrderProduct[];
   onClose: () => void;
-  onIncreaseQty: (index: number) => void;
-  onDecreaseQty: (index: number) => void;
-  onRemoveItem: (index: number) => void;
+  onIncreaseQty: (id: string) => void;
+  onDecreaseQty: (id: string) => void;
+  onRemoveItem: (id: string) => void;
   onSubmitOrder: (payload: OrderPayload) => Promise<void>;
+  onPushSubscribe: () => void;
+  isPreliminary: boolean;
 }
 
 interface BasketDrawerState {
@@ -43,6 +46,7 @@ interface BasketDrawerState {
   loading: boolean;
   error: string;
   sent: boolean;
+  disableAllContorls: boolean;
 }
 
 class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
@@ -57,18 +61,34 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     loading: false,
     error: '',
     sent: false,
+    disableAllContorls: false,
   };
+
+  getEffectivePrice(product: PublicProductData): number {
+    if (this.props.user?.entityType === 'LEGAL_ENTITY')
+      return product?.priceOptions?.legalPrice ?? Infinity;
+    else return product?.priceOptions?.individualPrice ?? Infinity;
+  }
 
   componentDidMount() {
     this.hydrateCustomerFields();
   }
 
-  componentDidUpdate(prevProps: BasketDrawerProps) {
+  componentDidUpdate(
+    prevProps: BasketDrawerProps,
+    prevState: BasketDrawerState
+  ) {
     if (
       prevProps.user !== this.props.user ||
       prevProps.isOpen !== this.props.isOpen
     ) {
       this.hydrateCustomerFields();
+    }
+    if (prevState.disableAllContorls) {
+      this.setState((prevState) => ({
+        ...prevState,
+        disableAllContorls: false,
+      }));
     }
   }
 
@@ -91,22 +111,28 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   private formatPrice = (value: number) => `${this.toCurrency(value)} din`;
 
   private getOrderTotal = () =>
-    this.props.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    this.props.items?.reduce(
+      (sum, item) =>
+        sum + this.getEffectivePrice(item.product!) * item.quantity,
+      0
+    );
 
   private buildOrderItems = (): OrderItemPayload[] =>
-    this.props.items.map((item) => ({
-      productId: item.product.id,
-      name: new MLString(item.product.name).toString(),
-      qty: item.quantity,
-      unitPrice: item.price,
-      lineTotal: item.price * item.quantity,
-      variationLabel: new MLString(item.choosenVariation?.label).toString(),
-    }));
+    this.props.items
+      ? this.props.items?.map((item) => ({
+          productId: item.product!.id,
+          name: new MLString(item.product!.name).toString(),
+          qty: item.quantity,
+          unitPrice: this.getEffectivePrice(item.product!),
+          lineTotal: this.getEffectivePrice(item.product!) * item.quantity,
+          variationLabel: item.variationLabel,
+        }))
+      : [];
 
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (this.props.items.length === 0) {
+    if (this.props.items?.length === 0) {
       this.setState({ error: 'Basket is empty.', sent: false });
       return;
     }
@@ -133,7 +159,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         customerPhone,
         note: note || undefined,
         items: this.buildOrderItems(),
-        total: this.getOrderTotal(),
+        total: this.getOrderTotal() ?? 0,
       });
 
       this.setState({
@@ -173,7 +199,18 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
           aria-label="Basket"
         >
           <div className="basket-header">
-            <h2>Basket</h2>
+            <h2>Basket {this.props.isPreliminary ? 'DRAFT' : ''}</h2>
+            {this.props.user?.pushSubscription ? (
+              <span>Вы подписаны на пуш уведомления</span>
+            ) : (
+              <button
+                onClick={() => {
+                  this.props.onPushSubscribe();
+                }}
+              >
+                Subscribe
+              </button>
+            )}
             <button
               className="modal-close"
               onClick={this.props.onClose}
@@ -183,55 +220,80 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             </button>
           </div>
 
-          {this.props.items.length === 0 ? (
+          {this.props.items?.length === 0 ? (
             <p className="basket-empty">Your basket is empty.</p>
           ) : (
             <>
               <ul className="basket-items">
-                {this.props.items.map((item, index) => (
-                  <li
-                    key={`${item.product.id}-${item.choosenVariation?.label ?? 'default'}- none'}`}
-                    className="basket-item"
-                  >
-                    <div className="basket-item-main">
-                      <strong>
-                        {new MLString(item.product.name).toString()}
-                      </strong>
-                      <span>{this.formatPrice(item.price)}</span>
-                    </div>
-                    <div className="basket-item-controls">
-                      <button
-                        type="button"
-                        className="basket-qty-btn"
-                        onClick={() => this.props.onDecreaseQty(index)}
-                        aria-label={`Decrease quantity for ${item.product.name}`}
-                      >
-                        -
-                      </button>
-                      <span className="basket-qty-value">{item.quantity}</span>
-                      <button
-                        type="button"
-                        className="basket-qty-btn"
-                        onClick={() => this.props.onIncreaseQty(index)}
-                        aria-label={`Increase quantity for ${item.product.name}`}
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        className="basket-remove-btn"
-                        onClick={() => this.props.onRemoveItem(index)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                {this.props.items
+                  ?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                  .map((item) => (
+                    <li
+                      key={`${item.productId}-${item.variationLabel ?? 'default'}- none'}`}
+                      className="basket-item"
+                    >
+                      <div className="basket-item-main">
+                        <strong>
+                          {new MLString(
+                            item.product ? item.product.name : 'Loading...'
+                          ).toString()}
+                        </strong>
+                        <span>
+                          {this.formatPrice(
+                            item.product
+                              ? item.product.priceOptions.individualPrice!
+                              : 0
+                          )}
+                        </span>
+                      </div>
+                      <div className="basket-item-controls">
+                        <button
+                          type="button"
+                          className="basket-qty-btn"
+                          onClick={() => {
+                            this.props.onDecreaseQty(item.productId);
+                          }}
+                          aria-label={`Decrease quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                          disabled={this.state.disableAllContorls}
+                        >
+                          -
+                        </button>
+                        <span className="basket-qty-value">
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          className="basket-qty-btn"
+                          onClick={() => {
+                            this.setState({
+                              ...this.state,
+                              disableAllContorls: false,
+                            });
+                            this.props.onIncreaseQty(item.productId);
+                          }}
+                          aria-label={`Increase quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                          disabled={this.state.disableAllContorls}
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          className="basket-remove-btn"
+                          onClick={() =>
+                            this.props.onRemoveItem(item.productId)
+                          }
+                          disabled={this.state.disableAllContorls}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </li>
+                  ))}
               </ul>
 
               <div className="basket-total">
                 <span>Total</span>
-                <strong>{this.formatPrice(total)}</strong>
+                <strong>{this.formatPrice(total ?? 0)}</strong>
               </div>
             </>
           )}
@@ -285,7 +347,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <button
               className="btn-primary"
               type="submit"
-              disabled={this.state.loading || this.props.items.length === 0}
+              disabled={this.state.loading || this.props.items?.length === 0}
             >
               {this.state.loading ? 'Sending order...' : 'Place order'}
             </button>

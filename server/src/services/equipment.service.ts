@@ -5,7 +5,7 @@ import {
     CreateEquipmentInput,
     UpdateEquipmentInput,
     GraphQLContext,
-} from '../types';
+} from '../types/types';
 import { authorize } from '../utils/auth';
 
 export class EquipmentService {

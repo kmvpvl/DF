@@ -16,10 +16,10 @@ import {
     CreateCleanActionInput,
     CreateEquipmentInput,
     CreateMaterialInput,
+    CreateOrderInput,
     CreateProcessMapInput,
     CreateProductInput,
     GraphQLContext,
-    ReservesInput,
     SearchCertificatesInput,
     UpdateBatchInput,
     UpdateCertificateInput,
@@ -27,7 +27,7 @@ import {
     UpdateMaterialInput,
     UpdateProcessMapInput,
     UpdateProductInput,
-} from './types';
+} from './types/types';
 import { BatchService } from './services/batch.service';
 import { gql } from 'graphql-tag';
 import { EquipmentService } from './services/equipment.service';
@@ -40,6 +40,7 @@ import { CostSettingsService } from './services/cost-settings.service';
 import { StorageConditionService } from './services/storage-condition.service';
 import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
+import { OrderService } from './services/order.service';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -72,6 +73,7 @@ interface CreateUserInput {
     account?: string;
     bank?: string;
     password: string;
+    lang?: string;
 }
 
 interface UpdateSessionUserInput {
@@ -84,6 +86,8 @@ interface UpdateSessionUserInput {
     mbr?: string | null;
     account?: string | null;
     bank?: string | null;
+    pushSubscription?: object | null;
+    lang?: string;
 }
 
 interface SendContactMessageInput {
@@ -120,27 +124,6 @@ function parseBoolean(value: string | undefined, fallback = false): boolean {
     if (!value) return fallback;
     const normalized = value.trim().toLowerCase();
     return normalized === '1' || normalized === 'true' || normalized === 'yes';
-}
-
-function formatCertificateNumberString(
-    date: Date,
-    certificateNumber: number
-): string {
-    const shortYear = String(date.getFullYear()).slice(-2);
-    return `${shortYear}-${String(certificateNumber).padStart(9, '0')}`;
-}
-
-async function getNextCertificateNumber(date = new Date()): Promise<number> {
-    const numberYear = date.getFullYear();
-
-    const aggregate = await prisma.certificate.aggregate({
-        where: { numberYear },
-        _max: {
-            number: true,
-        },
-    });
-
-    return (aggregate._max.number ?? 0) + 1;
 }
 
 function getSmtpTransporter(): Transporter {
@@ -267,6 +250,10 @@ const resolvers = {
                 },
                 orderBy: [{ createdAt: 'desc' }],
             });
+        },
+
+        getDraft: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+            return await OrderService.getDraft(ctx);
         },
 
         batches: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
@@ -462,8 +449,8 @@ const resolvers = {
             ctx: GraphQLContext
         ) => {
             const products = await ProductService.getPublicProductsWithStock(
-                locationId,
-                ctx
+                ctx,
+                locationId
             );
 
             // Мапим результат, чтобы "stock" был простым числом, а не вложенным объектом
@@ -471,10 +458,6 @@ const resolvers = {
                 ...p,
                 stock: p.stockBalances[0]?.physical_balance || 0,
             }));
-        },
-
-        reserves: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
-            return await MovementService.getReservesByCustomer(ctx);
         },
     },
     Mutation: {
@@ -596,6 +579,7 @@ const resolvers = {
                         ? input.account || null
                         : null,
                 bank: entityType === 'LEGAL_ENTITY' ? input.bank || null : null,
+                pushSubscription: input.pushSubscription,
             } as any;
 
             return await prisma.user.update({
@@ -873,6 +857,22 @@ const resolvers = {
         ) => {
             return await CostSettingsService.update(input, ctx);
         },
+        createOrder: async (
+            _: unknown,
+            { input }: { input: CreateOrderInput },
+            ctx: GraphQLContext
+        ) => {
+            return OrderService.Draft(input, ctx);
+        },
+
+        draft: async (
+            _: unknown,
+            { input }: { input: CreateOrderInput },
+            ctx: GraphQLContext
+        ) => {
+            return OrderService.Draft(input, ctx);
+        },
+
         sendOrderByEmail: async (
             _: unknown,
             { input }: { input: SendOrderInput },
@@ -976,13 +976,6 @@ const resolvers = {
             });
 
             return true;
-        },
-        reserve: async (
-            _: unknown,
-            { input }: { input: ReservesInput },
-            ctx: GraphQLContext
-        ) => {
-            return await MovementService.Reserve(input, ctx);
         },
     },
     User: {
@@ -1123,6 +1116,8 @@ app.options('*', cors(corsOptions));
 //app.use(cors({ origin: '*' }));
 app.use(express.json());
 
+app.enable('trust proxy');
+
 app.use(
     session({
         name: 'dolceforte.sid',
@@ -1132,8 +1127,9 @@ app.use(
         rolling: true,
         cookie: {
             httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
+            //sameSite: 'lax',
+            sameSite: 'none',
+            secure: true, //process.env.NODE_ENV === 'production',
             maxAge: SESSION_TTL_MS,
         },
     })

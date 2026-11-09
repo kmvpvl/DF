@@ -1,7 +1,7 @@
 // server/src/services/certificate.service.ts
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '../types';
+import { GraphQLContext } from '../types/types';
 import { authorize } from '../utils/auth';
 import path from 'node:path';
 import {

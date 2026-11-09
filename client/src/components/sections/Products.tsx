@@ -79,15 +79,6 @@ export interface PublicProductData {
   reserved: number;
 }
 
-export interface BasketItem {
-  product: PublicProductData;
-  choosenVariation?: PriceVariation;
-  discount?: ThresholdDiscount;
-  quantity: number;
-  price: number;
-  amount: number;
-}
-
 class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;

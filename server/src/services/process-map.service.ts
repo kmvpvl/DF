@@ -5,7 +5,7 @@ import {
     CreateProcessMapInput,
     UpdateProcessMapInput,
     GraphQLContext,
-} from '../types';
+} from '../types/types';
 import { authorize } from '../utils/auth';
 
 export class ProcessMapService {

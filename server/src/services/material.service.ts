@@ -5,7 +5,7 @@ import {
     CreateMaterialInput,
     UpdateMaterialInput,
     GraphQLContext,
-} from '../types';
+} from '../types/types';
 import { authorize } from '../utils/auth';
 import {
     escapeCsvValue,
