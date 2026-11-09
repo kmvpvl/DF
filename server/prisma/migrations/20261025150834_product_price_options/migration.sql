@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Product` ADD COLUMN `priceOptions` JSON NOT NULL DEFAULT(JSON_OBJECT());

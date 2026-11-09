@@ -32,7 +32,7 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
         ) : activeChapter === 'Certificates' ? (
           <Certificates />
         ) : activeChapter === 'Orders' ? (
-          <Orders user={user}/>
+          <Orders user={user} />
         ) : (
           <div className="section-inner tool-page-inner">
             <p className="section-label">Staff</p>

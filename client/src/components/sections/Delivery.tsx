@@ -29,8 +29,12 @@ class Delivery extends Proto<{}, {}> {
             {dictionaries.en.delivery.cards.map((card: any) => (
               <div key={card.title} className="delivery-card">
                 <div className="delivery-icon">{card.icon}</div>
-                <div className="delivery-card-title">{this.ML(card.title).toString()}</div>
-                <p className="delivery-card-text">{this.ML(card.text).toString()}</p>
+                <div className="delivery-card-title">
+                  {this.ML(card.title).toString()}
+                </div>
+                <p className="delivery-card-text">
+                  {this.ML(card.text).toString()}
+                </p>
               </div>
             ))}
           </div>

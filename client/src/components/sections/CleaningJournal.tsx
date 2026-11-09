@@ -103,7 +103,10 @@ const CLEANING_TYPE_LABELS: Record<string, string> = {
   DISINFECTION: 'Disinfection',
 };
 
-class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> {
+class CleaningJournal extends Proto<
+  CleaningJournalProps,
+  CleaningJournalState
+> {
   state: CleaningJournalState = {
     subTab: 'action',
 
@@ -155,7 +158,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
       return;
     }
 
-    this.setState(prev => {
+    this.setState((prev) => {
       const shouldSetPerformer = !prev.actionForm.performerId;
       const shouldSetSupervisor = !prev.actionForm.supervisorId;
 
@@ -181,7 +184,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
     this.setState({ equipmentsLoading: true, equipmentError: null });
     try {
       const data = await this.gql(EQUIPMENTS_QUERY);
-      this.setState({ equipments: data.equipments as EquipmentData[], equipmentsLoading: false });
+      this.setState({
+        equipments: data.equipments as EquipmentData[],
+        equipmentsLoading: false,
+      });
     } catch (e) {
       this.setState({ equipmentError: String(e), equipmentsLoading: false });
     }
@@ -212,8 +218,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
           input: { numId, fullName: equipmentForm.fullName.trim() },
         });
         const updated = data.updateEquipment as EquipmentData;
-        this.setState(prev => ({
-          equipments: prev.equipments.map(e => (e.id === updated.id ? updated : e)),
+        this.setState((prev) => ({
+          equipments: prev.equipments.map((e) =>
+            e.id === updated.id ? updated : e
+          ),
           editingEquipment: null,
           addingEquipment: false,
           equipmentForm: { numId: '', fullName: '' },
@@ -224,8 +232,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
           input: { numId, fullName: equipmentForm.fullName.trim() },
         });
         const created = data.createEquipment as EquipmentData;
-        this.setState(prev => ({
-          equipments: [...prev.equipments, created].sort((a, b) => a.numId - b.numId),
+        this.setState((prev) => ({
+          equipments: [...prev.equipments, created].sort(
+            (a, b) => a.numId - b.numId
+          ),
           addingEquipment: false,
           equipmentForm: { numId: '', fullName: '' },
           equipmentSaving: false,
@@ -240,7 +250,9 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
     if (!confirm('Delete this equipment? This cannot be undone.')) return;
     try {
       await this.gql(DELETE_EQUIPMENT_MUTATION, { id });
-      this.setState(prev => ({ equipments: prev.equipments.filter(e => e.id !== id) }));
+      this.setState((prev) => ({
+        equipments: prev.equipments.filter((e) => e.id !== id),
+      }));
     } catch (e) {
       this.setState({ equipmentError: String(e) });
     }
@@ -248,14 +260,28 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
 
   private submitAction = async () => {
     const { actionForm } = this.state;
-    if (!actionForm.equipmentId || !actionForm.performerId || !actionForm.supervisorId) return;
-    this.setState({ actionSaving: true, actionError: null, actionSuccess: false });
+    if (
+      !actionForm.equipmentId ||
+      !actionForm.performerId ||
+      !actionForm.supervisorId
+    )
+      return;
+    this.setState({
+      actionSaving: true,
+      actionError: null,
+      actionSuccess: false,
+    });
     try {
       await this.gql(CREATE_CLEAN_ACTION_MUTATION, { input: actionForm });
       this.setState({
         actionSaving: false,
         actionSuccess: true,
-        actionForm: { equipmentId: '', performerId: this.props.user?.id || '', supervisorId: this.props.user?.id || '', cleaningType: 'CURRENT' },
+        actionForm: {
+          equipmentId: '',
+          performerId: this.props.user?.id || '',
+          supervisorId: this.props.user?.id || '',
+          cleaningType: 'CURRENT',
+        },
       });
     } catch (e) {
       this.setState({ actionError: String(e), actionSaving: false });
@@ -264,14 +290,21 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
 
   private runReport = async () => {
     const { reportFrom, reportTo, reportType } = this.state;
-    this.setState({ reportLoading: true, reportError: null, reportQueried: true });
+    this.setState({
+      reportLoading: true,
+      reportError: null,
+      reportQueried: true,
+    });
     try {
       const data = await this.gql(CLEAN_ACTIONS_QUERY, {
         cleaningType: reportType || undefined,
         fromDate: reportFrom || undefined,
         toDate: reportTo || undefined,
       });
-      this.setState({ reportActions: data.cleanActions as CleanActionData[], reportLoading: false });
+      this.setState({
+        reportActions: data.cleanActions as CleanActionData[],
+        reportLoading: false,
+      });
     } catch (e) {
       this.setState({ reportError: String(e), reportLoading: false });
     }
@@ -279,8 +312,15 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
 
   private exportCsv = () => {
     const { reportActions, reportFrom, reportTo, reportType } = this.state;
-    const headers = ['Date', 'Equipment #', 'Equipment', 'Type', 'Performer', 'Supervisor'];
-    const rows = reportActions.map(a => [
+    const headers = [
+      'Date',
+      'Equipment #',
+      'Equipment',
+      'Type',
+      'Performer',
+      'Supervisor',
+    ];
+    const rows = reportActions.map((a) => [
       this.toLocalDate(a.createdAt),
       String(a.equipment.numId),
       a.equipment.fullName,
@@ -289,13 +329,14 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
       a.supervisor.name,
     ]);
     const csv = [headers, ...rows]
-      .map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))
+      .map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))
       .join('\r\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    const suffix = [reportType, reportFrom, reportTo].filter(Boolean).join('_') || 'all';
+    const suffix =
+      [reportType, reportFrom, reportTo].filter(Boolean).join('_') || 'all';
     anchor.download = `cleaning-report-${suffix}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
@@ -312,11 +353,25 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
   render() {
     const {
       subTab,
-      equipments, equipmentsLoading, equipmentError, editingEquipment, addingEquipment,
-      equipmentForm, equipmentSaving,
+      equipments,
+      equipmentsLoading,
+      equipmentError,
+      editingEquipment,
+      addingEquipment,
+      equipmentForm,
+      equipmentSaving,
       users,
-      actionForm, actionSaving, actionSuccess, actionError,
-      reportFrom, reportTo, reportType, reportActions, reportLoading, reportError, reportQueried,
+      actionForm,
+      actionSaving,
+      actionSuccess,
+      actionError,
+      reportFrom,
+      reportTo,
+      reportType,
+      reportActions,
+      reportLoading,
+      reportError,
+      reportQueried,
     } = this.state;
 
     return (
@@ -327,13 +382,17 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
         </div>
 
         <div className="cj-sub-tabs">
-          {(['action', 'report', 'equipment'] as const).map(tab => (
+          {(['action', 'report', 'equipment'] as const).map((tab) => (
             <button
               key={tab}
               className={`cj-sub-tab${subTab === tab ? ' active' : ''}`}
               onClick={() => this.setState({ subTab: tab })}
             >
-              {tab === 'action' ? 'New Action' : tab === 'report' ? 'Report' : 'Equipment'}
+              {tab === 'action'
+                ? 'New Action'
+                : tab === 'report'
+                  ? 'Report'
+                  : 'Equipment'}
             </button>
           ))}
         </div>
@@ -347,7 +406,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <button
                   className="btn-primary cj-add-btn"
                   onClick={() =>
-                    this.setState({ addingEquipment: true, equipmentForm: { numId: '', fullName: '' } })
+                    this.setState({
+                      addingEquipment: true,
+                      equipmentForm: { numId: '', fullName: '' },
+                    })
                   }
                 >
                   + Add
@@ -360,7 +422,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
             {(addingEquipment || editingEquipment) && (
               <form
                 className="cj-inline-form"
-                onSubmit={e => {
+                onSubmit={(e) => {
                   e.preventDefault();
                   void this.saveEquipment();
                 }}
@@ -371,8 +433,13 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                   placeholder="# (unique)"
                   value={equipmentForm.numId}
                   min={1}
-                  onChange={e =>
-                    this.setState({ equipmentForm: { ...equipmentForm, numId: e.target.value } })
+                  onChange={(e) =>
+                    this.setState({
+                      equipmentForm: {
+                        ...equipmentForm,
+                        numId: e.target.value,
+                      },
+                    })
                   }
                   required
                 />
@@ -381,15 +448,32 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                   type="text"
                   placeholder="Full name"
                   value={equipmentForm.fullName}
-                  onChange={e =>
-                    this.setState({ equipmentForm: { ...equipmentForm, fullName: e.target.value } })
+                  onChange={(e) =>
+                    this.setState({
+                      equipmentForm: {
+                        ...equipmentForm,
+                        fullName: e.target.value,
+                      },
+                    })
                   }
                   required
                 />
-                <button type="submit" className="btn-primary" disabled={equipmentSaving}>
-                  {equipmentSaving ? 'Saving…' : editingEquipment ? 'Update' : 'Save'}
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={equipmentSaving}
+                >
+                  {equipmentSaving
+                    ? 'Saving…'
+                    : editingEquipment
+                      ? 'Update'
+                      : 'Save'}
                 </button>
-                <button type="button" className="btn-outline" onClick={this.cancelEquipmentForm}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={this.cancelEquipmentForm}
+                >
                   Cancel
                 </button>
               </form>
@@ -414,7 +498,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                       </td>
                     </tr>
                   ) : (
-                    equipments.map(eq => (
+                    equipments.map((eq) => (
                       <tr key={eq.id}>
                         <td className="cj-num-cell">{eq.numId}</td>
                         <td>{eq.fullName}</td>
@@ -425,7 +509,10 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                               this.setState({
                                 editingEquipment: eq,
                                 addingEquipment: false,
-                                equipmentForm: { numId: String(eq.numId), fullName: eq.fullName },
+                                equipmentForm: {
+                                  numId: String(eq.numId),
+                                  fullName: eq.fullName,
+                                },
                               })
                             }
                           >
@@ -459,7 +546,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
 
             <form
               className="cj-form"
-              onSubmit={e => {
+              onSubmit={(e) => {
                 e.preventDefault();
                 void this.submitAction();
               }}
@@ -469,13 +556,18 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <select
                   className="cj-select"
                   value={actionForm.equipmentId}
-                  onChange={e =>
-                    this.setState({ actionForm: { ...actionForm, equipmentId: e.target.value } })
+                  onChange={(e) =>
+                    this.setState({
+                      actionForm: {
+                        ...actionForm,
+                        equipmentId: e.target.value,
+                      },
+                    })
                   }
                   required
                 >
                   <option value="">— select —</option>
-                  {equipments.map(eq => (
+                  {equipments.map((eq) => (
                     <option key={eq.id} value={eq.id}>
                       {eq.numId} — {eq.fullName}
                     </option>
@@ -488,11 +580,14 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <select
                   className="cj-select"
                   value={actionForm.cleaningType}
-                  onChange={e =>
+                  onChange={(e) =>
                     this.setState({
                       actionForm: {
                         ...actionForm,
-                        cleaningType: e.target.value as 'GENERAL' | 'CURRENT' | 'DISINFECTION',
+                        cleaningType: e.target.value as
+                          | 'GENERAL'
+                          | 'CURRENT'
+                          | 'DISINFECTION',
                       },
                     })
                   }
@@ -508,13 +603,18 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <select
                   className="cj-select"
                   value={actionForm.performerId}
-                  onChange={e =>
-                    this.setState({ actionForm: { ...actionForm, performerId: e.target.value } })
+                  onChange={(e) =>
+                    this.setState({
+                      actionForm: {
+                        ...actionForm,
+                        performerId: e.target.value,
+                      },
+                    })
                   }
                   required
                 >
                   <option value="">— select —</option>
-                  {users.map(u => (
+                  {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.fullName})
                     </option>
@@ -527,13 +627,18 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <select
                   className="cj-select"
                   value={actionForm.supervisorId}
-                  onChange={e =>
-                    this.setState({ actionForm: { ...actionForm, supervisorId: e.target.value } })
+                  onChange={(e) =>
+                    this.setState({
+                      actionForm: {
+                        ...actionForm,
+                        supervisorId: e.target.value,
+                      },
+                    })
                   }
                   required
                 >
                   <option value="">— select —</option>
-                  {users.map(u => (
+                  {users.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.fullName})
                     </option>
@@ -541,7 +646,11 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 </select>
               </label>
 
-              <button type="submit" className="btn-primary cj-submit-btn" disabled={actionSaving}>
+              <button
+                type="submit"
+                className="btn-primary cj-submit-btn"
+                disabled={actionSaving}
+              >
                 {actionSaving ? 'Saving…' : 'Log Action'}
               </button>
             </form>
@@ -560,7 +669,9 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                   type="date"
                   className="cj-input"
                   value={reportFrom}
-                  onChange={e => this.setState({ reportFrom: e.target.value })}
+                  onChange={(e) =>
+                    this.setState({ reportFrom: e.target.value })
+                  }
                 />
               </label>
 
@@ -570,7 +681,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                   type="date"
                   className="cj-input"
                   value={reportTo}
-                  onChange={e => this.setState({ reportTo: e.target.value })}
+                  onChange={(e) => this.setState({ reportTo: e.target.value })}
                 />
               </label>
 
@@ -579,9 +690,13 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                 <select
                   className="cj-select"
                   value={reportType}
-                  onChange={e =>
+                  onChange={(e) =>
                     this.setState({
-                      reportType: e.target.value as '' | 'GENERAL' | 'CURRENT' | 'DISINFECTION',
+                      reportType: e.target.value as
+                        | ''
+                        | 'GENERAL'
+                        | 'CURRENT'
+                        | 'DISINFECTION',
                     })
                   }
                 >
@@ -609,9 +724,12 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
 
             {reportError && <div className="cj-error">{reportError}</div>}
 
-            {reportQueried && !reportLoading && (
-              reportActions.length === 0 ? (
-                <p className="cj-empty-report">No records found for the selected filters.</p>
+            {reportQueried &&
+              !reportLoading &&
+              (reportActions.length === 0 ? (
+                <p className="cj-empty-report">
+                  No records found for the selected filters.
+                </p>
               ) : (
                 <table className="cj-table cj-report-table">
                   <thead>
@@ -625,14 +743,17 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                     </tr>
                   </thead>
                   <tbody>
-                    {reportActions.map(a => (
+                    {reportActions.map((a) => (
                       <tr key={a.id}>
                         <td>{this.toLocalDate(a.createdAt)}</td>
                         <td className="cj-num-cell">{a.equipment.numId}</td>
                         <td>{a.equipment.fullName}</td>
                         <td>
-                          <span className={`cj-type-badge cj-type-${a.cleaningType.toLowerCase()}`}>
-                            {CLEANING_TYPE_LABELS[a.cleaningType] ?? a.cleaningType}
+                          <span
+                            className={`cj-type-badge cj-type-${a.cleaningType.toLowerCase()}`}
+                          >
+                            {CLEANING_TYPE_LABELS[a.cleaningType] ??
+                              a.cleaningType}
                           </span>
                         </td>
                         <td>{a.performer.name}</td>
@@ -641,8 +762,7 @@ class CleaningJournal extends Proto<CleaningJournalProps, CleaningJournalState> 
                     ))}
                   </tbody>
                 </table>
-              )
-            )}
+              ))}
           </div>
         )}
       </div>

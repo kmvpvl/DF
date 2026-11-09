@@ -31,6 +31,7 @@ interface AuthModalState {
   signupEmail: string;
   signupPhone: string;
   signupPassword: string;
+  signupPushSubscription?: object | null;
 }
 
 async function gql<T>(
@@ -51,7 +52,7 @@ async function gql<T>(
 const LOGIN_MUTATION = `
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
-      id name fullName entityType email phone pib mbr account bank
+      id name fullName entityType email phone pib mbr account bank pushSubscription
     }
   }
 `;
@@ -59,7 +60,7 @@ const LOGIN_MUTATION = `
 const SIGNUP_MUTATION = `
   mutation CreateUser($input: CreateUserInput!) {
     createUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank
+      id name fullName entityType email phone pib mbr account bank pushSubscription
     }
   }
 `;
@@ -67,7 +68,7 @@ const SIGNUP_MUTATION = `
 const UPDATE_SESSION_USER_MUTATION = `
   mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
     updateSessionUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank
+      id name fullName entityType email phone pib mbr account bank pushSubscription
     }
   }
 `;
@@ -108,6 +109,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
         signupEmail: editingUser.email,
         signupPhone: editingUser.phone ?? '',
         signupPassword: '',
+        signupPushSubscription: editingUser.pushSubscription,
       });
       return;
     }
@@ -263,6 +265,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupBank,
       signupEmail,
       signupPhone,
+      signupPushSubscription,
     } = this.state;
 
     if (
@@ -294,6 +297,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
             mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : null,
             account: signupEntityType === 'LEGAL_ENTITY' ? signupAccount : null,
             bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : null,
+            pushSubscription: signupPushSubscription ?? null,
           },
         }
       );

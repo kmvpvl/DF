@@ -2,7 +2,7 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products from './components/sections/Products';
+import Products, { PublicProductData } from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
@@ -11,14 +11,15 @@ import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
 import Proto from './proto';
 import Instructions from './components/sections/instructions.tsx';
+import { IOrder, OrderStatus } from './components/sections/Orders.tsx';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
 const STAFF_EMAILS_RAW =
   import.meta.env.VITE_STAFF_EMAILS ??
-  ((import.meta as { env?: Record<string, string | undefined> }).env
+  (import.meta as { env?: Record<string, string | undefined> }).env
     ?.STAFF_EMAILS ??
-    '');
+  '';
 //console.log('Loaded staff emails:', STAFF_EMAILS_RAW);
 const STAFF_EMAILS = new Set(
   STAFF_EMAILS_RAW.split(',')
@@ -49,6 +50,7 @@ const SESSION_USER_QUERY = `
       mbr
       account
       bank
+      pushSubscription
     }
   }
 `;
@@ -70,6 +72,7 @@ export interface User {
   mbr?: string | null;
   account?: string | null;
   bank?: string | null;
+  pushSubscription?: object | null;
 }
 
 export interface DiscountTier {
@@ -86,38 +89,18 @@ export interface ProductPriceVariation {
   weightUnit?: string;
 }
 
-export interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  legalEntityPrice?: number;
-  priceUnit?: string;
-  selectedVariationLabel?: string;
-  selectedWeightGrams?: number;
-  emoji: string;
-  chapter: string;
-  photos?: string[];
-  discounts?: DiscountTier[];
-  priceVariations?: ProductPriceVariation[];
-}
-
-export interface BasketItem {
-  product: Product;
-  qty: number;
-}
-
 interface AppState {
   user: User | null;
   currentPage: 'home' | 'tool';
   activeToolChapter: string;
-  basket: BasketItem[];
+  basket?: IOrder;
+  isLoadingBasket: boolean;
   basketOpen: boolean;
   authOpen: boolean;
   authInitialTab: 'login' | 'signup';
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   authEditingUser: User | null;
-  pendingProduct: Product | null;
+  pendingProduct: PublicProductData | null;
 }
 
 interface SessionUserQueryData {
@@ -136,7 +119,7 @@ class App extends Proto<Record<string, never>, AppState> {
         ? 'tool'
         : 'home',
     activeToolChapter: 'Cleaning',
-    basket: [],
+    isLoadingBasket: false,
     basketOpen: false,
     authOpen: false,
     authInitialTab: 'login',
@@ -215,7 +198,9 @@ class App extends Proto<Record<string, never>, AppState> {
 
       const data = json.data as SessionUserQueryData | undefined;
       if (data?.sessionUser) {
-        this.setState({ user: data.sessionUser });
+        this.setState({ user: data.sessionUser }, () => {
+          this.getReserves();
+        });
       } else {
         this.setState({ user: null });
       }
@@ -224,34 +209,183 @@ class App extends Proto<Record<string, never>, AppState> {
     }
   };
 
-  addToBasket = (product: Product) => {
-    this.setState((prevState) => {
-      const existing = prevState.basket.find(
-        (i) =>
-          i.product.id === product.id &&
-          i.product.selectedVariationLabel === product.selectedVariationLabel &&
-          i.product.selectedWeightGrams === product.selectedWeightGrams
-      );
-      if (existing) {
-        return {
-          basket: prevState.basket.map((i) =>
-            i.product.id === product.id &&
-            i.product.selectedVariationLabel ===
-              product.selectedVariationLabel &&
-            i.product.selectedWeightGrams === product.selectedWeightGrams
-              ? { ...i, qty: i.qty + 1 }
-              : i
-          ),
-        };
+  private async getReserves() {
+    const GET_RESERVES_BY_USER = `
+    query Reserves {
+      getDraft { 
+        id
+        number
+        numberInt
+        customerName
+        customerUserId
+        orderDate
+        orderDateReady
+        status
+        totalPrice
+        isPaid
+        paymentMethod
+        deliveryAddress
+        shippingMethod
+        trackingNumber
+        managerId
+        notes
+        createdAt
+        updatedAt
+        locationId
+        products {
+          id
+          orderId
+          productId
+          quantity
+          dateReady
+          createdAt
+          updatedAt
+          sortOrder
+          product {
+            name {
+              default
+              ts
+            }
+            priceOptions
+          }
+        }
       }
+    }`;
+    const data = await this.gql(GET_RESERVES_BY_USER, { state: 'DRAFT' });
+    const order: IOrder = (data as any).getDraft;
+    if (!order) return;
+    this.setState(
+      (prevState) => ({
+        ...prevState,
+        isLoadingBasket: true,
+        basket: order,
+      }),
+      () => {
+        this.setState({ ...this.state, isLoadingBasket: false });
+      }
+    );
+  }
 
-      return {
-        basket: [...prevState.basket, { product, qty: 1 }],
+  private async reserveBasket(basket: IOrder) {
+    const RESERVE_MUTATION = `
+      mutation Reserve($input: CreateOrderInput!) {
+        draft(input: $input) {
+          id
+          number
+          numberInt
+          customerName
+          customerUserId
+          orderDate
+          orderDateReady
+          status
+          totalPrice
+          isPaid
+          paymentMethod
+          deliveryAddress
+          shippingMethod
+          trackingNumber
+          managerId
+          notes
+          createdAt
+          updatedAt
+          locationId
+          products {
+            id
+            orderId
+            productId
+            quantity
+            dateReady
+            createdAt
+            updatedAt
+            sortOrder
+            product {
+              name {
+                default
+                ts
+              }
+              priceOptions
+            }
+          }
+        }
+      }
+    `;
+
+    // Если корзина пустая, возможно, нужно очистить бронь на сервере или просто выйти
+    //if (basket.products.length === 0) return null;
+    // Если запрос уже выполняется, выходим, чтобы не плодить фантомы
+    if (this.state.isLoadingBasket) return null;
+
+    // Включаем блокировку
+    //this.setState({ isLoadingBasket: true });
+    const input: IOrder = {
+      ...basket,
+      products: basket.products.map((el) => ({
+        productId: el.productId,
+        quantity: el.quantity,
+      })),
+    };
+
+    try {
+      const data = await this.gql(RESERVE_MUTATION, { input });
+      const order: IOrder = (data as any).draft;
+      console.log(data);
+      this.setState(
+        (prevState) => {
+          return {
+            ...prevState,
+            basket: order,
+            isLoadingBasket: true,
+          };
+        },
+        () => {
+          this.setState({ ...this.state, isLoadingBasket: false });
+        }
+      );
+    } catch (error) {
+      console.error('Ошибка при резервировании корзины:', error);
+      return null;
+    }
+  }
+
+  componentDidUpdate(_: Readonly<{}>, prevState: Readonly<AppState>) {
+    if (prevState.basket !== this.state.basket) {
+      if (this.state.basket) this.reserveBasket(this.state.basket);
+    }
+  }
+
+  addToBasket = (product: PublicProductData) => {
+    let updatedBasket: IOrder;
+    if (this.state.basket) {
+      updatedBasket = { ...this.state.basket };
+    } else {
+      updatedBasket = {
+        status: OrderStatus.DRAFT,
+        orderDate: new Date(),
+        products: [],
       };
+    }
+    if (
+      !updatedBasket.products.some((el) => {
+        if (el.productId === product.id) {
+          el.quantity += 1;
+          return true;
+        } else return false;
+      })
+    ) {
+      updatedBasket.products.push({
+        productId: product.id,
+        quantity: 1,
+        sortOrder: updatedBasket.products.length,
+      });
+    }
+
+    this.setState({
+      ...this.state,
+      basket: updatedBasket,
     });
   };
 
-  handleAddToBasket = (product: Product) => {
+  handleAddToBasket = (product: PublicProductData) => {
     if (!this.state.user) {
       this.setState({
         pendingProduct: product,
@@ -267,14 +401,19 @@ class App extends Proto<Record<string, never>, AppState> {
   };
 
   handleLegalEntityCtaClick = () => {
-    this.setState({
-      authOpen: true,
-      basketOpen: false,
-      pendingProduct: null,
-      authInitialTab: 'signup',
-      authInitialSignupEntityType: 'LEGAL_ENTITY',
-      authEditingUser: null,
-    });
+    this.setState(
+      {
+        authOpen: true,
+        basketOpen: false,
+        pendingProduct: null,
+        authInitialTab: 'signup',
+        authInitialSignupEntityType: 'LEGAL_ENTITY',
+        authEditingUser: null,
+      },
+      () => {
+        this.getReserves();
+      }
+    );
   };
 
   handleUserEditClick = () => {
@@ -302,9 +441,11 @@ class App extends Proto<Record<string, never>, AppState> {
         authEditingUser: null,
       }),
       () => {
+        this.getReserves();
         if (this.state.pendingProduct) {
           const product = this.state.pendingProduct;
           this.addToBasket(product);
+
           this.setState({ pendingProduct: null });
         }
       }
@@ -350,39 +491,57 @@ class App extends Proto<Record<string, never>, AppState> {
     });
   };
 
-  handleIncreaseBasketItemQty = (index: number) => {
-    this.setState((prevState) => ({
-      basket: prevState.basket.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, qty: item.qty + 1 } : item
-      ),
-    }));
-  };
-
-  handleDecreaseBasketItemQty = (index: number) => {
+  handleIncreaseBasketItemQty = (id: string) => {
     this.setState((prevState) => {
-      const targetItem = prevState.basket[index];
-      if (!targetItem) {
-        return null;
-      }
-
-      if (targetItem.qty <= 1) {
-        return {
-          basket: prevState.basket.filter((_, itemIndex) => itemIndex !== index),
-        };
-      }
-
       return {
-        basket: prevState.basket.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, qty: item.qty - 1 } : item
-        ),
+        ...prevState,
+        basket: {
+          ...prevState.basket,
+          status: prevState.basket!.status!,
+          products: prevState.basket?.products.map((el) => ({
+            ...el,
+            quantity: el.productId === id ? el.quantity + 1 : el.quantity,
+          }))!,
+        },
       };
     });
   };
 
-  handleRemoveBasketItem = (index: number) => {
-    this.setState((prevState) => ({
-      basket: prevState.basket.filter((_, itemIndex) => itemIndex !== index),
-    }));
+  handleDecreaseBasketItemQty = (id: string) => {
+    this.setState((prevState) => {
+      return {
+        ...prevState,
+        basket: {
+          ...prevState.basket,
+          status: prevState.basket!.status!,
+          products: prevState
+            .basket!.products.map((el) => ({
+              ...el,
+              quantity: el.productId === id ? el.quantity - 1 : el.quantity,
+            }))
+            .filter((el) => el.quantity > 0)!,
+        },
+      };
+    });
+  };
+
+  handleRemoveBasketItem = (id: string) => {
+    this.setState((prevState) => {
+      return {
+        ...prevState,
+
+        basket: {
+          ...prevState.basket,
+          status: prevState.basket!.status!,
+          products: prevState.basket?.products
+            .map((el) => ({
+              ...el,
+              quantity: el.productId === id ? 0 : el.quantity,
+            }))
+            .filter((el) => el.quantity > 0)!,
+        },
+      };
+    });
   };
 
   handleSubmitOrder = async (payload: OrderPayload) => {
@@ -403,8 +562,118 @@ class App extends Proto<Record<string, never>, AppState> {
       throw new Error(json.errors[0].message);
     }
 
-    this.setState({ basket: [] });
+    this.setState({ basket: undefined });
   };
+
+  async subscribeUserToPush() {
+    function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      // Возвращаем чистый ArrayBuffer
+      return outputArray.buffer as ArrayBuffer;
+    }
+
+    // Проверяем, запущено ли как PWA (standalone)
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone;
+
+    if (!isStandalone) {
+      alert(
+        "Для включения уведомлений на iOS сначала добавьте приложение на экран 'Домой' через меню 'Поделиться'!"
+      );
+      return;
+    }
+
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      try {
+        // 1. Регистрируем SW
+        const registration = await navigator.serviceWorker.register('/sw.js');
+
+        // 2. Запрашиваем права (строго по клику!)
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.error('Права на уведомления не получены');
+          return;
+        }
+
+        // 3. Получаем публичный VAPID-ключ от вашего Node.js бэкенда
+        const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
+
+        // 4. Подписываемся в Apple Push Service (APNs) через браузерный API
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+        console.log(subscription);
+
+        const MUTATION_ADD_PUSH_SUBSCRIPTION = `
+          mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
+            updateSessionUser(input: $input) {
+              id
+              name
+              fullName
+              entityType
+              phone
+              email
+              bio
+              tgId
+              pib
+              mbr
+              account
+              bank
+              passwordHash
+              pushSubscription
+              createdAt
+              updatedAt
+            }
+          }
+        `;
+        const newData = await this.gql(MUTATION_ADD_PUSH_SUBSCRIPTION, {
+          input: {
+            name: this.state.user?.name,
+            fullName: this.state.user?.fullName,
+            entityType: this.state.user?.entityType,
+            email: this.state.user?.email,
+            phone: this.state.user?.phone || undefined,
+            pib:
+              this.state.user?.entityType === 'LEGAL_ENTITY'
+                ? this.state.user?.pib
+                : null,
+            mbr:
+              this.state.user?.entityType === 'LEGAL_ENTITY'
+                ? this.state.user?.mbr
+                : null,
+            account:
+              this.state.user?.entityType === 'LEGAL_ENTITY'
+                ? this.state.user?.account
+                : null,
+            bank:
+              this.state.user?.entityType === 'LEGAL_ENTITY'
+                ? this.state.user?.bank
+                : null,
+            pushSubscription: subscription,
+          },
+        });
+
+        this.setState({
+          ...this.state,
+          user: newData.updateSessionUser as any,
+        });
+
+        alert('Уведомления успешно настроены!');
+      } catch (error) {
+        console.error('Ошибка подписки:', error);
+      }
+    }
+  }
 
   render() {
     const i18n = this.context;
@@ -422,9 +691,9 @@ class App extends Proto<Record<string, never>, AppState> {
       authInitialTab,
       authInitialSignupEntityType,
       authEditingUser,
-      pendingProduct,
     } = this.state;
-    const basketCount = basket.reduce((sum, i) => sum + i.qty, 0);
+    const basketCount =
+      basket?.products?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
     const isStaffUser = this.isStaffUser(user);
     const isToolPage = currentPage === 'tool';
     const canAccessTool = isToolPage && isStaffUser;
@@ -504,7 +773,7 @@ class App extends Proto<Record<string, never>, AppState> {
           <AuthModal
             onSuccess={this.handleAuthSuccess}
             onClose={this.handleCloseAuth}
-            pendingProductName={pendingProduct?.name ?? null}
+            pendingProductName={null}
             initialTab={authInitialTab}
             initialSignupEntityType={authInitialSignupEntityType}
             editingUser={authEditingUser}
@@ -513,12 +782,14 @@ class App extends Proto<Record<string, never>, AppState> {
         <BasketDrawer
           isOpen={basketOpen}
           user={user}
-          items={basket}
+          items={basket?.products}
           onClose={this.handleCloseBasket}
           onIncreaseQty={this.handleIncreaseBasketItemQty}
           onDecreaseQty={this.handleDecreaseBasketItemQty}
           onRemoveItem={this.handleRemoveBasketItem}
           onSubmitOrder={this.handleSubmitOrder}
+          isPreliminary={this.state.isLoadingBasket}
+          onPushSubscribe={this.subscribeUserToPush.bind(this)}
         />
       </div>
     );

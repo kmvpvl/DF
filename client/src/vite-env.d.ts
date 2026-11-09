@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_LANGUAGES?: string;
   readonly VITE_DEFAULT_LANGUAGE?: string;
   readonly VITE_STAFF_EMAILS?: string;
+  readonly VITE_PUBLIC_VAPID_KEY: string;
 }
 
 interface ImportMeta {

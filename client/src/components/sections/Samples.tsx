@@ -133,9 +133,7 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
     }
   };
 
-  private handleSearchChange = (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
+  private handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     this.setState({
       searchForm: { ...this.state.searchForm, [name]: value },
@@ -168,9 +166,14 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
   };
 
   private handleEditChange = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    event: ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
-    const { name, value } = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const { name, value } = event.target as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement;
     const { editingSample } = this.state;
 
     if (!editingSample) return;
@@ -384,15 +387,18 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
                       <td>{sample.batch.numberStr}</td>
                       <td>{sample.batch.product.name}</td>
                       <td>{sample.result || '-'}</td>
-                      <td>{sample.note ? sample.note.substring(0, 50) + (sample.note.length > 50 ? '...' : '') : '-'}</td>
+                      <td>
+                        {sample.note
+                          ? sample.note.substring(0, 50) +
+                            (sample.note.length > 50 ? '...' : '')
+                          : '-'}
+                      </td>
                       <td>
                         {sample.studyAt
                           ? this.toLocalDate(sample.studyAt)
                           : '-'}
                       </td>
-                      <td>
-                        {this.toLocalDate(sample.createdAt)}
-                      </td>
+                      <td>{this.toLocalDate(sample.createdAt)}</td>
                       <td>
                         <button
                           className="btn btn-small"
@@ -409,11 +415,13 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
             </div>
           )}
 
-          {!loading && samples.length === 0 && Object.values(searchForm).some(v => v) && (
-            <div className="no-results">
-              <p>No samples found matching your search criteria.</p>
-            </div>
-          )}
+          {!loading &&
+            samples.length === 0 &&
+            Object.values(searchForm).some((v) => v) && (
+              <div className="no-results">
+                <p>No samples found matching your search criteria.</p>
+              </div>
+            )}
         </div>
       </section>
     );

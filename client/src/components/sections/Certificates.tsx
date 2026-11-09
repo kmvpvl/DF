@@ -211,7 +211,8 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
 
       this.setState({
         loading: false,
-        availableBatches: data.certificateBatchOptions as CertificateBatchOption[],
+        availableBatches:
+          data.certificateBatchOptions as CertificateBatchOption[],
         products: data.products as ProductOption[],
         certificates: data.certificates as CertificateData[],
       });
@@ -229,7 +230,9 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
     });
   };
 
-  private handleSearchChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  private handleSearchChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = event.target;
     this.setState({
       searchForm: { ...this.state.searchForm, [name]: value },
@@ -379,7 +382,9 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || `Failed to download document (${response.status})`);
+        throw new Error(
+          text || `Failed to download document (${response.status})`
+        );
       }
 
       const disposition = response.headers.get('content-disposition') ?? '';
@@ -393,15 +398,21 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
       const fallbackFileName = `cert-${safeBatchNumber || 'unknown-batch'}.docx`;
       const fileName = fileNameStarMatch?.[1]
         ? decodeURIComponent(fileNameStarMatch[1])
-        : fileNameClassicMatch?.[1] ?? fallbackFileName;
+        : (fileNameClassicMatch?.[1] ?? fallbackFileName);
       const mimeType =
         response.headers.get('content-type') ??
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
       const arrayBuffer = await response.arrayBuffer();
       const signature = new Uint8Array(arrayBuffer.slice(0, 2));
-      if (signature.length < 2 || signature[0] !== 0x50 || signature[1] !== 0x4b) {
+      if (
+        signature.length < 2 ||
+        signature[0] !== 0x50 ||
+        signature[1] !== 0x4b
+      ) {
         const asText = new TextDecoder().decode(arrayBuffer);
-        throw new Error(`Downloaded file is not a valid Word document: ${asText}`);
+        throw new Error(
+          `Downloaded file is not a valid Word document: ${asText}`
+        );
       }
 
       const blob = new Blob([arrayBuffer], { type: mimeType });
@@ -462,9 +473,10 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                   disabled={saving || loading}
                 >
                   <option value="">-- Select Batch --</option>
-                  {availableBatches.map(batch => (
+                  {availableBatches.map((batch) => (
                     <option key={batch.id} value={batch.id}>
-                      {batch.numberStr} - {batch.product.name} ({this.toLocalDate(batch.createdAt)})
+                      {batch.numberStr} - {batch.product.name} (
+                      {this.toLocalDate(batch.createdAt)})
                     </option>
                   ))}
                 </select>
@@ -485,7 +497,11 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
             </label>
 
             <div className="form-actions">
-              <button className="btn btn-primary" onClick={this.createCertificate} disabled={saving || loading}>
+              <button
+                className="btn btn-primary"
+                onClick={this.createCertificate}
+                disabled={saving || loading}
+              >
                 {saving ? 'Creating...' : 'Create Certificate'}
               </button>
             </div>
@@ -537,7 +553,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                   onChange={this.handleSearchChange}
                 >
                   <option value="">All products</option>
-                  {products.map(product => (
+                  {products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.name}
                     </option>
@@ -593,10 +609,18 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
               </label>
 
               <div className="form-actions">
-                <button className="btn btn-primary" onClick={this.saveEdit} disabled={saving}>
+                <button
+                  className="btn btn-primary"
+                  onClick={this.saveEdit}
+                  disabled={saving}
+                >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
-                <button className="btn btn-secondary" onClick={this.cancelEdit} disabled={saving}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={this.cancelEdit}
+                  disabled={saving}
+                >
                   Cancel
                 </button>
               </div>
@@ -617,7 +641,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                 </tr>
               </thead>
               <tbody>
-                {certificates.map(certificate => (
+                {certificates.map((certificate) => (
                   <tr key={certificate.id}>
                     <td>{certificate.numberStr}</td>
                     <td>{this.toLocalDate(certificate.createdAt)}</td>
@@ -639,7 +663,9 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
                         }}
                         disabled={saving || generatingId === certificate.id}
                       >
-                        {generatingId === certificate.id ? 'Generating...' : 'Download Word'}
+                        {generatingId === certificate.id
+                          ? 'Generating...'
+                          : 'Download Word'}
                       </button>
                     </td>
                   </tr>
