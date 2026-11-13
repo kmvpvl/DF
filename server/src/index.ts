@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
 import { prisma } from './lib/prisma';
+import { ILocation } from './types/company';
 import multer from 'multer';
 import {
     CreateBatchInput,
@@ -16,9 +17,7 @@ import {
     CreateCleanActionInput,
     CreateEquipmentInput,
     CreateMaterialInput,
-    CreateOrderInput,
     CreateProcessMapInput,
-    CreateProductInput,
     GraphQLContext,
     SearchCertificatesInput,
     UpdateBatchInput,
@@ -26,7 +25,6 @@ import {
     UpdateEquipmentInput,
     UpdateMaterialInput,
     UpdateProcessMapInput,
-    UpdateProductInput,
 } from './types/types';
 import { BatchService } from './services/batch.service';
 import { gql } from 'graphql-tag';
@@ -41,6 +39,9 @@ import { StorageConditionService } from './services/storage-condition.service';
 import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
 import { OrderService } from './services/order.service';
+import { CreateProductInput, UpdateProductInput } from './types/product';
+import { CreateOrderInput } from './types/order';
+import { CompanyService } from './services/company.service';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -196,9 +197,10 @@ const resolvers = {
 
             return await prisma.user.findUnique({ where: { email: email! } });
         },
-        equipments: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
-            return await EquipmentService.getAll(ctx);
-        },
+        companyInfo: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
+            CompanyService.info(ctx),
+        equipments: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
+            EquipmentService.getAll(ctx),
         users: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
             if (!req.session.userId) throw new Error('Not authenticated');
             return await prisma.user.findMany({ orderBy: { name: 'asc' } });
@@ -986,6 +988,25 @@ const resolvers = {
             return new Date(user.updatedAt).toISOString();
         },
     },
+    Company: {
+        createdAt: (c: { createdAt: Date }) => {
+            return new Date(c.createdAt).toISOString();
+        },
+        updatedAt: (c: { updatedAt: Date }) => {
+            return new Date(c.updatedAt).toISOString();
+        },
+        locations: (c: { locations: ILocation[] }) => {
+            return c.locations.map((l) => ({
+                ...l,
+                createdAt: l.createdAt
+                    ? new Date(l.createdAt).toISOString()
+                    : null,
+                updatedAt: l.updatedAt
+                    ? new Date(l.updatedAt).toISOString()
+                    : null,
+            }));
+        },
+    },
     Equipment: {
         createdAt: (e: { createdAt: Date | string }) =>
             new Date(e.createdAt).toISOString(),
@@ -1116,7 +1137,7 @@ app.options('*', cors(corsOptions));
 //app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-app.enable('trust proxy');
+//app.enable('trust proxy');
 
 app.use(
     session({
@@ -1127,9 +1148,10 @@ app.use(
         rolling: true,
         cookie: {
             httpOnly: true,
-            //sameSite: 'lax',
-            sameSite: 'none',
-            secure: true, //process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            //sameSite: 'none',
+            secure: process.env.NODE_ENV === 'production',
+            //secure: false,
             maxAge: SESSION_TTL_MS,
         },
     })

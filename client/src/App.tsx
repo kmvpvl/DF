@@ -2,16 +2,21 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products, { PublicProductData } from './components/sections/Products';
+import Products, {
+  PUBLIC_PRODUCT_FIELDS,
+  SLIM_PRODUCT_FIELDS,
+} from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
 //import About from './components/sections/About';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
-import Proto from './proto';
+import Proto, { IProtoProps, IProtoState, User } from './proto';
 import Instructions from './components/sections/instructions.tsx';
 import { IOrder, OrderStatus } from './components/sections/Orders.tsx';
+import { PublicProductData } from '@betypes/product.ts';
+import { ICompany } from '@betypes/company.ts';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -52,7 +57,22 @@ const SESSION_USER_QUERY = `
       bank
       pushSubscription
     }
-  }
+    companyInfo {
+        id
+        name
+        locations {
+          id
+          name
+          timezone
+          currencyCode
+          currencySymbol
+          createdAt
+          updatedAt
+        }
+        createdAt
+        updatedAt
+      }
+    }
 `;
 
 const SEND_ORDER_BY_EMAIL_MUTATION = `
@@ -60,37 +80,10 @@ const SEND_ORDER_BY_EMAIL_MUTATION = `
     sendOrderByEmail(input: $input)
   }
 `;
+//interface AppProps extends Record<string, never>;
+interface AppProps extends IProtoProps {}
 
-export interface User {
-  id: string;
-  name: string;
-  fullName: string;
-  entityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
-  email: string;
-  phone?: string | null;
-  pib?: string | null;
-  mbr?: string | null;
-  account?: string | null;
-  bank?: string | null;
-  pushSubscription?: object | null;
-}
-
-export interface DiscountTier {
-  threshold: number;
-  discount: number;
-}
-
-export interface ProductPriceVariation {
-  label: string;
-  price: number;
-  legalEntityPrice?: number;
-  unit?: string;
-  weight?: number;
-  weightUnit?: string;
-}
-
-interface AppState {
-  user: User | null;
+interface AppState extends IProtoState {
   currentPage: 'home' | 'tool';
   activeToolChapter: string;
   basket?: IOrder;
@@ -105,15 +98,18 @@ interface AppState {
 
 interface SessionUserQueryData {
   sessionUser: User | null;
+  companyInfo: ICompany | null;
 }
 
-class App extends Proto<Record<string, never>, AppState> {
+class App extends Proto<AppProps, AppState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
   private sessionSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   state: AppState = {
     user: null,
+    companyInfo: null,
+    currentLocation: null,
     currentPage:
       typeof window !== 'undefined' && window.location.pathname === '/tool'
         ? 'tool'
@@ -197,10 +193,17 @@ class App extends Proto<Record<string, never>, AppState> {
       }
 
       const data = json.data as SessionUserQueryData | undefined;
-      if (data?.sessionUser) {
-        this.setState({ user: data.sessionUser }, () => {
-          this.getReserves();
-        });
+      if (data) {
+        this.setState(
+          {
+            user: data.sessionUser,
+            companyInfo: data.companyInfo,
+            currentLocation: data.companyInfo?.locations[0].id,
+          },
+          () => {
+            this.getReserves();
+          }
+        );
       } else {
         this.setState({ user: null });
       }
@@ -242,15 +245,12 @@ class App extends Proto<Record<string, never>, AppState> {
           updatedAt
           sortOrder
           product {
-            name {
-              default
-              ts
-            }
-            priceOptions
+            ${SLIM_PRODUCT_FIELDS}
           }
         }
       }
     }`;
+    return;
     const data = await this.gql(GET_RESERVES_BY_USER, { state: 'DRAFT' });
     const order: IOrder = (data as any).getDraft;
     if (!order) return;
@@ -290,21 +290,7 @@ class App extends Proto<Record<string, never>, AppState> {
           updatedAt
           locationId
           products {
-            id
-            orderId
-            productId
-            quantity
-            dateReady
-            createdAt
-            updatedAt
-            sortOrder
-            product {
-              name {
-                default
-                ts
-              }
-              priceOptions
-            }
+          ${PUBLIC_PRODUCT_FIELDS}
           }
         }
       }
@@ -373,7 +359,7 @@ class App extends Proto<Record<string, never>, AppState> {
       })
     ) {
       updatedBasket.products.push({
-        productId: product.id,
+        productId: product.id!,
         quantity: 1,
         sortOrder: updatedBasket.products.length,
       });
@@ -691,10 +677,11 @@ class App extends Proto<Record<string, never>, AppState> {
       authInitialTab,
       authInitialSignupEntityType,
       authEditingUser,
+      companyInfo,
     } = this.state;
     const basketCount =
       basket?.products?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
-    const isStaffUser = this.isStaffUser(user);
+    const isStaffUser = user ? this.isStaffUser(user) : false;
     const isToolPage = currentPage === 'tool';
     const canAccessTool = isToolPage && isStaffUser;
 
@@ -715,7 +702,11 @@ class App extends Proto<Record<string, never>, AppState> {
         <main>
           {isToolPage ? (
             canAccessTool ? (
-              <Tool activeChapter={activeToolChapter} user={user} />
+              <Tool
+                activeChapter={activeToolChapter}
+                user={user}
+                companyInfo={companyInfo}
+              />
             ) : (
               <section className="tool-access-denied" aria-live="polite">
                 <div className="tool-access-denied-inner">
@@ -753,9 +744,11 @@ class App extends Proto<Record<string, never>, AppState> {
                 userEntityType={user?.entityType ?? null}
               />
               <Products
+                user={this.state.user}
+                currentLocation={this.state.currentLocation}
+                companyInfo={this.state.companyInfo}
                 onAddToBasket={this.handleAddToBasket}
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
-                userEntityType={user?.entityType ?? null}
               />
               <Delivery />
               <Contacts />

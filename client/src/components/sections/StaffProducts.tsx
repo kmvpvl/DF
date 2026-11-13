@@ -4,46 +4,15 @@ import { IMLString, MLString } from '../../mlstring';
 import MLStringEditor from '../mlstring/mlstring';
 import Tags, { ITags } from '../tags/tags';
 import Photos, { IPhoto } from '../photos/photos';
-export const MLSTRING_FIELDS = `{default ts}`;
-
-export interface ProductPriceOptions {
-  individualPrice?: number;
-  legalPrice?: number;
-  individualPriceCalc?: boolean;
-  legalPriceCalc?: boolean;
-  individualMarginK?: number;
-  legalMarginK?: number;
-  individualDiscountFromDoses?: number;
-  legalDiscountFromDoses?: number;
-}
-
-export const PRODUCT_FIELDS = `
-  id
-  name ${MLSTRING_FIELDS}
-  batchPrefix
-  description ${MLSTRING_FIELDS}
-  caloriesKcal
-  fatGrams
-  proteinGrams
-  carbohydratesGrams
-  sugarsGrams
-  fiberGrams
-  saltGrams
-  standardDose
-  tags
-  photos
-  isPublic
-  priority
-  chapters
-  priceOptions
-  createdAt
-  updatedAt
-`;
+import { MLSTRING_FIELDS } from '../../types/gql';
+import { ALL_PRODUCT_FIELDS } from './Products';
+import { IProductVariant, ProductBaseData } from '@betypes/product';
+import ProductVariantEditor from './ProductVariantEditor';
 
 const PRODUCTS_QUERY = `
   query {
     products {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
     materials {
       id
@@ -174,7 +143,7 @@ const DEFAULT_PRODUCT_WEIGHT = 100;
 const CREATE_PRODUCT_MUTATION = `
   mutation($input: CreateProductInput!) {
     createProduct(input: $input) {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
   }
 `;
@@ -182,7 +151,7 @@ const CREATE_PRODUCT_MUTATION = `
 const UPDATE_PRODUCT_MUTATION = `
   mutation($id: ID!, $input: UpdateProductInput!) {
     updateProduct(id: $id, input: $input) {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
   }
 `;
@@ -228,7 +197,7 @@ const UPDATE_COST_SETTINGS_MUTATION = `
   }
 `;
 
-interface StaffProductData {
+interface StaffProductData extends ProductBaseData {
   id: string;
   name: IMLString;
   batchPrefix: string;
@@ -246,7 +215,6 @@ interface StaffProductData {
   isPublic: boolean;
   chapters: IMLString[];
   priority: number;
-  priceOptions: ProductPriceOptions;
   createdAt: string;
   updatedAt: string;
 }
@@ -400,7 +368,7 @@ interface StaffProductForm {
   isPublic: boolean;
   priority: number;
   chapters: IMLString[];
-  priceOptions: ProductPriceOptions;
+  variants: IProductVariant[];
 }
 
 interface ImportProductsCsvResult {
@@ -457,7 +425,18 @@ const INITIAL_FORM: StaffProductForm = {
   chapters: [],
   priority: 0,
   isPublic: false,
-  priceOptions: {},
+  variants: [
+    {
+      label: {
+        default: 'default',
+        ts: {},
+      },
+      locationPrices: [],
+      isWeightBased: false,
+      weight: 0,
+      weightUnit: 'g',
+    },
+  ],
 };
 
 const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
@@ -473,9 +452,7 @@ const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
   outcomeUnit: 'g',
 };
 
-interface IStaffProductsProps extends IProtoProps {
-  userId?: string;
-}
+interface IStaffProductsProps extends IProtoProps {}
 
 class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
@@ -1541,7 +1518,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
         chapters: product.chapters,
         isPublic: product.isPublic,
         priority: product.priority,
-        priceOptions: product.priceOptions,
+        variants: product.variants,
       },
       processMapPanel: 'none',
       processMapEditingId: null,
@@ -2066,7 +2043,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       chapters: form.chapters,
       priority: form.priority,
       isPublic: form.isPublic,
-      priceOptions: form.priceOptions,
+      variants: form.variants,
     };
 
     try {
@@ -2076,8 +2053,6 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
           input,
         });
         const updated = data.updateProduct as StaffProductData;
-        console.log(1);
-
         this.setState(
           (prevState) => ({
             saving: false,
@@ -2119,6 +2094,44 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     } catch (error) {
       this.setState({ saving: false, error: String(error) });
     }
+  };
+
+  private addVariant = () => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: [
+          ...(prev.form.variants ? prev.form.variants : []),
+          {
+            label: { default: '', ts: {} },
+            locationPrices: [],
+            isWeightBased: false,
+            weight: 0,
+            weightUnit: 'g',
+          },
+        ],
+      },
+    }));
+  };
+
+  private removeVariant = (idx: number) => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: prev.form.variants.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  private updateVariant = (idx: number, updatedVariant: IProductVariant) => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: prev.form.variants.map((v, i) =>
+          i === idx ? updatedVariant : v
+        ),
+      },
+    }));
   };
 
   render() {
@@ -2208,33 +2221,34 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                 void this.saveProduct();
               }}
             >
-              <label className="cj-label">
-                <MLStringEditor
-                  caption="Name"
-                  className="cj-input material-input"
-                  //type="text"
-                  defaultValue={form.name}
-                  onChange={(val) =>
-                    this.setState({ form: { ...form, name: val } })
-                  }
-                />
-              </label>
+              <div className="material-grid">
+                <label className="cj-label">
+                  <MLStringEditor
+                    caption="Name"
+                    className="cj-input material-input"
+                    //type="text"
+                    defaultValue={form.name}
+                    onChange={(val) =>
+                      this.setState({ form: { ...form, name: val } })
+                    }
+                  />
+                </label>
 
-              <label className="cj-label">
-                Batch prefix
-                <input
-                  className="cj-input material-input"
-                  type="text"
-                  value={form.batchPrefix}
-                  onChange={(event) =>
-                    this.setState({
-                      form: { ...form, batchPrefix: event.target.value },
-                    })
-                  }
-                  required
-                />
-              </label>
-
+                <label className="cj-label">
+                  Batch prefix
+                  <input
+                    className="cj-input material-input"
+                    type="text"
+                    value={form.batchPrefix}
+                    onChange={(event) =>
+                      this.setState({
+                        form: { ...form, batchPrefix: event.target.value },
+                      })
+                    }
+                    required
+                  />
+                </label>
+              </div>
               <label className="cj-label">
                 <MLStringEditor
                   className="cj-input material-textarea"
@@ -2259,7 +2273,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                 </div>
               )}
 
-              <div className="material-grid">
+              <div className="material-grid-3">
                 <label className="cj-label">
                   Calories (kcal)
                   <input
@@ -2392,45 +2406,78 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
               </div>
               <div>
                 <div>Customer information</div>
-                <div>
-                  <Photos defaultValue={form.photos} editMode={true} />
+                <div className="material-grid-3">
+                  <div>
+                    <Photos defaultValue={form.photos} editMode={true} />
+                  </div>
+                  <div>
+                    <Tags
+                      editMode={true}
+                      defaultValue={form.tags}
+                      onChange={(val) => {
+                        this.setState({ form: { ...form, tags: val } });
+                      }}
+                    />
+                  </div>
+                  <label className="cj-label">
+                    isPublic
+                    <input
+                      type="checkbox"
+                      defaultChecked={form.isPublic}
+                      onChange={(event) => {
+                        this.setState({
+                          form: {
+                            ...form,
+                            isPublic: event.currentTarget.checked,
+                          },
+                        });
+                      }}
+                    ></input>
+                  </label>
+                  <label className="cj-label">
+                    <Tags
+                      caption={'Chapters'}
+                      editMode={true}
+                      defaultValue={form.chapters}
+                      onChange={(val) => {
+                        this.setState({ form: { ...form, chapters: val } });
+                      }}
+                    />
+                  </label>
                 </div>
                 <div>
-                  <Tags
-                    editMode={true}
-                    defaultValue={form.tags}
-                    onChange={(val) => {
-                      this.setState({ form: { ...form, tags: val } });
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '15px',
                     }}
-                  />
+                  >
+                    <strong>Variants</strong>
+                    <button
+                      type="button"
+                      className="cj-btn-sm"
+                      onClick={this.addVariant}
+                    >
+                      + Add variant
+                    </button>
+                  </div>
+                  {this.props.companyInfo ? (
+                    form.variants?.map((variant, idx) => (
+                      <ProductVariantEditor
+                        locations={this.props.companyInfo!.locations}
+                        key={idx}
+                        variant={variant}
+                        onChange={(updated) => this.updateVariant(idx, updated)}
+                        onRemove={() => this.removeVariant(idx)}
+                      />
+                    ))
+                  ) : (
+                    <></>
+                  )}
                 </div>
-                <label className="cj-label">
-                  isPublic
-                  <input
-                    type="checkbox"
-                    defaultChecked={form.isPublic}
-                    onChange={(event) => {
-                      this.setState({
-                        form: {
-                          ...form,
-                          isPublic: event.currentTarget.checked,
-                        },
-                      });
-                    }}
-                  ></input>
-                </label>
-                <label className="cj-label">
-                  Chapters
-                  <Tags
-                    editMode={true}
-                    defaultValue={form.chapters}
-                    onChange={(val) => {
-                      this.setState({ form: { ...form, chapters: val } });
-                    }}
-                  />
-                </label>
               </div>
-
               {editingProduct && (
                 <div className="cj-label">
                   <div

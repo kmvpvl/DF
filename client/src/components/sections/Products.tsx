@@ -1,82 +1,122 @@
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 import { IMLString, MLString } from '../../mlstring';
-import Proto from '../../proto';
-import Photos, { IPhoto } from '../photos/photos';
-import { ITags } from '../tags/tags';
-import { MLSTRING_FIELDS } from './StaffProducts';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
+import { MLSTRING_FIELDS } from '../../types/gql';
+import Photos from '../photos/photos';
+import { IPriceDetail, PublicProductData } from '@betypes/product';
 
-const PUBLIC_PRODUCT_FIELDS = `
+export const NESTED_PRODUCT_FIELDS = `
+  # 1. Вариации товара (например: разные объемы или веса)
+  variants {
     id
-    name ${MLSTRING_FIELDS}
-    description ${MLSTRING_FIELDS}
-    photos
-    tags
-    chapters
-    priority
-    priceOptions
-    standardDose
-    units ${MLSTRING_FIELDS}
-    stock
-    reserved
+    sku
+    label ${MLSTRING_FIELDS}
+    isWeightBased
+    weight
+    weightUnit
+    
+    # Цены и скидки только для текущей локации пользователя!
+    locationPrices {
+      locationId
+      individualPrice
+      legalEntityPrice
+      individualDiscounts # Вернет JSON [{ threshold: 10, discount: 5 }]
+      isAvailable
+    }
+  }
+  # 2. Опциональные компоненты (Топпинги / Модификаторы)
+  modifierGroups {
+    id
+    isRequired
+    minSelect
+    maxSelect
+    title ${MLSTRING_FIELDS}
+    modifiers {
+      id
+      name ${MLSTRING_FIELDS}
+      # Цена топпинга на данной точке
+      locationPrices {
+        individualPrice
+        isAvailable
+      }
+    }
+  }
+  # 3. Если это комбо-набор — запрашиваем состав
+  comboItems {
+    id
+    quantity
+    sourceProduct {
+      id
+      name ${MLSTRING_FIELDS}
+    }
+  }
+`;
+
+export const SLIM_PRODUCT_FIELDS = `
+  id
+  name ${MLSTRING_FIELDS}
+  description ${MLSTRING_FIELDS}
+  ${NESTED_PRODUCT_FIELDS}
+`;
+
+export const PUBLIC_PRODUCT_FIELDS = `
+  id
+  name ${MLSTRING_FIELDS}
+  description ${MLSTRING_FIELDS}
+  photos
+  tags
+  chapters
+  priority
+  standardDose
+  units ${MLSTRING_FIELDS}
+  ${NESTED_PRODUCT_FIELDS}
+`;
+
+export const ALL_PRODUCT_FIELDS = `
+  id
+  batchPrefix
+  name ${MLSTRING_FIELDS}
+  description ${MLSTRING_FIELDS}
+  photos
+  tags
+  caloriesKcal
+  fatGrams
+  proteinGrams
+  carbohydratesGrams
+  sugarsGrams
+  fiberGrams
+  saltGrams
+  chapters
+  priority
+  standardDose
+  units
+  chapters
+  isPublic
+  priority
+  ${NESTED_PRODUCT_FIELDS}
+  createdAt
+  updatedAt
 `;
 
 const QUERY_PUBLIC_STOCKS = `
 query {
   getPublicProductsWithStock {
     ${PUBLIC_PRODUCT_FIELDS}
+    stock
+    reserved
   }
 }`;
 
-interface ProductsProps {
+interface ProductsProps extends IProtoProps {
   onAddToBasket: (product: PublicProductData) => void;
   onLegalEntityCtaClick: () => void;
-  userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
 }
 
-interface ProductsState {
+interface ProductsState extends IProtoState {
   loading: boolean;
   error?: string;
   products: PublicProductData[];
-  chapters: IMLString[];
-}
-
-interface ThresholdDiscount {
-  threshold: number;
-  discount: number;
-}
-
-interface PriceVariation {
-  label: IMLString;
-  locationId?: string;
-  currency?: IMLString;
-  individualPrice?: number;
-  legalPrice?: number;
-  individualDiscounts?: ThresholdDiscount[];
-  legalDiscount?: ThresholdDiscount[];
-  standardDose: number;
-  units: IMLString;
-}
-
-export interface PublicProductData {
-  id: string;
-  name: IMLString;
-  description: IMLString;
-  photos: IPhoto[];
-  tags: ITags;
-  chapters: IMLString[];
-  priority: number;
-  standardDose: number;
-  units: IMLString;
-  priceOptions: {
-    currency?: IMLString;
-    individualPrice?: number;
-    legalPrice?: number;
-    individualDiscounts?: ThresholdDiscount[];
-    legalDiscount?: ThresholdDiscount[];
-    variations?: PriceVariation[];
-  };
-  stock: number;
-  reserved: number;
+  chapters: (IMLString | undefined)[];
 }
 
 class Products extends Proto<ProductsProps, ProductsState> {
@@ -98,12 +138,12 @@ class Products extends Proto<ProductsProps, ProductsState> {
       const chapters = (
         data.getPublicProductsWithStock as PublicProductData[]
       ).flatMap((val) => val.chapters);
-      if (products.filter((el) => el.chapters.length === 0)) chapters.push('');
+      if (products.filter((el) => el.chapters?.length === 0)) chapters.push('');
       this.setState(
         {
           loading: false,
           products,
-          chapters,
+          chapters: chapters,
         },
         () => {}
       );
@@ -117,32 +157,23 @@ class Products extends Proto<ProductsProps, ProductsState> {
   }
 
   private getDiscountLabels = (product: PublicProductData) => {
-    if (this.props.userEntityType === 'LEGAL_ENTITY') {
-      if (!product.priceOptions.legalDiscount?.length) {
-        return [] as string[];
-      }
-
-      return product.priceOptions.legalDiscount.map(
-        (tier) => `${tier.threshold}+ → -${tier.discount}%`
-      );
+    if (this.props.user?.entityType === 'LEGAL_ENTITY') {
+      //return product.priceOptions.legalDiscount.map(
+      //  (tier) => `${tier.threshold}+ → -${tier.discount}%`
     }
-
-    if (!product.priceOptions.individualDiscounts?.length) {
-      return [] as string[];
-    }
-
-    return product.priceOptions.individualDiscounts.map(
-      (tier) => `${tier.threshold}+ → -${tier.discount}%`
-    );
+    return [];
   };
-
-  productEffectivePrice(product: PublicProductData): string {
-    return `${this.props.userEntityType === 'LEGAL_ENTITY' ? product.priceOptions.legalPrice : product.priceOptions.individualPrice} ${new MLString(product.priceOptions.currency).toString()}`;
-  }
 
   private handleAddClick = (product: PublicProductData) => {
     this.props.onAddToBasket(product);
   };
+
+  protected effectivePrice(p?: IPriceDetail) {
+    const loc = this.props.companyInfo?.locations.find(
+      (l) => l.id === this.props.currentLocation
+    );
+    return `${p ? (this.props.user?.entityType === 'LEGAL_ENTITY' ? (p.legalEntityPrice ?? p.individualPrice) : p.individualPrice) : '-'} ${loc?.currencySymbol}`;
+  }
 
   render() {
     const i18n = this.context;
@@ -172,7 +203,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
               'Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.'
             ).toString()}
           </p>
-          {this.props.userEntityType === 'LEGAL_ENTITY' ? (
+          {this.props.user?.entityType === 'LEGAL_ENTITY' ? (
             <div className="products-legal-entity-banner">
               {this.ML(
                 'You are logged in as a legal entity and we guarantee you have the best prices.'
@@ -200,10 +231,10 @@ class Products extends Proto<ProductsProps, ProductsState> {
           {chapters.map((chapter, chapterId) => {
             const items =
               chapter.toString() === ''
-                ? products.filter((p) => p.chapters.length === 0)
+                ? products.filter((p) => p.chapters?.length === 0)
                 : products.filter((p) =>
                     p.chapters
-                      .map((el) => new MLString(el).toString())
+                      ?.map((el) => new MLString(el).toString())
                       .includes(chapter.toString())
                   );
             return (
@@ -243,34 +274,51 @@ class Products extends Proto<ProductsProps, ProductsState> {
                             ).toString(),
                           }}
                         ></div>
-                        {product.priceOptions.variations &&
-                        product.priceOptions.variations.filter(
-                          (el) =>
-                            el.locationId === '' || el.locationId === undefined
-                        ).length > 0 ? (
+                        {product.variants.length > 0 ? (
                           <div>
                             <ul className="product-price-variations">
-                              <li className="product-price-variation-row">
-                                <button
-                                  type="button"
-                                  className="product-price-variation-button is-active"
-                                  onClick={() => {}}
-                                  aria-label=""
-                                  aria-pressed={true}
-                                >
-                                  <span className="product-price-variation-label-group">
-                                    <span className="product-price-variation-label">
-                                      {product.standardDose}
-                                      {product.units
-                                        ? new MLString(product.units).toString()
-                                        : 'g'}
-                                    </span>
-                                  </span>
-                                  <strong className="product-price-variation-value">
-                                    {this.productEffectivePrice(product)}
-                                  </strong>
-                                </button>
-                              </li>
+                              {product.variants.map((variant) => {
+                                const lPrice = variant.locationPrices.find(
+                                  (l) =>
+                                    l.locationId === this.props.currentLocation
+                                );
+                                return (
+                                  <li
+                                    key={variant.id}
+                                    className="product-price-variation-row"
+                                  >
+                                    <button
+                                      type="button"
+                                      className="product-price-variation-button is-active"
+                                      onClick={() => {}}
+                                      aria-label=""
+                                      aria-pressed={true}
+                                    >
+                                      <span className="product-price-variation-label-group">
+                                        <span className="product-price-variation-label">
+                                          {new MLString(
+                                            variant.label
+                                          ).toString()}
+                                        </span>
+                                        <span className="product-price-variation-weight">
+                                          {`${variant.weight} ${variant.weightUnit}`}
+                                        </span>
+                                      </span>
+                                      <strong className="product-price-variation-value">
+                                        {this.effectivePrice(lPrice)}
+                                      </strong>
+                                      <button
+                                        className="add-btn"
+                                        onClick={() =>
+                                          this.handleAddClick(product)
+                                        }
+                                      >
+                                        →🛒
+                                      </button>
+                                    </button>
+                                  </li>
+                                );
+                              })}
                             </ul>
                           </div>
                         ) : (
@@ -297,13 +345,13 @@ class Products extends Proto<ProductsProps, ProductsState> {
                             className="product-price"
                             data-testid={`product-price-${product.id}`}
                           >
-                            {this.productEffectivePrice(product)}
+                            ***
                           </span>
                           <button
                             className="add-btn"
                             onClick={() => this.handleAddClick(product)}
                           >
-                            {this.ML('Add to basket').toString()}
+                            →🛒
                           </button>
                         </div>
                         <div className="product-footer">

@@ -1,6 +1,7 @@
 import React from 'react';
 import { IMLString, mlStrings, MLString } from './mlstring';
 import { I18nContext, I18nContextValue } from './i18n/I18nContext';
+import { ICompany } from '@betypes/company';
 
 export enum ProtoErrorCode {
   serverNotAvailable,
@@ -9,16 +10,44 @@ export enum ProtoErrorCode {
   serverBroken,
 }
 
-export interface IProtoProps {}
+export interface IProtoProps {
+  user?: User | null;
+  companyInfo?: ICompany | null;
+  currentLocation?: string | null;
+}
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
-export interface IProtoState {}
+
+export interface User {
+  id: string;
+  name: string;
+  fullName: string;
+  entityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  email: string;
+  phone?: string | null;
+  pib?: string | null;
+  mbr?: string | null;
+  account?: string | null;
+  bank?: string | null;
+  pushSubscription?: object | null;
+}
+
+export interface IProtoState {
+  user?: User | null;
+  companyInfo?: ICompany | null;
+  currentLocation?: string | null;
+}
 export default class Proto<
   IProps extends IProtoProps,
   IState extends IProtoState,
 > extends React.Component<IProps, IState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
+  state: Readonly<IState> = {
+    user: this.props.user,
+    companyInfo: this.props.companyInfo,
+    currentLocation: this.props.currentLocation,
+  } as IState;
 
   protected getLanguage(): string {
     return this.context?.language ?? 'en';

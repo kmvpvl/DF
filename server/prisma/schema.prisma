@@ -16,6 +16,11 @@ enum Role {
   SUPERVISOR
 }
 
+enum ProductType {
+  SIMPLE    // Обычный товар (или товар с вариациями/модификаторами)
+  COMBO     // Комбо-набор, состоящий из других товаров
+}
+
 // company  088e3a63cbcd11f1ba2cd256a398ea10
 // location 233c58f8cbcd11f1ba2cd256a398ea10
 
@@ -23,6 +28,9 @@ enum Role {
 model Location {
   id        String   @id @default(cuid())
   name      String
+  timezone  String  @default("Europe/Belgrade") // Например: "Europe/Moscow"
+  currencyCode   String @default("RSD")  // ISO 4217: "USD", "EUR", "GEL", "RUB"
+  currencySymbol String @default("din")  // "$", "€", "₾", "₽"  
   companyId String
   company   Company  @relation(fields: [companyId], references: [id])
   employees User[]
@@ -31,8 +39,12 @@ model Location {
   equipments Equipment[]
   orders    Order[]
   batches   Batch[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime? @updatedAt
 
   // ...
+
+  locationProductConfigs LocationProductConfig[]
 }
 
 model UserLocationRoles {
@@ -165,6 +177,7 @@ model Material {
 
 model Product {
   id                 String   @id @default(cuid())
+  type               ProductType @default(SIMPLE)
   name               Json
   batchPrefix        String   @unique
   description        Json @default("{\"default\":\"\", \"ts\":{}}")
@@ -180,6 +193,9 @@ model Product {
   sugarsGrams        Decimal  @default(0) @db.Decimal(10, 3)
   fiberGrams         Decimal  @default(0) @db.Decimal(10, 3)
   saltGrams          Decimal  @default(0) @db.Decimal(10, 3)
+  variants           ProductVariant[]
+  modifierGroups     ProductModifierGroup[]
+  locationConfigs    LocationProductConfig[]
   ingredients        Ingredient[]
   standardDose Float        @default(100.0) // Добавили стандартную порцию
   units Json?
@@ -192,7 +208,108 @@ model Product {
   priority Int @default(0)
   isPublic Boolean @default(false)
   stockBalances StockFreeBalance[]
-  priceOptions Json @default("{}") 
+   // СВЯЗИ ДЛЯ КОМБО (Добавляем в существующую модель)
+  comboItems        ComboItem[] @relation("ComboToParent") // Если этот товар — КОМБО, тут его состав
+  includedInCombos  ComboItem[] @relation("ComboToSource") // В каких комбо участвует этот товар
+}
+
+model ProductVariant {
+  id            String   @id @default(uuid())
+  productId     String
+  sku           String?
+  label         Json     // IMLString: "100г", "Большая", "Сырный борт"
+  
+  // Логика весового товара
+  isWeightBased Boolean  @default(false) // true - если продается на вес (цена за кг)
+  weight        Float    @default(0)     // Дефолтный вес или шаг веса (например, 0.1 для 100г)
+  weightUnit    String   @default("g")   // "g", "kg"
+
+  // Связи
+  product       Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locationPrices LocationVariantConfig[]
+
+  @@index([productId])
+}
+
+model ProductModifierGroup {
+  id          String             @id @default(uuid())
+  productId   String
+  title       Json               // IMLString: "Выберите соус", "Доп. топпинги"
+  isRequired  Boolean            @default(false)
+  minSelect   Int                @default(0)
+  maxSelect   Int                @default(1)
+
+  // Связи
+  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifiers   ProductModifier[]
+
+  @@index([productId])
+}
+
+model ProductModifier {
+  id              String                    @id @default(uuid())
+  groupId         String
+  name            Json                      // IMLString: "Двойной сыр"
+  weight          Float?
+  weightUnit      String?
+  
+  // Связи
+  group           ProductModifierGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  locationPrices  LocationModifierConfig[]
+
+  @@index([groupId])
+}
+
+model LocationProductConfig {
+  id                 String   @id @default(uuid())
+  locationId         String
+  productId          String
+  isPublicInLocation Boolean  @default(true) // Можно скрыть товар в конкретном городе
+
+  // Связи
+  location           Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, productId]) // Защита от дублей конфига товара на одной точке
+}
+
+model LocationVariantConfig {
+  id                 String   @id @default(uuid())
+  locationId         String
+  variantId          String
+  
+  // Ценообразование (Физлица / Юрлица)
+  individualPrice    Float
+  legalEntityPrice   Float?
+  
+  // Скидочные тиры (Хранятся в JSON массиве: [{threshold: 10, discount: 5}])
+  individualDiscounts Json?   @default("[]")
+  legalDiscounts      Json?   @default("[]")
+
+  // Складской учет для конкретной локации
+  stock              Float    @default(0) // Float для весовых товаров (например, 15.4 кг остатка)
+  isAvailable        Boolean  @default(true)
+
+  // Связи
+  variant            ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, variantId])
+}
+
+model LocationModifierConfig {
+  id               String   @id @default(uuid())
+  locationId       String
+  modifierId       String
+  
+  // Цены топпинга в этой локации
+  individualPrice  Float
+  legalEntityPrice Float?
+  isAvailable      Boolean  @default(true)
+
+  // Связи
+  modifier         ProductModifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, modifierId])
 }
 
 model Batch {
@@ -426,4 +543,23 @@ view StockFreeBalance {
 
   @@unique([productId, locationId]) // Нужно для Prisma, чтобы модель была валидной
   @@map("view_stock_free_balance") // Имя таблицы в БД
+}
+
+model ComboItem {
+  id            String   @id @default(uuid())
+  comboId       String   // ID родительского продукта (у которого type == COMBO)
+  
+  // Мы можем привязать позицию к конкретному варианту ИЛИ к продукту целиком 
+  // (чтобы пользователь сам выбрал вариант/вкус внутри комбо)
+  productId     String
+  variantId     String?  // Опционально: если зафиксирован конкретный размер/объем
+  
+  quantity      Int      @default(1) // Сколько штук этого товара идет в наборе
+  
+  // Связи
+  comboProduct  Product @relation("ComboToParent", fields: [comboId], references: [id], onDelete: Cascade)
+  sourceProduct Product @relation("ComboToSource", fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([comboId])
+  @@index([productId])
 }

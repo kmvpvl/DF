@@ -1,6 +1,6 @@
 import { MLString } from '../../mlstring';
 import Proto from '../../proto';
-import { MLSTRING_FIELDS } from './StaffProducts';
+import { MLSTRING_FIELDS } from '../../types/gql';
 
 const INITIAL_QUERY = `
   query {

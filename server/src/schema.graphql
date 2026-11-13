@@ -3,6 +3,11 @@ enum EntityType {
     LEGAL_ENTITY
 }
 
+enum ProductType {
+    SIMPLE
+    COMBO
+}
+
 enum ContactRequestType {
     FEEDBACK
     FREE_TEST_BATCH
@@ -20,7 +25,7 @@ scalar JSON
 
 type MLString {
     default: String!
-    ts: JSON!
+    ts: JSON
 }
 
 type User {
@@ -46,6 +51,7 @@ type User {
 type Company {
     id: ID!
     name: String!
+    locations: [Location!]!
     createdAt: String!
     updatedAt: String!
 }
@@ -53,6 +59,11 @@ type Company {
 type Location {
     id: ID!
     name: String!
+    timezone: String!
+    currencyCode: String! # ISO 4217: "USD", "GEL", "RUB"
+    currencySymbol: String! # "$", "₾", "₽"
+    createdAt: String!
+    updatedAt: String
 }
 
 type StockBalance {
@@ -191,14 +202,30 @@ type Product {
     fiberGrams: Float!
     saltGrams: Float!
     standardDose: Float!
+    units: JSON
     tags: JSON!
     photos: JSON!
     chapters: JSON!
     isPublic: Boolean!
     priority: Int!
-    priceOptions: JSON!
+    variants: [ProductVariant!]
+    modifierGroups: [ProductModifierGroup!]
+    comboItems: [ComboItem!]
     createdAt: String!
     updatedAt: String!
+}
+
+type ProductVariant {
+    id: ID!
+    productId: ID!
+    sku: String
+    label: MLString! # "100г", "Большая пицца"
+    # Логика весового товара
+    isWeightBased: Boolean!
+    weight: Float! # Шаг веса или дефолтный вес в упаковке
+    weightUnit: String! # "g", "kg"
+    # Конфигурация цены и остатка для ТЕКУЩЕЙ локации пользователя
+    locationPrices: [LocationVariantConfig!]
 }
 
 type PublicProduct {
@@ -212,10 +239,77 @@ type PublicProduct {
     priority: Int!
     standardDose: Float!
     units: MLString
-    priceOptions: JSON!
+    variants: [ProductVariant!]!
+    modifierGroups: [ProductModifierGroup!]!
+    comboItems: [ComboItem!]!
 
     stock: Float # вычисляемое или просто первый элемент массива
     reserved: Float
+}
+
+type ProductModifierGroup {
+    id: ID!
+    productId: ID!
+    title: MLString! # "Выберите соус", "Добавить топпинги"
+    isRequired: Boolean!
+    minSelect: Int!
+    maxSelect: Int!
+    modifiers: [ProductModifier!]!
+}
+
+type ProductModifier {
+    id: ID!
+    groupId: ID!
+    name: MLString! # "Двойной сыр"
+    weight: Float
+    weightUnit: String
+
+    # Цена модификатора в ТЕКУЩЕЙ локации
+    locationPrices: [LocationModifierConfig!]
+}
+
+type ComboItem {
+    id: ID!
+    comboId: ID!
+    productId: ID!
+    variantId: ID
+    quantity: Int!
+
+    # Дополнительно можно подтягивать сам продукт/вариант для фронтенда
+    sourceProduct: Product!
+}
+
+# ==========================================
+# 3. МАТРИЦА ЦЕН И ОСТАТКОВ
+# ==========================================
+
+"""
+Цены и остатки конкретного варианта товара для текущей локации
+"""
+type LocationVariantConfig {
+    id: ID!
+    locationId: ID!
+    variantId: ID!
+
+    # Цены
+    individualPrice: Float!
+    legalEntityPrice: Float # null, если цена совпадает с обычной
+    # Массивы скидок в формате JSON: [{ threshold: 10, discount: 5 }]
+    individualDiscounts: JSON
+    legalDiscounts: JSON
+
+    # Склад
+    stock: Float!
+    isAvailable: Boolean!
+}
+
+type LocationModifierConfig {
+    id: ID!
+    locationId: ID!
+    modifierId: ID!
+    individualPrice: Float!
+    legalEntityPrice: Float
+    isAvailable: Boolean!
 }
 
 type StorageCondition {
@@ -333,6 +427,11 @@ type OrderProduct {
     # Связи (Relations)
     order: Order!
     product: Product! # Раскомментируйте, когда добавите тип Product
+}
+
+input DiscountTierInput {
+    threshold: Float! # Может быть Float для весовых товаров (например, от 1.5 кг)
+    discount: Float! # Процент скидки (например, 10 для 10%)
 }
 
 # Inputs для мутаций (DTO)
@@ -489,6 +588,7 @@ input UpdateMaterialInput {
 
 input CreateProductInput {
     name: JSON!
+    type: ProductType
     batchPrefix: String!
     description: JSON!
     caloriesKcal: Float!
@@ -504,7 +604,10 @@ input CreateProductInput {
     chapters: JSON!
     isPublic: Boolean!
     priority: Int!
-    priceOptions: JSON!
+    # Вложенное создание структуры (Nested Writes)
+    variants: [ProductVariantInput!]!
+    modifierGroups: [CreateProductModifierGroupInput!]
+    comboItems: [CreateComboItemInput!]
 }
 
 input UpdateProductInput {
@@ -521,10 +624,78 @@ input UpdateProductInput {
     standardDose: Float
     photos: JSON
     tags: JSON
-    chapters: JSON!
-    isPublic: Boolean!
-    priority: Int!
-    priceOptions: JSON!
+    chapters: JSON
+    isPublic: Boolean
+    priority: Int
+    # Вложенное создание структуры (Nested Writes)
+    variants: [ProductVariantInput!]!
+    modifierGroups: [CreateProductModifierGroupInput!]
+    comboItems: [CreateComboItemInput!]
+}
+
+input ProductVariantInput {
+    id: ID
+    sku: String
+    label: JSON! # Например: "100г", "Большая"
+    isWeightBased: Boolean!
+    locationPrices: [LocationVariantConfigInput!]!
+    weight: Float!
+    weightUnit: String!
+}
+
+input CreateProductModifierGroupInput {
+    title: JSON! # Например: "Выберите соус"
+    isRequired: Boolean!
+    minSelect: Int!
+    maxSelect: Int!
+    modifiers: [CreateProductModifierInput!]!
+}
+
+input CreateProductModifierInput {
+    name: JSON! # Например: "Двойной сыр"
+    weight: Float
+    weightUnit: String
+}
+
+input CreateComboItemInput {
+    productId: ID!
+    variantId: ID # Опционально, если фиксируется конкретный объем
+    quantity: Int!
+}
+
+# ==========================================
+# 2. INPUTS ДЛЯ МАТРИЦЫ ЦЕН И ЛОКАЦИЙ
+# ==========================================
+
+"""
+Используется для первоначальной настройки или массового обновления цен на точке
+"""
+input UpdateLocationProductConfigInput {
+    locationId: ID!
+    productId: ID!
+    isPublicInLocation: Boolean
+
+    # Цены для вариантов товара на этой локации
+    variants: [LocationVariantConfigInput!]!
+
+    # Цены для модификаторов товара на этой локации
+    modifiers: [UpdateLocationModifierConfigInput!]
+}
+
+input LocationVariantConfigInput {
+    locationId: ID!
+    isAvailable: Boolean
+    individualPrice: Float!
+    legalEntityPrice: Float # null, если совпадает с обычной ценой
+    individualDiscounts: [DiscountTierInput!]
+    legalDiscounts: [DiscountTierInput!]
+}
+
+input UpdateLocationModifierConfigInput {
+    modifierId: ID!
+    individualPrice: Float!
+    legalEntityPrice: Float
+    isAvailable: Boolean!
 }
 
 input CreateProcessParameterInput {
@@ -648,6 +819,7 @@ input SearchOrderInput {
 
 type Query {
     hello: String
+    companyInfo: Company!
     userById(id: ID!): User!
     userInfo(id: ID, email: String): User
     sessionUser: User
@@ -693,8 +865,13 @@ type Mutation {
         csv: String!
         overwriteExisting: Boolean = true
     ): ImportMaterialsCsvResult!
+
     createProduct(input: CreateProductInput!): Product!
     updateProduct(id: ID!, input: UpdateProductInput!): Product!
+    updateLocationProductConfig(
+        input: UpdateLocationProductConfigInput!
+    ): LocationVariantConfig!
+
     importProductsCsv(
         csv: String!
         overwriteExisting: Boolean = true

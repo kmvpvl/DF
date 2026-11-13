@@ -21,6 +21,7 @@
   gap: 0.5em;
   width: 100%;
   overflow: hidden;
+  width: 100%;
 }
 
 .mlstring-editor-value-toolbar {
@@ -29,6 +30,7 @@
 
 .mlstring-editor-compact {
   display: grid;
+  row-gap: 0.5rem;
   grid-template-columns: auto 1fr;
   grid-template-rows: min-content min-content;
 }
@@ -36,11 +38,14 @@
 .mlstring-editor-compact > input,
 .mlstring-editor-compact > input:focus {
   grid-column: span 2;
-  border-bottom: 1px solid;
-  border-left: 1px solid;
-  border-right: 1px solid;
-  border-top: 0px solid;
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-top: 0px solid var(--border);
   outline: none;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.9rem;
 }
 
 .mlstring-editor-compact > span:first-child {
