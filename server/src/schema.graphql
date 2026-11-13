@@ -739,6 +739,7 @@ input UpdateProcessMapInput {
 
 input CreateBatchInput {
     productId: ID!
+    variantLabel: String
     nettoWeight: Float!
     storageDurationDays: Int!
     storageConditionId: ID

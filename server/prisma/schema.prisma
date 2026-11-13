@@ -439,7 +439,7 @@ model OrderProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sortOrder Int
-  variationLabel String?
+  variantLabel String?
   price Float
 
   @@index([orderId], map: "OrderProduct_orderId_fkey")
@@ -511,6 +511,7 @@ model Movement {
   createdAt    DateTime     @default(now())
   
   product      Product      @relation(fields: [productId], references: [id])
+  variantLabel String?
   batch        Batch?       @relation(fields: [batchId], references: [id])
   locationId String
   location   Location @relation(fields: [locationId], references: [id])
@@ -536,6 +537,7 @@ model MovementGroup {
 
 view StockFreeBalance {
   productId        String
+  variantLabel     String?
   locationId       String
   physical_balance Float
   reserved_balance Float

@@ -1,5 +1,5 @@
-import { MLString } from '../../mlstring';
-import Proto from '../../proto';
+import { IMLString, MLString } from '../../mlstring';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
 
 const INITIAL_QUERY = `
@@ -8,6 +8,12 @@ const INITIAL_QUERY = `
       id
       name ${MLSTRING_FIELDS}
       batchPrefix
+      variants {
+        id
+        label ${MLSTRING_FIELDS}
+        weight
+        weightUnit
+      }
     }
     storageConditions {
       id
@@ -113,6 +119,12 @@ interface BatchProductOption {
   id: string;
   name: string;
   batchPrefix: string;
+  variants: {
+    id: string;
+    label: IMLString;
+    weight: number;
+    weightUnit: string;
+  }[];
 }
 
 interface StorageConditionOption {
@@ -175,6 +187,7 @@ interface StaffBatchData {
 interface BatchForm {
   productId: string;
   nettoWeight: string;
+  variantLabel?: string;
   storageDurationDays: string;
   storageConditionId: string;
   storageConditionName: string;
@@ -183,7 +196,7 @@ interface BatchForm {
   sampleCount: string;
 }
 
-interface StaffBatchesState {
+interface StaffBatchesState extends IProtoState {
   products: BatchProductOption[];
   storageConditions: StorageConditionOption[];
   batches: StaffBatchData[];
@@ -216,7 +229,7 @@ const INITIAL_FORM: BatchForm = {
   sampleCount: '0',
 };
 
-class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
+class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
   state: StaffBatchesState = {
     products: [],
     storageConditions: [],
@@ -556,6 +569,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
         const data = await this.gql(CREATE_BATCH_MUTATION, {
           input: {
             productId: form.productId,
+            variantLabel: form.variantLabel,
             nettoWeight,
             storageDurationDays,
             storageConditionId: form.storageConditionId.trim() || null,
@@ -658,6 +672,8 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       calculatedIngredients,
     } = this.state;
 
+    const product = this.state.products.find((p) => p.id === form.productId);
+
     return (
       <div className="cleaning-journal">
         <div className="cj-header">
@@ -690,25 +706,60 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
               }}
             >
               {adding ? (
-                <label className="cj-label">
-                  Product
-                  <select
-                    className="cj-select batch-select"
-                    value={form.productId}
-                    onChange={(event) => {
-                      void this.handleCreateProductChange(event.target.value);
-                    }}
-                    required
-                  >
-                    <option value="">Select product</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {new MLString(product.name).toString()} (
-                        {product.batchPrefix})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="material-grid">
+                  <label className="cj-label">
+                    Product
+                    <select
+                      className="cj-select batch-select"
+                      value={form.productId}
+                      onChange={(event) => {
+                        void this.handleCreateProductChange(event.target.value);
+                      }}
+                      required
+                    >
+                      <option value="">Select product</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {new MLString(product.name).toString()} (
+                          {product.batchPrefix})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cj-label">
+                    Variant
+                    <select
+                      className="cj-select"
+                      onClick={(event) =>
+                        this.setState({
+                          ...this.state,
+                          form: {
+                            ...this.state.form,
+                            variantLabel: event.currentTarget.value,
+                          },
+                        })
+                      }
+                    >
+                      <option>Select variant</option>
+                      {product ? (
+                        product.variants.map((v) => (
+                          <option
+                            key={v.id}
+                            value={
+                              typeof v.label === 'string'
+                                ? v.label
+                                : v.label.default
+                            }
+                          >
+                            {`${new MLString(v.label).toString()} - ${v.weight}${v.weightUnit}`}
+                          </option>
+                        ))
+                      ) : (
+                        <></>
+                      )}
+                    </select>
+                  </label>
+                </div>
               ) : (
                 <div className="batch-preview-box">
                   <strong>Product:</strong> {editingBatch?.product.name} (
@@ -718,7 +769,7 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                 </div>
               )}
 
-              <div className="material-grid">
+              <div className="material-grid-3">
                 {adding && this.renderBatchPreview()}
 
                 {form.productId && (

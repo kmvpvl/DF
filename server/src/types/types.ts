@@ -14,6 +14,7 @@ export interface GraphQLContext {
 
 export interface CreateBatchInput {
     productId: string;
+    variantLabel?: string;
     nettoWeight: number;
     storageDurationDays: number;
     storageConditionId?: string;
@@ -61,6 +62,7 @@ export interface CreateCleanActionInput {
 export interface CreateMovementInput {
     type: MovementType;
     productId: string;
+    variantLabel?: string;
     batchId?: string;
     quantity: number;
     locationId: string;

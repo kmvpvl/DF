@@ -39,9 +39,14 @@ import { StorageConditionService } from './services/storage-condition.service';
 import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
 import { OrderService } from './services/order.service';
-import { CreateProductInput, UpdateProductInput } from './types/product';
+import {
+    CreateProductInput,
+    IProductVariant,
+    UpdateProductInput,
+} from './types/product';
 import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
+import { IMLString } from './lib/mlstring';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -763,8 +768,24 @@ const resolvers = {
                 where: {
                     id: input.productId,
                 },
+                include: {
+                    variants: true,
+                },
             });
-            if (!product) throw Error(``);
+            if (!product)
+                throw Error(
+                    `Create batch product id = "${input.productId}" not found`
+                );
+            const variant = product.variants.find(
+                (v) =>
+                    (v.label === 'string'
+                        ? v.label
+                        : (v.label as any)?.default) === input.variantLabel
+            );
+            if (!variant && input.variantLabel)
+                throw Error(
+                    `Create Create batch product id = "${input.productId}" with wrong variantLabel`
+                );
             return await prisma.$transaction(async (tx) => {
                 // Передаем tx в каждую функцию
                 const batch = await BatchService.create(input, cnt, tx);
@@ -774,9 +795,13 @@ const resolvers = {
                         productId: input.productId,
                         batchId: batch.id,
                         quantity: Math.trunc(
-                            input.nettoWeight / product?.standardDose
+                            input.nettoWeight /
+                                (variant?.weight
+                                    ? variant?.weight
+                                    : product.standardDose)
                         ),
                         locationId: cnt.locationId!,
+                        variantLabel: input.variantLabel,
                     },
                     cnt,
                     tx
