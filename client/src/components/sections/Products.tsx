@@ -2,8 +2,8 @@ import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 import { IMLString, MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
-import Photos from '../photos/photos';
-import { IPriceDetail, PublicProductData } from '@betypes/product';
+import { PublicProductData } from '@betypes/product';
+import { ProductCard } from './ProductCard';
 
 export const NESTED_PRODUCT_FIELDS = `
   # 1. Вариации товара (например: разные объемы или веса)
@@ -156,24 +156,9 @@ class Products extends Proto<ProductsProps, ProductsState> {
     this.fetchProducts();
   }
 
-  private getDiscountLabels = (product: PublicProductData) => {
-    if (this.props.user?.entityType === 'LEGAL_ENTITY') {
-      //return product.priceOptions.legalDiscount.map(
-      //  (tier) => `${tier.threshold}+ → -${tier.discount}%`
-    }
-    return [];
-  };
-
   private handleAddClick = (product: PublicProductData) => {
     this.props.onAddToBasket(product);
   };
-
-  protected effectivePrice(p?: IPriceDetail) {
-    const loc = this.props.companyInfo?.locations.find(
-      (l) => l.id === this.props.currentLocation
-    );
-    return `${p ? (this.props.user?.entityType === 'LEGAL_ENTITY' ? (p.legalEntityPrice ?? p.individualPrice) : p.individualPrice) : '-'} ${loc?.currencySymbol}`;
-  }
 
   render() {
     const i18n = this.context;
@@ -247,120 +232,14 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 {items.length > 0 ? (
                   <div className="products-grid">
                     {items.map((product) => (
-                      <div key={product.id} className="product-card">
-                        {product.photos && product.photos.length > 0 ? (
-                          <>
-                            <Photos
-                              className="product-media-button"
-                              editMode={false}
-                              defaultValue={product.photos}
-                            />
-                            <div
-                              className="product-photo-dots"
-                              aria-label={`${product.name} photos`}
-                            ></div>
-                          </>
-                        ) : (
-                          ''
-                        )}
-                        <div className="product-name">
-                          {new MLString(product.name).toString()}
-                        </div>
-                        <div
-                          className="product-desc"
-                          dangerouslySetInnerHTML={{
-                            __html: new MLString(
-                              product.description
-                            ).toString(),
-                          }}
-                        ></div>
-                        {product.variants.length > 0 ? (
-                          <div>
-                            <ul className="product-price-variations">
-                              {product.variants.map((variant) => {
-                                const lPrice = variant.locationPrices.find(
-                                  (l) =>
-                                    l.locationId === this.props.currentLocation
-                                );
-                                return (
-                                  <li
-                                    key={variant.id}
-                                    className="product-price-variation-row"
-                                  >
-                                    <button
-                                      type="button"
-                                      className="product-price-variation-button is-active"
-                                      onClick={() => {}}
-                                      aria-label=""
-                                      aria-pressed={true}
-                                    >
-                                      <span className="product-price-variation-label-group">
-                                        <span className="product-price-variation-label">
-                                          {new MLString(
-                                            variant.label
-                                          ).toString()}
-                                        </span>
-                                        <span className="product-price-variation-weight">
-                                          {`${variant.weight} ${variant.weightUnit}`}
-                                        </span>
-                                      </span>
-                                      <strong className="product-price-variation-value">
-                                        {this.effectivePrice(lPrice)}
-                                      </strong>
-                                      <button
-                                        className="add-btn"
-                                        onClick={() =>
-                                          this.handleAddClick(product)
-                                        }
-                                      >
-                                        →🛒
-                                      </button>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        ) : (
-                          <></>
-                        )}
-                        <div>
-                          {this.getDiscountLabels(product).length > 0 && (
-                            <ul className="product-discounts">
-                              {this.getDiscountLabels(product).map(
-                                (discountLabel) => (
-                                  <li
-                                    key={discountLabel}
-                                    className="product-discount-tier"
-                                  >
-                                    <strong>{discountLabel}</strong>
-                                  </li>
-                                )
-                              )}
-                            </ul>
-                          )}
-                        </div>
-                        <div className="product-footer">
-                          <span
-                            className="product-price"
-                            data-testid={`product-price-${product.id}`}
-                          >
-                            ***
-                          </span>
-                          <button
-                            className="add-btn"
-                            onClick={() => this.handleAddClick(product)}
-                          >
-                            →🛒
-                          </button>
-                        </div>
-                        <div className="product-footer">
-                          <span className="product-desc">
-                            {this.ML('Доступно прямо сейчас')}
-                          </span>
-                          <strong>{product.stock}</strong>
-                        </div>
-                      </div>
+                      <ProductCard
+                        user={this.props.user}
+                        key={product.id}
+                        product={product}
+                        companyInfo={this.props.companyInfo} // Передаем пропсы для Proto
+                        currentLocation={this.props.currentLocation}
+                        onAddToBasket={this.handleAddClick}
+                      />
                     ))}
                   </div>
                 ) : (

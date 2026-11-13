@@ -10,9 +10,10 @@ export default defineConfig({
       '@betypes': path.resolve(__dirname, '../server/src/types/'),
     },
   },
-/*   test: {
+  /*   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
   },
- */});
+ */
+});
