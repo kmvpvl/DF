@@ -415,16 +415,8 @@ export class ProductService {
                 isPublic: true,
                 companyId: companyId,
             },
-            select: {
-                id: true,
-                name: true,
-                description: true,
-                photos: true,
-                tags: true,
-                chapters: true,
-                priority: true,
-                standardDose: true,
-                units: true,
+            include: {
+                stockBalances: true,
                 variants: {
                     include: {
                         locationPrices: true,
@@ -432,13 +424,6 @@ export class ProductService {
                 },
                 modifierGroups: true,
                 comboItems: true,
-                // Делаем join только для конкретной локации
-                stockBalances: {
-                    where: {
-                        locationId: locationId ? locationId : ctx.locationId,
-                    },
-                    select: { physical_balance: true, reserved_balance: true },
-                },
             },
         });
     }

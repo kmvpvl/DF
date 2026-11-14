@@ -102,8 +102,13 @@ const QUERY_PUBLIC_STOCKS = `
 query {
   getPublicProductsWithStock {
     ${PUBLIC_PRODUCT_FIELDS}
-    stock
-    reserved
+    stockBalances {
+      productId
+      variantLabel
+      locationId
+      physical_balance
+      reserved_balance
+    }
   }
 }`;
 
@@ -231,16 +236,20 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 </h3>
                 {items.length > 0 ? (
                   <div className="products-grid">
-                    {items.map((product) => (
-                      <ProductCard
-                        user={this.props.user}
-                        key={product.id}
-                        product={product}
-                        companyInfo={this.props.companyInfo} // Передаем пропсы для Proto
-                        currentLocation={this.props.currentLocation}
-                        onAddToBasket={this.handleAddClick}
-                      />
-                    ))}
+                    {items.map((product) =>
+                      ProductCard.isAvailable(product) ? (
+                        <ProductCard
+                          user={this.props.user}
+                          key={product.id}
+                          product={product}
+                          companyInfo={this.props.companyInfo} // Передаем пропсы для Proto
+                          currentLocation={this.props.currentLocation}
+                          onAddToBasket={this.handleAddClick}
+                        />
+                      ) : (
+                        <></>
+                      )
+                    )}
                   </div>
                 ) : (
                   <p className="products-chapter-empty">Coming soon…</p>

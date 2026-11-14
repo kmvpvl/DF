@@ -543,7 +543,7 @@ view StockFreeBalance {
   reserved_balance Float
   product          Product  @relation(fields: [productId], references: [id])
 
-  @@unique([productId, locationId]) // Нужно для Prisma, чтобы модель была валидной
+  @@unique([productId, locationId, variantLabel]) // Нужно для Prisma, чтобы модель была валидной
   @@map("view_stock_free_balance") // Имя таблицы в БД
 }
 

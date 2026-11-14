@@ -228,6 +228,14 @@ type ProductVariant {
     locationPrices: [LocationVariantConfig!]
 }
 
+type ProductStockBalance {
+    productId: String!
+    variantLabel: String
+    locationId: String!
+    physical_balance: Float!
+    reserved_balance: Float!
+}
+
 type PublicProduct {
     id: ID!
     name: MLString!
@@ -243,8 +251,9 @@ type PublicProduct {
     modifierGroups: [ProductModifierGroup!]!
     comboItems: [ComboItem!]!
 
-    stock: Float # вычисляемое или просто первый элемент массива
-    reserved: Float
+    #    stocks: [Float!] # вычисляемое или просто первый элемент массива
+    #    reserved: [Float!]
+    stockBalances: [ProductStockBalance!]
 }
 
 type ProductModifierGroup {

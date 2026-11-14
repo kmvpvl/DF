@@ -103,8 +103,13 @@ export interface ProductBaseData {
 }
 
 export interface PublicProductData extends ProductBaseData {
-    stock: number;
-    reserved: number;
+    stockBalances: {
+        productId: string;
+        variantLabel?: string;
+        locationId: string;
+        physical_balance: number;
+        reserved_balance: number;
+    }[];
 }
 
 export interface CreateProductInput extends ProductBaseData {}

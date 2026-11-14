@@ -461,10 +461,7 @@ const resolvers = {
             );
 
             // Мапим результат, чтобы "stock" был простым числом, а не вложенным объектом
-            return products.map((p) => ({
-                ...p,
-                stock: p.stockBalances[0]?.physical_balance || 0,
-            }));
+            return products;
         },
     },
     Mutation: {

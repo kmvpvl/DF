@@ -13,15 +13,34 @@ interface ProductCardProps extends IProtoProps {
 }
 
 interface ProductCardState extends IProtoState {
+  availableProduct: PublicProductData;
   variantSelected?: string;
 }
 
 export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
+  state: ProductCardState = {
+    availableProduct: {
+      ...this.props.product,
+      variants: this.props.product.variants.filter(v=> this.props.product.stockBalances.some(s=>s.variantLabel === (typeof v.label  === "string"?v.label:v.label.default) && s.physical_balance-s.reserved_balance>0)),
+    }
+  }
+  static isAvailable(product: PublicProductData) {
+    return product.variants.some((variant) =>
+      product.stockBalances.some(
+        (stock) =>
+          stock.variantLabel ===
+            (typeof variant.label === 'string'
+              ? variant.label
+              : variant.label.default) &&
+          stock.physical_balance - stock.reserved_balance > 0
+      )
+    );
+  }
   componentDidMount(): void {
     if (this.state.variantSelected === undefined) {
-      this.setState((prevState, props) => ({
+      this.setState((prevState) => ({
         ...prevState,
-        variantSelected: props.product.variants[0]?.id,
+        variantSelected: prevState.availableProduct.variants[0]?.id,
       }));
     }
   }
@@ -91,7 +110,17 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                 (l) => l.locationId === this.props.currentLocation
               );
               lDPrice = lDPrice;
-              return (
+              const variantStocks = product.stockBalances.find(
+                (s) =>
+                  s.variantLabel ===
+                  (typeof variant.label === 'string'
+                    ? variant.label
+                    : variant.label.default)
+              );
+
+              return variantStocks &&
+                variantStocks.physical_balance -
+                  variantStocks.reserved_balance ? (
                 <li key={variant.id} className="product-price-variation-row">
                   <span
                     className={`product-price-variation-button ${variant.id === this.state.variantSelected ? 'is-active' : ''}`}
@@ -106,6 +135,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                       <span className="product-price-variation-weight">
                         {`${variant.weight} ${variant.weightUnit}`}
                       </span>
+                      <span className="product-available">{`(${this.ML('available')}: ${variantStocks.physical_balance-variantStocks.reserved_balance})`}</span>
                     </span>
                     <strong className="product-price-variation-value">
                       {this.effectivePrice(lPrice)}
@@ -122,6 +152,8 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                     )}
                   </span>
                 </li>
+              ) : (
+                <></>
               );
             })}
           </ul>
@@ -139,12 +171,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
           <></>
         )}
 
-        <div className="product-footer">
-          <span className="product-desc">
-            {this.ML('Доступно прямо сейчас')}
-          </span>
-          <strong>{product.stock}</strong>
-        </div>
+        <div className="product-footer"></div>
       </div>
     );
   }
