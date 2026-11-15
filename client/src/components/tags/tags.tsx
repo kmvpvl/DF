@@ -5,6 +5,7 @@ import { IMLString } from '../../mlstring';
 
 export type ITags = IMLString[];
 export interface ITagsProps {
+  caption?: IMLString;
   defaultValue?: IMLString[];
   editMode: boolean;
   onChange?: (newTags: IMLString[]) => void;
@@ -26,7 +27,13 @@ export default class Tags extends React.Component<ITagsProps, ITagsState> {
       <div
         className={`tags-container ${this.props.editMode ? 'has-caption' : ''}`}
       >
-        {this.props.editMode ? <div className="caption">TAGS</div> : <></>}
+        {this.props.editMode ? (
+          <div className="caption">
+            {this.props.caption ? this.props.caption.toString() : 'TAGS'}
+          </div>
+        ) : (
+          <></>
+        )}
         {this.state.value.map((s, idx) => (
           <span className="has-context-toolbar" key={idx}>
             {s.toString()}

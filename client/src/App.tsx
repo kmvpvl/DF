@@ -2,16 +2,25 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products, { PublicProductData } from './components/sections/Products';
+import Products, {
+  PUBLIC_PRODUCT_FIELDS,
+  SLIM_PRODUCT_FIELDS,
+} from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
 //import About from './components/sections/About';
 import { I18nContext, type I18nContextValue } from './i18n/I18nContext';
 import './App.css';
-import Proto from './proto';
+import Proto, { IProtoProps, IProtoState, User } from './proto';
 import Instructions from './components/sections/instructions.tsx';
-import { IOrder, OrderStatus } from './components/sections/Orders.tsx';
+import {
+  IOrder,
+  IOrderProduct,
+  OrderStatus,
+} from './components/sections/Orders.tsx';
+import { ICompany } from '@betypes/company.ts';
+import { PublicProductData } from '@betypes/product.ts';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -52,7 +61,22 @@ const SESSION_USER_QUERY = `
       bank
       pushSubscription
     }
-  }
+    companyInfo {
+        id
+        name
+        locations {
+          id
+          name
+          timezone
+          currencyCode
+          currencySymbol
+          createdAt
+          updatedAt
+        }
+        createdAt
+        updatedAt
+      }
+    }
 `;
 
 const SEND_ORDER_BY_EMAIL_MUTATION = `
@@ -61,36 +85,24 @@ const SEND_ORDER_BY_EMAIL_MUTATION = `
   }
 `;
 
-export interface User {
-  id: string;
-  name: string;
-  fullName: string;
-  entityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
-  email: string;
-  phone?: string | null;
-  pib?: string | null;
-  mbr?: string | null;
-  account?: string | null;
-  bank?: string | null;
-  pushSubscription?: object | null;
-}
+const QUERY_PUBLIC_STOCKS = `
+query {
+  getPublicProductsWithStock {
+    ${PUBLIC_PRODUCT_FIELDS}
+    stockBalances {
+      productId
+      variantLabel
+      locationId
+      physical_balance
+      reserved_balance
+    }
+  }
+}`;
 
-export interface DiscountTier {
-  threshold: number;
-  discount: number;
-}
+//interface AppProps extends Record<string, never>;
+interface AppProps extends IProtoProps {}
 
-export interface ProductPriceVariation {
-  label: string;
-  price: number;
-  legalEntityPrice?: number;
-  unit?: string;
-  weight?: number;
-  weightUnit?: string;
-}
-
-interface AppState {
-  user: User | null;
+interface AppState extends IProtoState {
   currentPage: 'home' | 'tool';
   activeToolChapter: string;
   basket?: IOrder;
@@ -100,20 +112,24 @@ interface AppState {
   authInitialTab: 'login' | 'signup';
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   authEditingUser: User | null;
-  pendingProduct: PublicProductData | null;
+  pendingProduct: IOrderProduct | null;
+  products: PublicProductData[];
 }
 
 interface SessionUserQueryData {
   sessionUser: User | null;
+  companyInfo: ICompany | null;
 }
 
-class App extends Proto<Record<string, never>, AppState> {
+class App extends Proto<AppProps, AppState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
   private sessionSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   state: AppState = {
     user: null,
+    companyInfo: null,
+    currentLocation: null,
     currentPage:
       typeof window !== 'undefined' && window.location.pathname === '/tool'
         ? 'tool'
@@ -126,11 +142,27 @@ class App extends Proto<Record<string, never>, AppState> {
     authInitialSignupEntityType: 'INDIVIDUAL',
     authEditingUser: null,
     pendingProduct: null,
+    products: [],
   };
+
+  async fetchProducts() {
+    try {
+      const data = await this.gql(QUERY_PUBLIC_STOCKS);
+      const products = data.getPublicProductsWithStock as PublicProductData[];
+      this.setState(
+        {
+          ...this.state,
+          products,
+        },
+        () => {}
+      );
+    } catch (error) {}
+  }
 
   componentDidMount() {
     void this.restoreSessionFromServer();
     this.scheduleSessionSync();
+    this.fetchProducts();
     window.addEventListener('popstate', this.syncPageFromLocation);
   }
 
@@ -197,10 +229,17 @@ class App extends Proto<Record<string, never>, AppState> {
       }
 
       const data = json.data as SessionUserQueryData | undefined;
-      if (data?.sessionUser) {
-        this.setState({ user: data.sessionUser }, () => {
-          this.getReserves();
-        });
+      if (data) {
+        this.setState(
+          {
+            user: data.sessionUser,
+            companyInfo: data.companyInfo,
+            currentLocation: data.companyInfo?.locations[0].id,
+          },
+          () => {
+            this.getReserves();
+          }
+        );
       } else {
         this.setState({ user: null });
       }
@@ -241,12 +280,10 @@ class App extends Proto<Record<string, never>, AppState> {
           createdAt
           updatedAt
           sortOrder
+          variantLabel
+          price
           product {
-            name {
-              default
-              ts
-            }
-            priceOptions
+            ${SLIM_PRODUCT_FIELDS}
           }
         }
       }
@@ -298,12 +335,10 @@ class App extends Proto<Record<string, never>, AppState> {
             createdAt
             updatedAt
             sortOrder
+            variantLabel
+            price
             product {
-              name {
-                default
-                ts
-              }
-              priceOptions
+              ${SLIM_PRODUCT_FIELDS}
             }
           }
         }
@@ -317,43 +352,62 @@ class App extends Proto<Record<string, never>, AppState> {
 
     // Включаем блокировку
     //this.setState({ isLoadingBasket: true });
-    const input: IOrder = {
-      ...basket,
-      products: basket.products.map((el) => ({
-        productId: el.productId,
-        quantity: el.quantity,
-      })),
-    };
-
     try {
-      const data = await this.gql(RESERVE_MUTATION, { input });
-      const order: IOrder = (data as any).draft;
-      console.log(data);
-      this.setState(
-        (prevState) => {
-          return {
-            ...prevState,
-            basket: order,
-            isLoadingBasket: true,
-          };
+      const dataPromise = this.gql(RESERVE_MUTATION, {
+        input: {
+          ...basket,
+          customerName: this.state.user?.fullName,
+          products: basket.products.map((p) => ({
+            productId: p.productId,
+            quantity: p.quantity,
+            sortOrder: p.sortOrder,
+            variantLabel: p.variantLabel,
+          })),
         },
-        () => {
-          this.setState({ ...this.state, isLoadingBasket: false });
-        }
-      );
+      });
+      this.setState({
+        ...this.state,
+        isLoadingBasket: true,
+      });
+      dataPromise
+        .finally(() => {
+          //this.setState({ ...this.state, isLoadingBasket: false });
+          this.fetchProducts();
+        })
+        .then((data) => {
+          const order: IOrder = (data as any).draft;
+          this.setState(
+            (prevState) => ({
+              ...prevState,
+              basket: order,
+            }),
+            () => {
+              this.setState({
+                ...this.state,
+                isLoadingBasket: false,
+              });
+            }
+          );
+        })
+        .catch((error) => {
+          console.error('Ошибка при резервировании корзины:', error);
+          return null;
+        });
     } catch (error) {
       console.error('Ошибка при резервировании корзины:', error);
-      return null;
+      debugger;
+      this.setState({ ...this.state, isLoadingBasket: false });
     }
   }
 
   componentDidUpdate(_: Readonly<{}>, prevState: Readonly<AppState>) {
     if (prevState.basket !== this.state.basket) {
-      if (this.state.basket) this.reserveBasket(this.state.basket);
+      if (this.state.basket && !this.state.isLoadingBasket)
+        this.reserveBasket(this.state.basket);
     }
   }
 
-  addToBasket = (product: PublicProductData) => {
+  addToBasket = (product: IOrderProduct) => {
     let updatedBasket: IOrder;
     if (this.state.basket) {
       updatedBasket = { ...this.state.basket };
@@ -366,16 +420,20 @@ class App extends Proto<Record<string, never>, AppState> {
     }
     if (
       !updatedBasket.products.some((el) => {
-        if (el.productId === product.id) {
+        if (
+          el.productId === product.productId &&
+          el.variantLabel === product.variantLabel
+        ) {
           el.quantity += 1;
           return true;
         } else return false;
       })
     ) {
       updatedBasket.products.push({
-        productId: product.id,
+        productId: product.productId!,
         quantity: 1,
         sortOrder: updatedBasket.products.length,
+        variantLabel: product.variantLabel,
       });
     }
 
@@ -385,7 +443,7 @@ class App extends Proto<Record<string, never>, AppState> {
     });
   };
 
-  handleAddToBasket = (product: PublicProductData) => {
+  handleAddToBasket = (product: IOrderProduct) => {
     if (!this.state.user) {
       this.setState({
         pendingProduct: product,
@@ -444,7 +502,11 @@ class App extends Proto<Record<string, never>, AppState> {
         this.getReserves();
         if (this.state.pendingProduct) {
           const product = this.state.pendingProduct;
-          this.addToBasket(product);
+          this.addToBasket({
+            productId: product.productId,
+            quantity: 1,
+            variantLabel: product.variantLabel,
+          });
 
           this.setState({ pendingProduct: null });
         }
@@ -491,7 +553,7 @@ class App extends Proto<Record<string, never>, AppState> {
     });
   };
 
-  handleIncreaseBasketItemQty = (id: string) => {
+  handleIncreaseBasketItemQty = (id: string, variantLabel?: string) => {
     this.setState((prevState) => {
       return {
         ...prevState,
@@ -500,14 +562,17 @@ class App extends Proto<Record<string, never>, AppState> {
           status: prevState.basket!.status!,
           products: prevState.basket?.products.map((el) => ({
             ...el,
-            quantity: el.productId === id ? el.quantity + 1 : el.quantity,
+            quantity:
+              el.productId === id && el.variantLabel === variantLabel
+                ? el.quantity + 1
+                : el.quantity,
           }))!,
         },
       };
     });
   };
 
-  handleDecreaseBasketItemQty = (id: string) => {
+  handleDecreaseBasketItemQty = (id: string, variantLabel?: string) => {
     this.setState((prevState) => {
       return {
         ...prevState,
@@ -517,7 +582,10 @@ class App extends Proto<Record<string, never>, AppState> {
           products: prevState
             .basket!.products.map((el) => ({
               ...el,
-              quantity: el.productId === id ? el.quantity - 1 : el.quantity,
+              quantity:
+                el.productId === id && el.variantLabel === variantLabel
+                  ? el.quantity - 1
+                  : el.quantity,
             }))
             .filter((el) => el.quantity > 0)!,
         },
@@ -525,7 +593,7 @@ class App extends Proto<Record<string, never>, AppState> {
     });
   };
 
-  handleRemoveBasketItem = (id: string) => {
+  handleRemoveBasketItem = (id: string, variantlabel?: string) => {
     this.setState((prevState) => {
       return {
         ...prevState,
@@ -536,7 +604,10 @@ class App extends Proto<Record<string, never>, AppState> {
           products: prevState.basket?.products
             .map((el) => ({
               ...el,
-              quantity: el.productId === id ? 0 : el.quantity,
+              quantity:
+                el.productId === id && el.variantLabel === variantlabel
+                  ? 0
+                  : el.quantity,
             }))
             .filter((el) => el.quantity > 0)!,
         },
@@ -691,10 +762,11 @@ class App extends Proto<Record<string, never>, AppState> {
       authInitialTab,
       authInitialSignupEntityType,
       authEditingUser,
+      companyInfo,
     } = this.state;
     const basketCount =
       basket?.products?.reduce((sum, i) => sum + i.quantity, 0) ?? 0;
-    const isStaffUser = this.isStaffUser(user);
+    const isStaffUser = user ? this.isStaffUser(user) : false;
     const isToolPage = currentPage === 'tool';
     const canAccessTool = isToolPage && isStaffUser;
 
@@ -715,7 +787,11 @@ class App extends Proto<Record<string, never>, AppState> {
         <main>
           {isToolPage ? (
             canAccessTool ? (
-              <Tool activeChapter={activeToolChapter} user={user} />
+              <Tool
+                activeChapter={activeToolChapter}
+                user={user}
+                companyInfo={companyInfo}
+              />
             ) : (
               <section className="tool-access-denied" aria-live="polite">
                 <div className="tool-access-denied-inner">
@@ -753,9 +829,12 @@ class App extends Proto<Record<string, never>, AppState> {
                 userEntityType={user?.entityType ?? null}
               />
               <Products
+                user={this.state.user}
+                currentLocation={this.state.currentLocation}
+                companyInfo={this.state.companyInfo}
                 onAddToBasket={this.handleAddToBasket}
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
-                userEntityType={user?.entityType ?? null}
+                products={this.state.products}
               />
               <Delivery />
               <Contacts />
@@ -780,16 +859,18 @@ class App extends Proto<Record<string, never>, AppState> {
           />
         )}
         <BasketDrawer
+          companyInfo={this.state.companyInfo}
+          currentLocation={this.state.currentLocation}
           isOpen={basketOpen}
           user={user}
-          items={basket?.products}
+          order={basket}
           onClose={this.handleCloseBasket}
           onIncreaseQty={this.handleIncreaseBasketItemQty}
           onDecreaseQty={this.handleDecreaseBasketItemQty}
           onRemoveItem={this.handleRemoveBasketItem}
           onSubmitOrder={this.handleSubmitOrder}
-          isPreliminary={this.state.isLoadingBasket}
           onPushSubscribe={this.subscribeUserToPush.bind(this)}
+          disableConrols={this.state.isLoadingBasket}
         />
       </div>
     );

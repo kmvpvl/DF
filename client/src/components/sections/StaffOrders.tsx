@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { User } from '../../App';
-import { MLSTRING_FIELDS } from './StaffProducts';
+import { MLSTRING_FIELDS } from '../../types/gql';
 
 export interface IOrdersProps extends IProtoProps {
   user: User | null;

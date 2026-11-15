@@ -2,6 +2,9 @@ import { IMLString, MLString } from '../lib/mlstring';
 import { prisma } from '../lib/prisma';
 import webpush from 'web-push';
 import { vapidKeys } from '../utils/common';
+import { GraphQLContext } from '../types/types';
+import { IPushMessage } from '../types/pushes';
+import { CompanyService } from './company.service';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
 webpush.setVapidDetails(
     'mailto:admin@dolceforte.rs',
@@ -12,7 +15,7 @@ webpush.setVapidDetails(
 export class PushService {
     static async send(
         toUserId: string,
-        message: { title: IMLString; body: IMLString },
+        message: IPushMessage,
         url: string,
         lang?: string
     ) {
@@ -53,5 +56,17 @@ export class PushService {
                     console.error('Ошибка отправки пуша:', err);
                 }),
         ]);
+    }
+    static async sendLocationManagers(
+        ctx: GraphQLContext,
+        message: IPushMessage,
+        url: string
+    ) {
+        const users = await CompanyService.locationManagers(ctx);
+        users.forEach((user) => {
+            try {
+                this.send(user.userId, message, url);
+            } catch (err) {}
+        });
     }
 }

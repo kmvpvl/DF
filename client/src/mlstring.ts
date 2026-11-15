@@ -1346,14 +1346,14 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    ``,
+    `available`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'доступно'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'dostupno'],
     ]),
   ],
   [
