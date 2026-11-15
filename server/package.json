@@ -1,6 +1,6 @@
 {
     "name": "server",
-    "version": "0.2.0",
+    "version": "2.0.1",
     "description": "",
     "type": "module",
     "main": "dist/index.js",
@@ -9,6 +9,7 @@
         "start:prod": "npx prisma migrate deploy && npm run start",
         "start": "node dist/index.js",
         "dev": "nodemon --exec tsx src/index.ts",
+        "commit_prepare": "npm version patch && npm run format",
         "test": "vitest",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",

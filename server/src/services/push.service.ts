@@ -57,14 +57,16 @@ export class PushService {
                 }),
         ]);
     }
-    static async sendLocationManagers(ctx: GraphQLContext, message: IPushMessage, url: string) {
+    static async sendLocationManagers(
+        ctx: GraphQLContext,
+        message: IPushMessage,
+        url: string
+    ) {
         const users = await CompanyService.locationManagers(ctx);
-        users.forEach(user=> {
+        users.forEach((user) => {
             try {
                 this.send(user.userId, message, url);
-            } catch (err) {
-                
-            }
-        })
+            } catch (err) {}
+        });
     }
 }

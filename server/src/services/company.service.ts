@@ -17,18 +17,20 @@ export class CompanyService {
         const users = await prisma.userLocationRoles.findMany({
             where: {
                 AND: [
-                    {locationId: ctx.locationId},
-                    {OR: [
-                        {role: Role.MANAGER},
-                        {role: Role.ADMIN},
-                        {role: Role.SUPERVISOR}
-                    ]}
-                ]
+                    { locationId: ctx.locationId },
+                    {
+                        OR: [
+                            { role: Role.MANAGER },
+                            { role: Role.ADMIN },
+                            { role: Role.SUPERVISOR },
+                        ],
+                    },
+                ],
             },
             include: {
-                user: true
-            }
+                user: true,
+            },
         });
-        return users
+        return users;
     }
 }

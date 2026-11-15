@@ -1,6 +1,6 @@
-import { IMLString } from "../lib/mlstring";
+import { IMLString } from '../lib/mlstring';
 
 export interface IPushMessage {
-    title: IMLString; 
+    title: IMLString;
     body: IMLString;
 }

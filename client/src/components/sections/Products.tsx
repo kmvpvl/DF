@@ -106,25 +106,22 @@ interface ProductsProps extends IProtoProps {
   products: PublicProductData[];
 }
 
-interface ProductsState extends IProtoState {
-}
+interface ProductsState extends IProtoState {}
 
 class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
-  state: ProductsState = {
-  };
+  state: ProductsState = {};
 
   private handleAddClick = (product: IOrderProduct) => {
     this.props.onAddToBasket(product);
   };
 
   render() {
-    const chaptersOut = (
-      this.props.products
-    ).flatMap((val) => val.chapters);
-    if (this.props.products.filter((el) => el.chapters?.length === 0)) chaptersOut.push('');
+    const chaptersOut = this.props.products.flatMap((val) => val.chapters);
+    if (this.props.products.filter((el) => el.chapters?.length === 0))
+      chaptersOut.push('');
 
     //const { dictionary } = dictionaries.en as I18nContextValue;
     //const products = dictionaries.en.products.items as unknown as Product[];

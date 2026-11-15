@@ -2,7 +2,10 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products, { PUBLIC_PRODUCT_FIELDS, SLIM_PRODUCT_FIELDS } from './components/sections/Products';
+import Products, {
+  PUBLIC_PRODUCT_FIELDS,
+  SLIM_PRODUCT_FIELDS,
+} from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
@@ -153,8 +156,7 @@ class App extends Proto<AppProps, AppState> {
         },
         () => {}
       );
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   componentDidMount() {

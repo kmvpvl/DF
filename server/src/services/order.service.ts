@@ -5,7 +5,12 @@ import { authorize } from '../utils/auth';
 import { getYearRange } from '../utils/common';
 import { ProductService } from './product.service';
 import { PushService } from './push.service';
-import { CreateOrderInput, CreateOrderProductInput, IOrder, IOrderProduct } from '../types/order';
+import {
+    CreateOrderInput,
+    CreateOrderProductInput,
+    IOrder,
+    IOrderProduct,
+} from '../types/order';
 import { MLString } from '../lib/mlstring';
 
 export class OrderService {
@@ -54,22 +59,29 @@ export class OrderService {
         for (const product of order.products) {
             const stock = calcData[0].find((el) => el.id === product.productId);
             if (stock !== undefined && stock.stockBalances.length > 0) {
-                const balances = stock.stockBalances.find(s=>s.variantLabel === product.variantLabel);
-                const delta = balances?
-                    balances.physical_balance - balances.reserved_balance
-                    :
-                    0;
+                const balances = stock.stockBalances.find(
+                    (s) => s.variantLabel === product.variantLabel
+                );
+                const delta = balances
+                    ? balances.physical_balance - balances.reserved_balance
+                    : 0;
                 //console.log(delta);
                 const oldQty = calcData[1]?.products.find(
-                    (el) => el.productId === product.productId && el.variantLabel === product.variantLabel
+                    (el) =>
+                        el.productId === product.productId &&
+                        el.variantLabel === product.variantLabel
                 )?.quantity;
                 if (oldQty) {
-                    if (delta + oldQty < product.quantity){
+                    if (delta + oldQty < product.quantity) {
                         product.quantity = oldQty + delta;
-                        PushService.sendLocationManagers(ctx, {
-                            body: `Product: ${new MLString(stock.name as any).toString()} - ${product.variantLabel}\nUser: ${calcData[1]?.customerName}`,
-                            title: "Not enough"
-                        }, `/tool/?order=${order.id}`);
+                        PushService.sendLocationManagers(
+                            ctx,
+                            {
+                                body: `Product: ${new MLString(stock.name as any).toString()} - ${product.variantLabel}\nUser: ${calcData[1]?.customerName}`,
+                                title: 'Not enough',
+                            },
+                            `/tool/?order=${order.id}`
+                        );
                     }
                 }
             }
@@ -320,7 +332,7 @@ export class OrderService {
             return await prisma.order.create({
                 data: {
                     ...normalizedOrder,
-                    customerName: normalizedOrder.customerName??"",
+                    customerName: normalizedOrder.customerName ?? '',
                     customerUserId: ctx.userId,
                     number: `${String(new Date().getFullYear()).slice(-2)}-${orderNumber}`,
                     numberInt: orderNumber,
@@ -403,7 +415,7 @@ export class OrderService {
                         create: resolvedProducts,
                     },
                     totalPrice: totalPrice,
-                    customerName: normalizedOrder.customerName
+                    customerName: normalizedOrder.customerName,
                 },
                 include: {
                     products: {
