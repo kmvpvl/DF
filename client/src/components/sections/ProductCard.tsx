@@ -6,10 +6,12 @@ import {
   IPriceDetail,
   PublicProductData,
 } from '@betypes/product';
+import { IOrderProduct } from './Orders';
+import { Fragment } from 'react/jsx-runtime';
 
 interface ProductCardProps extends IProtoProps {
   product: PublicProductData;
-  onAddToBasket: (product: PublicProductData) => void;
+  onAddToBasket: (product: IOrderProduct) => void;
 }
 
 interface ProductCardState extends IProtoState {
@@ -21,9 +23,16 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
   state: ProductCardState = {
     availableProduct: {
       ...this.props.product,
-      variants: this.props.product.variants.filter(v=> this.props.product.stockBalances.some(s=>s.variantLabel === (typeof v.label  === "string"?v.label:v.label.default) && s.physical_balance-s.reserved_balance>0)),
-    }
-  }
+      variants: this.props.product.variants.filter((v) =>
+        this.props.product.stockBalances.some(
+          (s) =>
+            s.variantLabel ===
+              (typeof v.label === 'string' ? v.label : v.label.default) &&
+            s.physical_balance - s.reserved_balance > 0
+        )
+      ),
+    },
+  };
   static isAvailable(product: PublicProductData) {
     return product.variants.some((variant) =>
       product.stockBalances.some(
@@ -46,10 +55,11 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
   }
 
   protected effectivePrice(p?: IPriceDetail) {
-    const loc = this.props.companyInfo?.locations.find(
-      (l) => l.id === this.props.currentLocation
+    return this.toCurrency(
+      this.props.user?.entityType === 'LEGAL_ENTITY'
+        ? (p?.legalEntityPrice ?? p?.individualPrice)
+        : p?.individualPrice
     );
-    return `${p ? (this.props.user?.entityType === 'LEGAL_ENTITY' ? (p.legalEntityPrice ?? p.individualPrice) : p.individualPrice) : '-'} ${loc?.currencySymbol}`;
   }
 
   protected getDiscounts(): IDiscountTier[] {
@@ -135,7 +145,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                       <span className="product-price-variation-weight">
                         {`${variant.weight} ${variant.weightUnit}`}
                       </span>
-                      <span className="product-available">{`(${this.ML('available')}: ${variantStocks.physical_balance-variantStocks.reserved_balance})`}</span>
+                      <span className="product-available">{`(${this.ML('available')}: ${variantStocks.physical_balance - variantStocks.reserved_balance})`}</span>
                     </span>
                     <strong className="product-price-variation-value">
                       {this.effectivePrice(lPrice)}
@@ -143,7 +153,16 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                     {variant.id === this.state.variantSelected ? (
                       <button
                         className="add-btn"
-                        onClick={() => onAddToBasket(product)}
+                        onClick={() =>
+                          onAddToBasket({
+                            productId: product.id!,
+                            quantity: 1,
+                            variantLabel:
+                              typeof variant.label === 'string'
+                                ? variant.label
+                                : variant.label.default,
+                          })
+                        }
                       >
                         →🛒
                       </button>
@@ -153,7 +172,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                   </span>
                 </li>
               ) : (
-                <></>
+                <Fragment key={variant.id}></Fragment>
               );
             })}
           </ul>

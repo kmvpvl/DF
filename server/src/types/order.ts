@@ -6,7 +6,7 @@ export interface IOrder {
     numberInt: number;
     customerName: string;
     customerUserId: string | null;
-    orderDate: Date;
+    orderDate: Date | null;
     orderDateReady: Date | null;
     status: OrderStatus;
     totalPrice: number;
@@ -35,7 +35,7 @@ export interface IOrderProduct {
     createdAt: Date;
     updatedAt: Date;
     sortOrder: number;
-    variationLabel?: string;
+    variantLabel?: string | null;
     price: number;
 
     // Опциональные связи
@@ -53,7 +53,7 @@ export interface CreateOrderProductInput {
     createdAt?: Date;
     updatedAt?: Date;
     sortOrder?: number;
-    variationLabel?: string | null;
+    variantLabel?: string | null;
     price?: number;
 
     // Опциональные связи

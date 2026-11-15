@@ -4,6 +4,8 @@ import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import { PublicProductData } from '@betypes/product';
 import { ProductCard } from './ProductCard';
+import { IOrderProduct } from './Orders';
+import { Fragment } from 'react/jsx-runtime';
 
 export const NESTED_PRODUCT_FIELDS = `
   # 1. Вариации товара (например: разные объемы или веса)
@@ -113,7 +115,7 @@ query {
 }`;
 
 interface ProductsProps extends IProtoProps {
-  onAddToBasket: (product: PublicProductData) => void;
+  onAddToBasket: (product: IOrderProduct) => void;
   onLegalEntityCtaClick: () => void;
 }
 
@@ -161,7 +163,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
     this.fetchProducts();
   }
 
-  private handleAddClick = (product: PublicProductData) => {
+  private handleAddClick = (product: IOrderProduct) => {
     this.props.onAddToBasket(product);
   };
 
@@ -247,7 +249,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                           onAddToBasket={this.handleAddClick}
                         />
                       ) : (
-                        <></>
+                        <Fragment key={product.id}></Fragment>
                       )
                     )}
                   </div>

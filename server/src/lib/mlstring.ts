@@ -11,7 +11,7 @@ export type IMLString =
 export class MLString extends String {
     private _translations: Record<string, string> = {};
 
-    constructor(input?: IMLString) {
+    constructor(input?: IMLString | null) {
         if (!input) {
             super('');
         } else if (typeof input === 'string') {

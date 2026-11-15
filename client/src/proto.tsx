@@ -78,11 +78,15 @@ export default class Proto<
     return el.get(lang) as string;
   }
 
-  protected toCurrency(x: number): string {
-    return Intl.NumberFormat(this.getLanguage(), {
+  protected toCurrency(x?: number): string {
+    const location = this.props.companyInfo?.locations.find(
+      (l) => l.id === this.props.currentLocation
+    );
+    if (!x) return `- ${location?.currencySymbol ?? '-'}`;
+    return `${Intl.NumberFormat(this.getLanguage(), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(x);
+    }).format(x)} ${location?.currencySymbol ?? '-'}`;
   }
   protected toFixed(x: number): string {
     return Intl.NumberFormat(this.getLanguage(), {

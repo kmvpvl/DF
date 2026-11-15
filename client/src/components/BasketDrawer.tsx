@@ -1,10 +1,10 @@
 import React from 'react';
-import type { User } from '../App';
+import type {} from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
-import Proto from '../proto';
+import Proto, { IProtoProps, IProtoState } from '../proto';
 import { MLString } from '../mlstring';
-import { IOrderProduct } from './sections/Orders';
-import { PublicProductData } from './sections/Products';
+import { IOrder } from './sections/Orders';
+import {} from './sections/Products';
 
 export interface OrderItemPayload {
   productId: string;
@@ -12,7 +12,7 @@ export interface OrderItemPayload {
   qty: number;
   unitPrice: number;
   lineTotal: number;
-  variationLabel?: string;
+  variantLabel?: string;
   weightGrams?: number;
 }
 
@@ -25,20 +25,19 @@ export interface OrderPayload {
   total: number;
 }
 
-interface BasketDrawerProps {
+interface BasketDrawerProps extends IProtoProps {
   isOpen: boolean;
-  user: User | null;
-  items?: IOrderProduct[];
+  order?: IOrder;
   onClose: () => void;
-  onIncreaseQty: (id: string) => void;
-  onDecreaseQty: (id: string) => void;
-  onRemoveItem: (id: string) => void;
+  onIncreaseQty: (id: string, variantLabel?: string) => void;
+  onDecreaseQty: (id: string, variantLabel?: string) => void;
+  onRemoveItem: (id: string, variantLabel?: string) => void;
   onSubmitOrder: (payload: OrderPayload) => Promise<void>;
   onPushSubscribe: () => void;
-  isPreliminary: boolean;
+  disableConrols: boolean;
 }
 
-interface BasketDrawerState {
+interface BasketDrawerState extends IProtoState {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -46,7 +45,6 @@ interface BasketDrawerState {
   loading: boolean;
   error: string;
   sent: boolean;
-  disableAllContorls: boolean;
 }
 
 class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
@@ -61,34 +59,18 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     loading: false,
     error: '',
     sent: false,
-    disableAllContorls: false,
   };
-
-  getEffectivePrice(product: PublicProductData): number {
-    if (this.props.user?.entityType === 'LEGAL_ENTITY')
-      return product?.priceOptions?.legalPrice ?? Infinity;
-    else return product?.priceOptions?.individualPrice ?? Infinity;
-  }
 
   componentDidMount() {
     this.hydrateCustomerFields();
   }
 
-  componentDidUpdate(
-    prevProps: BasketDrawerProps,
-    prevState: BasketDrawerState
-  ) {
+  componentDidUpdate(prevProps: BasketDrawerProps) {
     if (
       prevProps.user !== this.props.user ||
       prevProps.isOpen !== this.props.isOpen
     ) {
       this.hydrateCustomerFields();
-    }
-    if (prevState.disableAllContorls) {
-      this.setState((prevState) => ({
-        ...prevState,
-        disableAllContorls: false,
-      }));
     }
   }
 
@@ -108,31 +90,10 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     }));
   };
 
-  private formatPrice = (value: number) => `${this.toCurrency(value)} din`;
-
-  private getOrderTotal = () =>
-    this.props.items?.reduce(
-      (sum, item) =>
-        sum + this.getEffectivePrice(item.product!) * item.quantity,
-      0
-    );
-
-  private buildOrderItems = (): OrderItemPayload[] =>
-    this.props.items
-      ? this.props.items?.map((item) => ({
-          productId: item.product!.id,
-          name: new MLString(item.product!.name).toString(),
-          qty: item.quantity,
-          unitPrice: this.getEffectivePrice(item.product!),
-          lineTotal: this.getEffectivePrice(item.product!) * item.quantity,
-          variationLabel: item.variationLabel,
-        }))
-      : [];
-
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (this.props.items?.length === 0) {
+    if (this.props.order?.products?.length === 0) {
       this.setState({ error: 'Basket is empty.', sent: false });
       return;
     }
@@ -158,8 +119,8 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         customerEmail,
         customerPhone,
         note: note || undefined,
-        items: this.buildOrderItems(),
-        total: this.getOrderTotal() ?? 0,
+        items: [],
+        total: 0,
       });
 
       this.setState({
@@ -183,8 +144,6 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       return null;
     }
 
-    const total = this.getOrderTotal();
-
     return (
       <div
         className="basket-overlay"
@@ -199,7 +158,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
           aria-label="Basket"
         >
           <div className="basket-header">
-            <h2>Basket {this.props.isPreliminary ? 'DRAFT' : ''}</h2>
+            <h2>Basket</h2>
             {this.props.user?.pushSubscription ? (
               <span>Вы подписаны на пуш уведомления</span>
             ) : (
@@ -220,80 +179,87 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             </button>
           </div>
 
-          {this.props.items?.length === 0 ? (
-            <p className="basket-empty">Your basket is empty.</p>
+          {this.props.order?.products?.length === 0 ? (
+            <p className="basket-empty">{this.ML('Your basket is empty')}</p>
           ) : (
             <>
               <ul className="basket-items">
-                {this.props.items
+                {this.props.order?.products
                   ?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-                  .map((item) => (
-                    <li
-                      key={`${item.productId}-${item.variationLabel ?? 'default'}- none'}`}
-                      className="basket-item"
-                    >
-                      <div className="basket-item-main">
-                        <strong>
-                          {new MLString(
-                            item.product ? item.product.name : 'Loading...'
-                          ).toString()}
-                        </strong>
-                        <span>
-                          {this.formatPrice(
-                            item.product
-                              ? item.product.priceOptions.individualPrice!
-                              : 0
-                          )}
-                        </span>
-                      </div>
-                      <div className="basket-item-controls">
-                        <button
-                          type="button"
-                          className="basket-qty-btn"
-                          onClick={() => {
-                            this.props.onDecreaseQty(item.productId);
-                          }}
-                          aria-label={`Decrease quantity for ${item.product ? item.product.name : 'Loading...'}`}
-                          disabled={this.state.disableAllContorls}
-                        >
-                          -
-                        </button>
-                        <span className="basket-qty-value">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          className="basket-qty-btn"
-                          onClick={() => {
-                            this.setState({
-                              ...this.state,
-                              disableAllContorls: false,
-                            });
-                            this.props.onIncreaseQty(item.productId);
-                          }}
-                          aria-label={`Increase quantity for ${item.product ? item.product.name : 'Loading...'}`}
-                          disabled={this.state.disableAllContorls}
-                        >
-                          +
-                        </button>
-                        <button
-                          type="button"
-                          className="basket-remove-btn"
-                          onClick={() =>
-                            this.props.onRemoveItem(item.productId)
-                          }
-                          disabled={this.state.disableAllContorls}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                  .map((item) => {
+                    const varName = item.product?.variants.find((v) =>
+                      typeof v.label === 'string'
+                        ? v.label
+                        : v.label.default === item.variantLabel
+                    );
+                    return (
+                      <li
+                        key={`${item.productId}-${item.variantLabel ?? 'default'}- none'}`}
+                        className="basket-item"
+                      >
+                        <div className="basket-item-main">
+                          <strong>
+                            {new MLString(
+                              item.product ? item.product.name : 'Loading...'
+                            ).toString()}{' '}
+                            - {new MLString(varName?.label).toString()}
+                          </strong>
+                          <span>{this.toCurrency(item.price)}</span>
+                        </div>
+                        <div className="basket-item-controls">
+                          <button
+                            type="button"
+                            className="basket-qty-btn"
+                            onClick={() => {
+                              this.props.onDecreaseQty(
+                                item.productId,
+                                item.variantLabel
+                              );
+                            }}
+                            aria-label={`Decrease quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                            disabled={this.props.disableConrols}
+                          >
+                            -
+                          </button>
+                          <span className="basket-qty-value">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            className="basket-qty-btn"
+                            onClick={() => {
+                              this.props.onIncreaseQty(
+                                item.productId,
+                                item.variantLabel
+                              );
+                            }}
+                            aria-label={`Increase quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                            disabled={this.props.disableConrols}
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            className="basket-remove-btn"
+                            onClick={() =>
+                              this.props.onRemoveItem(
+                                item.productId,
+                                item.variantLabel
+                              )
+                            }
+                            disabled={this.props.disableConrols}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
               </ul>
 
               <div className="basket-total">
                 <span>Total</span>
-                <strong>{this.formatPrice(total ?? 0)}</strong>
+                <strong>{this.toCurrency(this.props.order?.totalPrice)}</strong>
               </div>
             </>
           )}
@@ -347,7 +313,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <button
               className="btn-primary"
               type="submit"
-              disabled={this.state.loading || this.props.items?.length === 0}
+              disabled={
+                this.state.loading || this.props.order?.products?.length === 0
+              }
             >
               {this.state.loading ? 'Sending order...' : 'Place order'}
             </button>

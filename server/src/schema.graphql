@@ -114,7 +114,7 @@ input OrderItemInput {
     qty: Int!
     unitPrice: Float!
     lineTotal: Float!
-    variationLabel: String
+    variantLabel: String
     weightGrams: Float
 }
 
@@ -433,9 +433,11 @@ type OrderProduct {
     updatedAt: DateTime!
     sortOrder: Int!
     totalPrice: Float!
+    variantLabel: String
+    price: Float
     # Связи (Relations)
     order: Order!
-    product: Product! # Раскомментируйте, когда добавите тип Product
+    product: Product!
 }
 
 input DiscountTierInput {
@@ -480,6 +482,7 @@ input OrderProductInput {
     updatedAt: DateTime
     sortOrder: Int
     totalPrice: Float
+    variantLabel: String
     # Связи (Relations)
 }
 

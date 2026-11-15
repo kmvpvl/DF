@@ -1,4 +1,4 @@
-import { PublicProductData } from './Products';
+import { PublicProductData } from '@betypes/product';
 
 export const OrderStatus = {
   DRAFT: 'DRAFT',
@@ -47,5 +47,6 @@ export interface IOrderProduct {
   updatedAt?: Date;
   sortOrder?: number;
   product?: PublicProductData;
-  variationLabel?: string;
+  variantLabel?: string;
+  price?: number;
 }
