@@ -2,7 +2,7 @@ import Navbar from './components/Navbar';
 import AuthModal from './components/AuthModal';
 import BasketDrawer, { type OrderPayload } from './components/BasketDrawer';
 import Home from './components/sections/Home';
-import Products, { SLIM_PRODUCT_FIELDS } from './components/sections/Products';
+import Products, { PUBLIC_PRODUCT_FIELDS, SLIM_PRODUCT_FIELDS } from './components/sections/Products';
 import Delivery from './components/sections/Delivery';
 import Contacts from './components/sections/Contacts';
 import Tool from './components/sections/Tool.tsx';
@@ -17,6 +17,7 @@ import {
   OrderStatus,
 } from './components/sections/Orders.tsx';
 import { ICompany } from '@betypes/company.ts';
+import { PublicProductData } from '@betypes/product.ts';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -80,6 +81,21 @@ const SEND_ORDER_BY_EMAIL_MUTATION = `
     sendOrderByEmail(input: $input)
   }
 `;
+
+const QUERY_PUBLIC_STOCKS = `
+query {
+  getPublicProductsWithStock {
+    ${PUBLIC_PRODUCT_FIELDS}
+    stockBalances {
+      productId
+      variantLabel
+      locationId
+      physical_balance
+      reserved_balance
+    }
+  }
+}`;
+
 //interface AppProps extends Record<string, never>;
 interface AppProps extends IProtoProps {}
 
@@ -94,6 +110,7 @@ interface AppState extends IProtoState {
   authInitialSignupEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   authEditingUser: User | null;
   pendingProduct: IOrderProduct | null;
+  products: PublicProductData[];
 }
 
 interface SessionUserQueryData {
@@ -122,11 +139,28 @@ class App extends Proto<AppProps, AppState> {
     authInitialSignupEntityType: 'INDIVIDUAL',
     authEditingUser: null,
     pendingProduct: null,
+    products: [],
   };
+
+  async fetchProducts() {
+    try {
+      const data = await this.gql(QUERY_PUBLIC_STOCKS);
+      const products = data.getPublicProductsWithStock as PublicProductData[];
+      this.setState(
+        {
+          ...this.state,
+          products,
+        },
+        () => {}
+      );
+    } catch (error) {
+    }
+  }
 
   componentDidMount() {
     void this.restoreSessionFromServer();
     this.scheduleSessionSync();
+    this.fetchProducts();
     window.addEventListener('popstate', this.syncPageFromLocation);
   }
 
@@ -336,6 +370,7 @@ class App extends Proto<AppProps, AppState> {
       dataPromise
         .finally(() => {
           //this.setState({ ...this.state, isLoadingBasket: false });
+          this.fetchProducts();
         })
         .then((data) => {
           const order: IOrder = (data as any).draft;
@@ -797,6 +832,7 @@ class App extends Proto<AppProps, AppState> {
                 companyInfo={this.state.companyInfo}
                 onAddToBasket={this.handleAddToBasket}
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
+                products={this.state.products}
               />
               <Delivery />
               <Contacts />

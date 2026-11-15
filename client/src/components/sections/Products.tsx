@@ -1,5 +1,5 @@
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import { IMLString, MLString } from '../../mlstring';
+import { MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import { PublicProductData } from '@betypes/product';
@@ -100,30 +100,13 @@ export const ALL_PRODUCT_FIELDS = `
   updatedAt
 `;
 
-const QUERY_PUBLIC_STOCKS = `
-query {
-  getPublicProductsWithStock {
-    ${PUBLIC_PRODUCT_FIELDS}
-    stockBalances {
-      productId
-      variantLabel
-      locationId
-      physical_balance
-      reserved_balance
-    }
-  }
-}`;
-
 interface ProductsProps extends IProtoProps {
   onAddToBasket: (product: IOrderProduct) => void;
   onLegalEntityCtaClick: () => void;
+  products: PublicProductData[];
 }
 
 interface ProductsState extends IProtoState {
-  loading: boolean;
-  error?: string;
-  products: PublicProductData[];
-  chapters: (IMLString | undefined)[];
 }
 
 class Products extends Proto<ProductsProps, ProductsState> {
@@ -131,47 +114,17 @@ class Products extends Proto<ProductsProps, ProductsState> {
   declare context: I18nContextValue | null;
 
   state: ProductsState = {
-    loading: false,
-    products: [],
-    chapters: [],
   };
-
-  async fetchProducts() {
-    this.setState({ loading: true });
-
-    try {
-      const data = await this.gql(QUERY_PUBLIC_STOCKS);
-      const products = data.getPublicProductsWithStock as PublicProductData[];
-      const chapters = (
-        data.getPublicProductsWithStock as PublicProductData[]
-      ).flatMap((val) => val.chapters);
-      if (products.filter((el) => el.chapters?.length === 0)) chapters.push('');
-      this.setState(
-        {
-          loading: false,
-          products,
-          chapters: chapters,
-        },
-        () => {}
-      );
-    } catch (error) {
-      this.setState({ loading: false, error: String(error) });
-    }
-  }
-
-  componentDidMount(): void {
-    this.fetchProducts();
-  }
 
   private handleAddClick = (product: IOrderProduct) => {
     this.props.onAddToBasket(product);
   };
 
   render() {
-    const i18n = this.context;
-    if (!i18n) {
-      throw new Error('Products must be used within I18nProvider');
-    }
+    const chaptersOut = (
+      this.props.products
+    ).flatMap((val) => val.chapters);
+    if (this.props.products.filter((el) => el.chapters?.length === 0)) chaptersOut.push('');
 
     //const { dictionary } = dictionaries.en as I18nContextValue;
     //const products = dictionaries.en.products.items as unknown as Product[];
@@ -180,8 +133,8 @@ class Products extends Proto<ProductsProps, ProductsState> {
       string
     >;*/
     //const chapterOrder = dictionaries.en.products.chapterOrder as string[];
-    const chapters = this.state.chapters.map((el) => new MLString(el));
-    const products = this.state.products;
+    const chapters = chaptersOut.map((el) => new MLString(el));
+    const products = this.props.products;
 
     return (
       <div id="products" className="products-section">
