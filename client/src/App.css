@@ -1139,7 +1139,6 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin-bottom: 0.75rem;
 }
 .product-discount-tier {
   font-size: 0.75rem;

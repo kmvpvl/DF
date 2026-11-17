@@ -1,46 +1,43 @@
 import { OrderStatus } from '@prisma/client';
+import { PublicProductData } from './product';
 
 export interface IOrder {
-    id: string;
-    number: string;
-    numberInt: number;
-    customerName: string;
-    customerUserId: string | null;
-    orderDate: Date | null;
-    orderDateReady: Date | null;
-    status: OrderStatus;
-    totalPrice: number;
-    isPaid: boolean;
-    paymentMethod: string | null;
-    deliveryAddress: string | null;
-    shippingMethod: string | null;
-    trackingNumber: string | null;
-    managerId: string | null;
-    notes: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    locationId: string;
+  id?: string;
+  number?: string;
+  numberInt?: number;
+  customerName?: string;
+  customerUserId?: string | null;
+  orderDate?: Date | null;
+  orderDateReady?: Date | null;
+  status: OrderStatus;
+  totalPrice?: number;
+  isPaid?: boolean;
+  paymentMethod?: string | null;
+  deliveryAddress?: string | null;
+  shippingMethod?: string | null;
+  trackingNumber?: string | null;
+  managerId?: string | null;
+  notes?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  locationId?: string;
 
-    // Опциональные связи (Relations), если они загружаются через include
-    products: IOrderProduct[];
-    location?: any; // Замените на ваш интерфейс LocationServer
+  // Опциональные связи (Relations), если они загружаются через include
+  products: IOrderProduct[];
 }
 
 export interface IOrderProduct {
-    id: string;
-    orderId: string;
-    productId: string;
-    quantity: number; // В Prisma Float — в JS это number
-    dateReady: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
-    sortOrder: number;
-    variantLabel?: string | null;
-    price: number;
-
-    // Опциональные связи
-    order?: IOrder;
-    product?: any; // Замените на ваш интерфейс ProductServer
+  id?: string;
+  orderId?: string;
+  productId: string;
+  quantity: number; // В Prisma Float — в JS это number
+  dateReady?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+  sortOrder?: number;
+  product?: PublicProductData;
+  variantLabel?: string;
+  price?: number;
 }
 
 // Данные для создания нового заказа (фронтенд отправляет на бэкенд)

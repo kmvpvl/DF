@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
-import Proto, { IProtoProps, IProtoState } from '../../proto';
-import { User } from '../../App';
+import Proto, { IProtoProps, IProtoState, } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
+import { IOrder } from './Orders';
+import { MLString } from '../../mlstring';
 
 export interface IOrdersProps extends IProtoProps {
-  user: User | null;
 }
 
 interface OrderUserOption {
@@ -50,18 +50,20 @@ export interface IOrdersState extends IProtoState {
   error: string | null;
   notice: string | null;
   products: OrderProductOption[] | null;
-  orders: IOrderForm[];
+  orders: IOrder[];
   users: OrderUserOption[] | null;
+
 }
 
 const ORDER_FIELDS = `
 id
-orderNumber
-orderNumberInt
+number
+numberInt
 customerName
 customerUserId
 orderDate
 orderDateReady
+status
 products {
     id
     orderId
@@ -71,7 +73,13 @@ products {
     createdAt
     updatedAt
     sortOrder
+    variantLabel
+    product {
+      name ${MLSTRING_FIELDS}
+    }
+    price
 }
+totalPrice
 createdAt
 updatedAt
 `;
@@ -95,7 +103,7 @@ const INITIAL_QUERY = `
 
 export default class Orders extends Proto<IOrdersProps, IOrdersState> {
   state: Readonly<IOrdersState> = {
-    adding: true,
+    adding: false,
     editing: null,
     loading: false,
     searching: false,
@@ -107,43 +115,21 @@ export default class Orders extends Proto<IOrdersProps, IOrdersState> {
     orders: [],
     users: null,
   };
-  private setDefaultValues() {
-    this.setState((prev: IOrdersState) => {
-      if (!this.props.user) return;
-      if (prev.editing?.id == this.props.user.id) return;
-      const ret: IOrdersState = {
-        ...prev,
-        editing: {
-          ...prev.editing,
-          customerUserId: this.props.user.id,
-          customerName: this.props.user.fullName,
-          products: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          orderNumber: '',
-          orderNumberInt: 1,
-          orderDate: new Date(),
-          orderDateReady: new Date(),
-        },
-      };
-      return ret;
-    });
-  }
   componentDidMount(): void {
     this.fetchInitData();
-    this.setDefaultValues();
   }
 
   async fetchInitData() {
     this.setState({ loading: true, error: null, notice: null });
     try {
       const data = await this.gql(INITIAL_QUERY);
-      this.setState({
-        ...this.state,
+      this.setState(prevState=>({
+        ...prevState,
         products: data.products as any,
         users: data.users as any,
+        orders: data.orders as any,
         loading: false,
-      });
+      }));
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
     }
@@ -161,6 +147,7 @@ export default class Orders extends Proto<IOrdersProps, IOrdersState> {
       notice,
       products,
       users,
+      orders
     } = this.state;
     return (
       <section className="section tool-page">
@@ -170,9 +157,9 @@ export default class Orders extends Proto<IOrdersProps, IOrdersState> {
 
           {error && <div className="notice error">{error}</div>}
           {notice && <div className="notice success">{notice}</div>}
+          {(adding || editing) && (
           <div className="batch-form">
             <h2>Create order</h2>
-            {(adding || editing) && (
               <form
                 className="material-form"
                 onSubmit={(event) => {
@@ -215,7 +202,7 @@ export default class Orders extends Proto<IOrdersProps, IOrdersState> {
                         </option>
                         {products?.map((product) => (
                           <option key={product.id} value={product.id}>
-                            {product.name} ({product.batchPrefix})
+                            {new MLString(product.name).toString()} ({product.batchPrefix})
                           </option>
                         ))}
                       </select>
@@ -225,10 +212,53 @@ export default class Orders extends Proto<IOrdersProps, IOrdersState> {
                   <div className="batch-preview-box"></div>
                 )}
               </form>
-            )}
+            </div>
+          )}
+        <div>
+          <h2>Orders</h2>
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Status</th>
+                  <th>Customer</th>
+                  <th>Products</th>
+                  <th>Total Price</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id}>
+                    <td>{order.number}</td>
+                    <td>
+                      <span className={`status-badge status-${order.status.toLowerCase()}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td>{order.customerName}</td>
+                    <td>
+                      <ul className="product-list">
+                        {order.products.map((p) => (
+                          <li key={p.id}>
+                            {new MLString(p.product?.name).toString()} 
+                            {p.variantLabel && ` (${p.variantLabel})`} x {p.quantity}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td>{order.totalPrice ? `${this.toCurrency(order.totalPrice)}`:"-"}</td>
+                    <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
         </div>
       </section>
     );
   }
 }
+

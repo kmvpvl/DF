@@ -103,8 +103,8 @@ query {
 interface AppProps extends IProtoProps {}
 
 interface AppState extends IProtoState {
-  currentPage: 'home' | 'tool';
-  activeToolChapter: string;
+  currentPage: string;
+  activeChapter: string;
   basket?: IOrder;
   isLoadingBasket: boolean;
   basketOpen: boolean;
@@ -114,6 +114,7 @@ interface AppState extends IProtoState {
   authEditingUser: User | null;
   pendingProduct: IOrderProduct | null;
   products: PublicProductData[];
+  objectId?: string;
 }
 
 interface SessionUserQueryData {
@@ -131,10 +132,17 @@ class App extends Proto<AppProps, AppState> {
     companyInfo: null,
     currentLocation: null,
     currentPage:
-      typeof window !== 'undefined' && window.location.pathname === '/tool'
-        ? 'tool'
+      typeof window !== 'undefined' && window.location.pathname.split("/")[1]
+        ? window.location.pathname.split("/")[1]
         : 'home',
-    activeToolChapter: 'Cleaning',
+    activeChapter: 
+      typeof window !== 'undefined' && window.location.pathname.split("/")[2]
+        ? window.location.pathname.split("/")[2]
+        : 'Orders',
+    objectId:
+      typeof window !== 'undefined' && window.location.pathname.split("/")[3]
+        ? window.location.pathname.split("/")[3]
+        : undefined,
     isLoadingBasket: false,
     basketOpen: false,
     authOpen: false,
@@ -171,17 +179,21 @@ class App extends Proto<AppProps, AppState> {
     window.removeEventListener('popstate', this.syncPageFromLocation);
   }
 
-  private isToolPath = (pathname: string) =>
-    pathname === '/tool' || pathname === '/tool/';
-
   private syncPageFromLocation = () => {
-    const currentPage = this.isToolPath(window.location.pathname)
-      ? 'tool'
-      : 'home';
-
-    if (currentPage !== this.state.currentPage) {
-      this.setState({ currentPage });
-    }
+      this.setState({ 
+    currentPage:
+      typeof window !== 'undefined' && window.location.pathname.split("/")[1]
+        ? window.location.pathname.split("/")[1]
+        : 'home',
+    activeChapter: 
+      typeof window !== 'undefined' && window.location.pathname.split("/")[2]
+        ? window.location.pathname.split("/")[2]
+        : 'Orders',
+    objectId:
+      typeof window !== 'undefined' && window.location.pathname.split("/")[3]
+        ? window.location.pathname.split("/")[3]
+        : undefined,
+       });
   };
 
   private navigateTo = (path: '/tool' | '/') => {
@@ -541,7 +553,7 @@ class App extends Proto<AppProps, AppState> {
   };
 
   handleToolChapterChange = (chapter: string) => {
-    this.setState({ activeToolChapter: chapter });
+    this.setState({ activeChapter: chapter });
   };
 
   handleOpenLogin = () => {
@@ -755,7 +767,7 @@ class App extends Proto<AppProps, AppState> {
     const {
       user,
       currentPage,
-      activeToolChapter,
+      activeChapter: activeToolChapter,
       basket,
       basketOpen,
       authOpen,

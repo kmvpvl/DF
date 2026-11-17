@@ -1,9 +1,7 @@
-import { User } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
-import Proto from '../proto';
+import Proto, { IProtoProps, IProtoState } from '../proto';
 
-interface NavbarProps {
-  user: User | null;
+interface NavbarProps extends IProtoProps{
   isToolPage: boolean;
   isStaffUser: boolean;
   basketCount: number;
@@ -15,13 +13,17 @@ interface NavbarProps {
   onToolChapterChange: (chapter: string) => void;
 }
 
+interface NavbarState extends IProtoState {
+
+}
+
 const LANGUAGE_FLAGS: Record<string, string> = {
   en: '🇬🇧',
   ru: '🇷🇺',
   sr: '🇷🇸',
 };
 
-class Navbar extends Proto<NavbarProps, {}> {
+class Navbar extends Proto<NavbarProps, NavbarState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -58,13 +60,13 @@ class Navbar extends Proto<NavbarProps, {}> {
     ];
 
     const toolChapters = [
+      'Orders',
+      'Batches',
       'Cleaning',
       'Material',
       'Products',
-      'Batches',
       'Samples',
       'Certificates',
-      'Orders',
     ];
     const navbarClassName = isToolPage ? 'navbar navbar-tool' : 'navbar';
 

@@ -253,7 +253,11 @@ const resolvers = {
             if (!req.session.userId) throw new Error('Not authenticated');
             return await prisma.order.findMany({
                 include: {
-                    products: false,
+                    products: {
+                        include: {
+                            product: true
+                        }
+                    },
                 },
                 orderBy: [{ createdAt: 'desc' }],
             });

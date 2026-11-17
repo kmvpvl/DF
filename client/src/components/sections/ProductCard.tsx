@@ -62,19 +62,12 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
     );
   }
 
-  protected getDiscounts(): IDiscountTier[] {
-    const ldVar = this.props.product.variants.find(
-      (v) => v.id === this.state.variantSelected
-    );
-    if (!ldVar) return [];
-    const ldPrice = ldVar.locationPrices.find(
-      (p) => p.locationId === this.props.currentLocation
-    );
-    if (!ldPrice) return [];
+  protected getDiscounts(p?: IPriceDetail): IDiscountTier[] {
+    if (!p) return [];
     if (this.props.user?.entityType === 'LEGAL_ENTITY') {
-      return ldPrice.legalDiscounts ?? [];
+      return p.legalDiscounts ?? [];
     } else {
-      return ldPrice.individualDiscounts ?? [];
+      return p.individualDiscounts ?? [];
     }
   }
 
@@ -145,7 +138,21 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                       <span className="product-price-variation-weight">
                         {`${variant.weight} ${variant.weightUnit}`}
                       </span>
-                      <span className="product-available">{`(${this.ML('available')}: ${variantStocks.physical_balance - variantStocks.reserved_balance})`}</span>
+                      <span className="product-available">
+                        {`(${this.ML('available')}: ${variantStocks.physical_balance - variantStocks.reserved_balance})`}
+                      </span>
+                                          {this.getDiscounts(lPrice).length > 0 ? (
+                      <ul className="product-discounts">
+                        {this.getDiscounts(lPrice).map((dt) => (
+                          <li key={dt.threshold} className="product-discount-tier">
+                            <strong>{dt.threshold}+ → {dt.discount}%</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <></>
+                    )}
+
                     </span>
                     <strong className="product-price-variation-value">
                       {this.effectivePrice(lPrice)}
@@ -177,19 +184,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
             })}
           </ul>
         )}
-
-        {this.getDiscounts().length > 0 ? (
-          <ul className="product-discounts">
-            {this.getDiscounts().map((dt) => (
-              <li key={dt.threshold} className="product-discount-tier">
-                <strong>{dt.threshold}</strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <></>
-        )}
-
         <div className="product-footer"></div>
       </div>
     );

@@ -1,5 +1,4 @@
-import Proto from '../../proto';
-import { type User } from '../../App';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const EQUIPMENTS_QUERY = `query { equipments { id numId fullName } }`;
 const USERS_QUERY = `query { users { id name fullName } }`;
@@ -60,11 +59,10 @@ interface CleanActionData {
   createdAt: string;
 }
 
-interface CleaningJournalProps {
-  user: User | null;
+interface CleaningJournalProps extends IProtoProps {
 }
 
-interface CleaningJournalState {
+interface CleaningJournalState extends IProtoState {
   subTab: 'action' | 'report' | 'equipment';
 
   equipments: EquipmentData[];
