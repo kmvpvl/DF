@@ -1,0 +1,72 @@
+.customer-container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    overflow: hidden;
+    min-height: 100vh;
+    padding: 5px;
+}
+
+.customer-toolbar {
+    display: flex;
+    flex-direction: row;
+    gap: 0em;
+    align-items: center;
+    justify-items: center;
+    background-color: var(--tiramisu-cream);
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.customer-toolbar-chapter {
+    color: var(--text);
+    padding: 0.25em 0.5em 0.25em 0.5em;
+    margin: 0.25em;
+    cursor: pointer;
+}
+
+.customer-toolbar-chapter.is-active {
+    color: var(--primary-dark);
+    background-color: var(--bg-alt2);
+    border-bottom: 0.25em solid var(--accent);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    cursor: auto;
+    margin-bottom: 0;
+}
+
+.customer-statusbar {
+    display: flex;
+    align-items: baseline;
+    justify-items: left;
+    flex-direction: row;
+}
+
+.customer-content-container {
+    overflow: auto;
+    min-height: 100%;
+    position: relative;
+}
+
+.customer-order-popup-container {
+    position: absolute;
+    inset: 0;
+    place-self: center;
+    width: 95%;
+    height: 95%;
+    border-radius: 5px;
+    border: 1px solid var(--accent);
+    background-color: var(--tiramisu-cream);
+}
+
+.customer-order-popup-close-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: min-content;
+    height: min-content;
+    padding: 5px;
+    border-radius: 50%;
+    --border: 1px solid var(--accent);
+}

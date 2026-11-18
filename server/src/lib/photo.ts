@@ -13,7 +13,6 @@ export interface ITimeSlot {
     includes?: ITimeSlot[];
     excludes?: ITimeSlot[];
 }
-export type ICoords = { lat: number; lng: number } | string;
 export type ITag = IMLString;
 export interface IRating {
     ratingValue: number;

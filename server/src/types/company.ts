@@ -4,6 +4,8 @@ export interface ILocation {
     timezone: string;
     currencyCode: string;
     currencySymbol: string;
+    location?: ICoords;
+    city?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -14,4 +16,24 @@ export interface ICompany {
     locations: ILocation[];
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+export interface ICoords {
+    lat: number;
+    lon: number;
+}
+
+export interface IRouteEstimate {
+    distanceMeters: number;
+    durationSeconds: number;
+    isValidAddress: boolean;
+    deliveryCost: number | null;
+    currencySymbol: string;
+}
+
+export interface IAddressSuggestion {
+    formatted: string;
+    lat: number;
+    lon: number;
+    isExactHouse: boolean; // true, если найден конкретный номер дома
 }

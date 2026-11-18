@@ -41,11 +41,23 @@ type User {
     mbr: String
     account: String
     bank: String
+    deliveryAddress: String
     passwordHash: String!
     pushSubscription: JSON
     lang: String
     createdAt: String!
     updatedAt: String!
+}
+
+type VerifiedDeliveryAddress {
+    address: String!
+    lat: Float!
+    lon: Float!
+    distanceMeters: Float!
+    durationSeconds: Float!
+    isValidAddress: Boolean!
+    deliveryCost: Float
+    currencySymbol: String!
 }
 
 type Company {
@@ -96,6 +108,7 @@ input CreateUserInput {
     account: String
     bank: String
     password: String!
+    deliveryAddress: String
     lang: String
 }
 
@@ -122,6 +135,9 @@ input SendOrderInput {
     customerName: String!
     customerEmail: String!
     customerPhone: String!
+    customerDeliveryAddress: String!
+    deliveryLat: Float!
+    deliveryLon: Float!
     note: String
     items: [OrderItemInput!]!
     total: Float!
@@ -138,6 +154,7 @@ input UpdateSessionUserInput {
     account: String
     bank: String
     lang: String
+    deliveryAddress: String
     pushSubscription: JSON
 }
 
@@ -830,6 +847,23 @@ input SearchOrderInput {
     status: OrderStatus
 }
 
+type AddressSuggestion {
+  formatted: String!
+  lat: Float!
+  lon: Float!
+  isExactHouse: Boolean! # true, если найден конкретный номер дома
+}
+
+type RouteEstimate {
+  distanceMeters: Float!
+  durationSeconds: Float!
+  isValidAddress: Boolean!
+  deliveryCost: Float
+  currencySymbol: String!
+}
+
+
+
 type Query {
     hello: String
     companyInfo: Company!
@@ -858,13 +892,18 @@ type Query {
     costSettings: CostSettings!
     getPublicProductsWithStock(locationId: String): [PublicProduct!]!
     orders(input: SearchOrderInput): [Order!]
+    order(orderId: String!): Order
     getDraft: Order
+    myVerifiedDeliveryAddress: VerifiedDeliveryAddress
+    searchAddress(query: String!): [AddressSuggestion!]!
+    estimateDelivery(lat: Float!, lon: Float!): RouteEstimate!
 }
 
 type Mutation {
     createUser(input: CreateUserInput!): User!
     login(email: String!, password: String!): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
+    verifyDeliveryAddress(address: String!, lat: Float!, lon: Float!): RouteEstimate!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
     sendOrderByEmail(input: SendOrderInput!): Boolean!
     createEquipment(input: CreateEquipmentInput!): Equipment!

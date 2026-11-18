@@ -1,6 +1,7 @@
 import React from 'react';
-import { User } from '../App';
+import {  } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
+import { User } from '../proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 
@@ -31,6 +32,7 @@ interface AuthModalState {
   signupEmail: string;
   signupPhone: string;
   signupPassword: string;
+  signupDeliveryAddress?: string | null;
   signupPushSubscription?: object | null;
 }
 
@@ -52,7 +54,7 @@ async function gql<T>(
 const LOGIN_MUTATION = `
   mutation Login($email: String!, $password: String!) {
     login(email: $email, password: $password) {
-      id name fullName entityType email phone pib mbr account bank pushSubscription
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -60,7 +62,7 @@ const LOGIN_MUTATION = `
 const SIGNUP_MUTATION = `
   mutation CreateUser($input: CreateUserInput!) {
     createUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank pushSubscription
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -68,7 +70,7 @@ const SIGNUP_MUTATION = `
 const UPDATE_SESSION_USER_MUTATION = `
   mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
     updateSessionUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank pushSubscription
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -110,6 +112,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
         signupPhone: editingUser.phone ?? '',
         signupPassword: '',
         signupPushSubscription: editingUser.pushSubscription,
+        signupDeliveryAddress: editingUser.deliveryAddress,
       });
       return;
     }
@@ -130,6 +133,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupEmail: '',
       signupPhone: '',
       signupPassword: '',
+      signupDeliveryAddress: '',
     });
   };
 
@@ -149,6 +153,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     signupEmail: '',
     signupPhone: '',
     signupPassword: '',
+    signupDeliveryAddress: '',
   };
 
   handleLogin = async (e: React.FormEvent) => {
@@ -198,6 +203,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupEmail,
       signupPhone,
       signupPassword,
+      signupDeliveryAddress,
     } = this.state;
 
     if (
@@ -228,6 +234,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
           account:
             signupEntityType === 'LEGAL_ENTITY' ? signupAccount : undefined,
           bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : undefined,
+          deliveryAddress: signupDeliveryAddress,
           password: signupPassword,
         },
       });
@@ -265,6 +272,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupBank,
       signupEmail,
       signupPhone,
+      signupDeliveryAddress,
       signupPushSubscription,
     } = this.state;
 
@@ -297,6 +305,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
             mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : null,
             account: signupEntityType === 'LEGAL_ENTITY' ? signupAccount : null,
             bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : null,
+            deliveryAddress: signupDeliveryAddress??null,
             pushSubscription: signupPushSubscription ?? null,
           },
         }

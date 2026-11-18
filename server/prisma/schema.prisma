@@ -31,6 +31,11 @@ model Location {
   timezone  String  @default("Europe/Belgrade") // Например: "Europe/Moscow"
   currencyCode   String @default("RSD")  // ISO 4217: "USD", "EUR", "GEL", "RUB"
   currencySymbol String @default("din")  // "$", "€", "₾", "₽"  
+  city   String?
+  location  Json?
+  deliveryPricePerKm Float?
+  deliveryDispatchFee Float?
+  deliveryMeetingFee Float?
   companyId String
   company   Company  @relation(fields: [companyId], references: [id])
   employees User[]
@@ -94,6 +99,8 @@ model User {
   bio               String?
   pushSubscription  Json?
   tgId              String?
+  deliveryAddress   String?
+  location          Json?
   passwordHash      String
   lang              String?
   createdAt         DateTime      @default(now())
@@ -416,6 +423,7 @@ model Order {
   isPaid          Boolean      @default(false)
   paymentMethod   String?
   deliveryAddress String?
+  deliveryLocation Json?
   shippingMethod  String?
   trackingNumber  String?
   managerId       String?

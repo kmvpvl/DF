@@ -460,4 +460,30 @@ export class OrderService {
         //console.log(data);
         return data;
     }
+
+    static async order(ctx: GraphQLContext, orderId: string): Promise<Order | null> {
+        await authorize(ctx, Role.CUSTOMER);
+        const order = await prisma.order.findFirst({
+            where: {
+                id: orderId
+            },
+            include: {
+                products: {
+                    include: {
+                        product: {
+                            include: {
+                                variants: true,
+                                modifierGroups: true,
+                                comboItems: true,
+                            },
+                        },
+                    },
+                },
+            }
+        });
+        if (order?.customerUserId === ctx.userId || await authorize(ctx, Role.MANAGER)) {
+            return order
+        }
+        return null
+    }
 }

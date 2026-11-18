@@ -21,6 +21,7 @@ import {
 } from './components/sections/Orders.tsx';
 import { ICompany } from '@betypes/company.ts';
 import { PublicProductData } from '@betypes/product.ts';
+import Customer from './components/sections/customer/customer.tsx';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -59,6 +60,7 @@ const SESSION_USER_QUERY = `
       mbr
       account
       bank
+      deliveryAddress
       pushSubscription
     }
     companyInfo {
@@ -196,7 +198,7 @@ class App extends Proto<AppProps, AppState> {
        });
   };
 
-  private navigateTo = (path: '/tool' | '/') => {
+  private navigateTo = (path: '/tool' | '/' | '/customer') => {
     if (window.location.pathname !== path) {
       window.history.pushState({}, '', path);
     }
@@ -714,6 +716,7 @@ class App extends Proto<AppProps, AppState> {
               bank
               passwordHash
               pushSubscription
+              deliveryAddress
               createdAt
               updatedAt
             }
@@ -743,6 +746,7 @@ class App extends Proto<AppProps, AppState> {
                 ? this.state.user?.bank
                 : null,
             pushSubscription: subscription,
+            deliveryAddress: this.state.user?.deliveryAddress,
           },
         });
 
@@ -783,6 +787,27 @@ class App extends Proto<AppProps, AppState> {
     const canAccessTool = isToolPage && isStaffUser;
 
     return (
+      this.state.currentPage === "customer" 
+      ? <><Customer
+        user={this.state.user}
+        companyInfo={this.state.companyInfo}
+        chapter={this.state.activeChapter}
+        objectId={this.state.objectId}
+        onLoginRequired={this.handleOpenLogin}
+        onCloseAuth={this.handleCloseAuth}
+        /> 
+        {authOpen && (
+          <AuthModal
+            onSuccess={this.handleAuthSuccess}
+            onClose={this.handleCloseAuth}
+            pendingProductName={null}
+            initialTab={authInitialTab}
+            initialSignupEntityType={authInitialSignupEntityType}
+            editingUser={authEditingUser}
+          />
+        )}
+      </>
+      :
       <div className="app">
         <Navbar
           user={user}

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
 import { prisma } from './lib/prisma';
-import { ILocation } from './types/company';
+import { ICoords, ILocation } from './types/company';
 import multer from 'multer';
 import {
     CreateBatchInput,
@@ -47,6 +47,7 @@ import {
 import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
 import { IMLString } from './lib/mlstring';
+import { AddressService } from './services/address.service';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -119,6 +120,9 @@ interface SendOrderInput {
     customerName: string;
     customerEmail: string;
     customerPhone: string;
+    customerDeliveryAddress: string;
+    deliveryLat: number;
+    deliveryLon: number;
     note?: string;
     items: OrderItemInput[];
     total: number;
@@ -255,8 +259,8 @@ const resolvers = {
                 include: {
                     products: {
                         include: {
-                            product: true
-                        }
+                            product: true,
+                        },
                     },
                 },
                 orderBy: [{ createdAt: 'desc' }],
@@ -266,6 +270,19 @@ const resolvers = {
         getDraft: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
             return await OrderService.getDraft(ctx);
         },
+
+        order: async (
+            _: unknown,
+            { orderId }: { orderId: string },
+            ctx: GraphQLContext
+        ) => {
+            return await OrderService.order(ctx, orderId);
+        },
+        myVerifiedDeliveryAddress: async (
+            _: unknown,
+            __: unknown,
+            ctx: GraphQLContext
+        ) => AddressService.getVerifiedDeliveryAddress(ctx),
 
         batches: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
             return BatchService.getAll(ctx);
@@ -467,6 +484,13 @@ const resolvers = {
             // Мапим результат, чтобы "stock" был простым числом, а не вложенным объектом
             return products;
         },
+        searchAddress: async (
+            _: any,
+            { query }: { query: string },
+            ctx: GraphQLContext
+        ) => await AddressService.searchAddress(ctx, query),
+        estimateDelivery: async (_: any, dest: ICoords, ctx: GraphQLContext) =>
+            await AddressService.estimateDelivery(ctx, dest),
     },
     Mutation: {
         login: async (
@@ -595,6 +619,15 @@ const resolvers = {
                 data: updateData,
             });
         },
+        verifyDeliveryAddress: async (
+            _: unknown,
+            {
+                address,
+                lat,
+                lon,
+            }: { address: string; lat: number; lon: number },
+            ctx: GraphQLContext
+        ) => AddressService.verifyDeliveryAddress(ctx, address, { lat, lon }),
         sendContactMessage: async (
             _: unknown,
             { input }: { input: SendContactMessageInput }
@@ -904,15 +937,35 @@ const resolvers = {
         sendOrderByEmail: async (
             _: unknown,
             { input }: { input: SendOrderInput },
-            { req }: GraphQLContext
+            ctx: GraphQLContext
         ) => {
+            const { req } = ctx;
             const customerName = input.customerName.trim();
             const customerEmail = input.customerEmail.trim();
             const customerPhone = input.customerPhone.trim();
+            const customerDeliveryAddress =
+                input.customerDeliveryAddress.trim();
             const note = input.note?.trim();
 
-            if (!customerName || !customerEmail || !customerPhone) {
-                throw new Error('Customer name, email and phone are required');
+            if (
+                !customerName ||
+                !customerEmail ||
+                !customerPhone ||
+                !customerDeliveryAddress
+            ) {
+                throw new Error(
+                    'Customer name, email, phone and delivery address are required'
+                );
+            }
+            if (
+                !Number.isFinite(input.deliveryLat) ||
+                input.deliveryLat < -90 ||
+                input.deliveryLat > 90 ||
+                !Number.isFinite(input.deliveryLon) ||
+                input.deliveryLon < -180 ||
+                input.deliveryLon > 180
+            ) {
+                throw new Error('Delivery coordinates are invalid');
             }
 
             if (!input.items.length) {
@@ -937,6 +990,12 @@ const resolvers = {
             if (!Number.isFinite(input.total) || input.total <= 0) {
                 throw new Error('Order total must be greater than 0');
             }
+
+            const deliveryEstimate = await AddressService.estimateForOrder(
+                ctx,
+                customerDeliveryAddress,
+                { lat: input.deliveryLat, lon: input.deliveryLon }
+            );
 
             const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
             const recipient =
@@ -992,6 +1051,17 @@ const resolvers = {
                     `Customer name: ${customerName}`,
                     `Customer email: ${customerEmail}`,
                     `Customer phone: ${customerPhone}`,
+                    `Delivery address: ${customerDeliveryAddress}`,
+                    `Delivery distance: ${
+                        deliveryEstimate.distanceMeters == null
+                            ? '-'
+                            : `${(deliveryEstimate.distanceMeters / 1000).toFixed(2)} km`
+                    }`,
+                    `Estimated delivery cost: ${
+                        deliveryEstimate.deliveryCost == null
+                            ? 'not configured'
+                            : `${deliveryEstimate.deliveryCost.toFixed(2)} ${deliveryEstimate.currencySymbol}`
+                    }`,
                     `Session user id: ${sessionUser?.id ?? '-'}`,
                     `Session user entity type: ${sessionUser?.entityType ?? '-'}`,
                     '',

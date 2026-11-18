@@ -29,6 +29,7 @@ export interface User {
   mbr?: string | null;
   account?: string | null;
   bank?: string | null;
+  deliveryAddress?: string | null;
   pushSubscription?: object | null;
 }
 

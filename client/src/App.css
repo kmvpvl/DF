@@ -361,6 +361,75 @@ main {
   margin-top: 0.4rem;
 }
 
+.address-suggestions-panel {
+  margin-top: -0.45rem;
+  padding: 0.65rem;
+  border: 2px solid var(--primary);
+  border-radius: 10px;
+  background: #fffaf3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.address-suggestions-heading {
+  margin: 0 0 0.5rem;
+  color: var(--primary-dark);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.address-suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.address-suggestions button {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 0;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.address-suggestions button:hover:not(:disabled) {
+  background: #f4e3cf;
+}
+
+.address-suggestions button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--primary-dark);
+  outline-offset: -2px;
+}
+
+.address-suggestions button:disabled {
+  color: var(--text-light);
+  background: #f5f2ee;
+  cursor: not-allowed;
+}
+
+.address-selected-note {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #ebfff3;
+  color: #1b7f4a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.delivery-estimate {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+}
+
 .basket-order-success {
   font-size: 0.88rem;
   color: #1b7f4a;
