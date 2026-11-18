@@ -274,6 +274,12 @@ main {
   color: var(--dark);
 }
 
+.basket-header .push-notifications-button,
+.basket-header .push-notifications-status {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.76rem;
+}
+
 .basket-empty {
   color: var(--text-light);
   font-size: 0.95rem;
@@ -1023,6 +1029,71 @@ main {
 .btn-outline:hover {
   background: var(--primary);
   color: #fff;
+}
+
+.push-notifications-button,
+.push-notifications-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 46px;
+  padding: 0.7rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--dark);
+  background: rgba(255, 255, 255, 0.82);
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.push-notifications-button {
+  box-shadow: 0 4px 14px rgba(44, 24, 16, 0.08);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+
+.push-notifications-button:hover {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 7px 18px rgba(44, 24, 16, 0.12);
+  transform: translateY(-1px);
+}
+
+.push-notifications-button:focus-visible {
+  outline: 3px solid rgba(194, 84, 58, 0.35);
+  outline-offset: 3px;
+}
+
+.push-notifications-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  color: var(--primary);
+}
+
+.push-notifications-status {
+  border-color: #b4e8ca;
+  color: #1b7f4a;
+  background: #ebfff3;
+}
+
+.push-notifications-check {
+  display: inline-grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #1b7f4a;
+  font-size: 0.8rem;
 }
 
 /* ── Hero / Home ────────────────────────────────── */

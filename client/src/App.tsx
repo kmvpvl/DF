@@ -754,8 +754,6 @@ class App extends Proto<AppProps, AppState> {
           ...this.state,
           user: newData.updateSessionUser as any,
         });
-
-        alert('Уведомления успешно настроены!');
       } catch (error) {
         console.error('Ошибка подписки:', error);
       }
@@ -864,6 +862,9 @@ class App extends Proto<AppProps, AppState> {
               <Home
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
                 userEntityType={user?.entityType ?? null}
+                isLoggedIn={Boolean(user)}
+                isPushSubscribed={Boolean(user?.pushSubscription)}
+                onPushSubscribe={this.subscribeUserToPush.bind(this)}
               />
               <Products
                 user={this.state.user}

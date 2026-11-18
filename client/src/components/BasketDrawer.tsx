@@ -5,6 +5,7 @@ import Proto, { IProtoProps, IProtoState } from '../proto';
 import { MLString } from '../mlstring';
 import { IOrder } from './sections/Orders';
 import {} from './sections/Products';
+import PushNotificationControl from './PushNotificationControl';
 
 export interface OrderItemPayload {
   productId: string;
@@ -515,16 +516,11 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         >
           <div className="basket-header">
             <h2>Basket</h2>
-            {this.props.user?.pushSubscription ? (
-              <span>Вы подписаны на пуш уведомления</span>
-            ) : (
-              <button
-                onClick={() => {
-                  this.props.onPushSubscribe();
-                }}
-              >
-                Subscribe
-              </button>
+            {this.props.user && (
+              <PushNotificationControl
+                isSubscribed={Boolean(this.props.user.pushSubscription)}
+                onSubscribe={this.props.onPushSubscribe}
+              />
             )}
             <button
               className="modal-close"

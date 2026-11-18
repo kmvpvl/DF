@@ -1,9 +1,13 @@
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import Proto from '../../proto';
+import Proto, { type IProtoProps } from '../../proto';
+import PushNotificationControl from '../PushNotificationControl';
 
-interface HomeProps {
+interface HomeProps extends IProtoProps {
   onLegalEntityCtaClick: () => void;
   userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
+  isLoggedIn: boolean;
+  isPushSubscribed: boolean;
+  onPushSubscribe: () => void;
 }
 
 class Home extends Proto<HomeProps, {}> {
@@ -69,6 +73,12 @@ class Home extends Proto<HomeProps, {}> {
           >
             {this.ML('Order a test batch for free').toString()}
           </button>
+          {this.props.isLoggedIn && (
+            <PushNotificationControl
+              isSubscribed={this.props.isPushSubscribed}
+              onSubscribe={this.props.onPushSubscribe}
+            />
+          )}
           {/*<button
             className="btn-outline"
             onClick={() => this.scrollTo('about')}
