@@ -179,4 +179,37 @@ describe('OrderService staff order access', () => {
         });
         expect(order.status).toBe('IN_PRODUCTION');
     });
+
+    it('allows management roles to cancel any non-cancelled order in their location', async () => {
+        mocks.findFirst.mockResolvedValue({
+            id: 'order-1',
+            status: 'CANCELLED',
+            products: [],
+        });
+
+        const order = await OrderService.cancelOrder(ctx, 'order-1');
+
+        expect(mocks.authorize).toHaveBeenCalledWith(ctx, [
+            'MANAGER',
+            'SUPERVISOR',
+        ]);
+        expect(mocks.updateMany).toHaveBeenCalledWith({
+            where: {
+                id: 'order-1',
+                locationId: 'location-1',
+                status: { not: 'CANCELLED' },
+            },
+            data: { status: 'CANCELLED' },
+        });
+        expect(order.status).toBe('CANCELLED');
+    });
+
+    it('does not process an order that is already cancelled', async () => {
+        mocks.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(
+            OrderService.cancelOrder(ctx, 'order-1')
+        ).rejects.toThrow('already cancelled');
+        expect(mocks.findFirst).not.toHaveBeenCalled();
+    });
 });

@@ -671,6 +671,43 @@ export class OrderService {
         return order;
     }
 
+    static async cancelOrder(ctx: GraphQLContext, orderId: string) {
+        await authorize(ctx, [Role.MANAGER, Role.SUPERVISOR]);
+        const locationId = ctx.locationId;
+        if (!locationId) {
+            throw new Error('Location context is required to cancel orders');
+        }
+
+        const updated = await prisma.order.updateMany({
+            where: {
+                id: orderId,
+                locationId,
+                status: { not: OrderStatus.CANCELLED },
+            },
+            data: { status: OrderStatus.CANCELLED },
+        });
+        if (updated.count !== 1) {
+            throw new Error(
+                'Order not found in this location or is already cancelled'
+            );
+        }
+
+        const order = await prisma.order.findFirst({
+            where: { id: orderId, locationId },
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+        });
+        if (!order) {
+            throw new Error('Cancelled order could not be loaded');
+        }
+        return order;
+    }
+
     static async getDraft(ctx: GraphQLContext): Promise<Order | null> {
         await authorize(ctx, Role.CUSTOMER);
         const data = await prisma.order.findFirst({

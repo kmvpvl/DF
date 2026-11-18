@@ -2665,4 +2665,48 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
       [`sr`, 'Server nije vratio ažuriranu porudžbinu.'],
     ]),
   ],
+  [
+    `Cancel order`,
+    new Map([
+      [`de`, 'Bestellung stornieren'],
+      [`fr`, 'Annuler la commande'],
+      [`es`, 'Cancelar pedido'],
+      [`ru`, 'Отменить заказ'],
+      [`it`, 'Annulla ordine'],
+      [`sr`, 'Otkaži porudžbinu'],
+    ]),
+  ],
+  [
+    `Cancelling order...`,
+    new Map([
+      [`de`, 'Bestellung wird storniert...'],
+      [`fr`, 'Annulation de la commande...'],
+      [`es`, 'Cancelando pedido...'],
+      [`ru`, 'Отмена заказа...'],
+      [`it`, 'Annullamento dell’ordine...'],
+      [`sr`, 'Otkazivanje porudžbine...'],
+    ]),
+  ],
+  [
+    `Are you sure you want to cancel this order?`,
+    new Map([
+      [`de`, 'Möchten Sie diese Bestellung wirklich stornieren?'],
+      [`fr`, 'Voulez-vous vraiment annuler cette commande ?'],
+      [`es`, '¿Seguro que quieres cancelar este pedido?'],
+      [`ru`, 'Вы действительно хотите отменить этот заказ?'],
+      [`it`, 'Vuoi davvero annullare questo ordine?'],
+      [`sr`, 'Da li ste sigurni da želite da otkažete ovu porudžbinu?'],
+    ]),
+  ],
+  [
+    `Order cancelled.`,
+    new Map([
+      [`de`, 'Bestellung storniert.'],
+      [`fr`, 'Commande annulée.'],
+      [`es`, 'Pedido cancelado.'],
+      [`ru`, 'Заказ отменён.'],
+      [`it`, 'Ordine annullato.'],
+      [`sr`, 'Porudžbina je otkazana.'],
+    ]),
+  ],
 ]);

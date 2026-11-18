@@ -11,6 +11,58 @@ describe('StaffOrders', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows cancellation for completed orders and updates status with notification results', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {
+            orders: [
+              {
+                id: 'order-2',
+                number: '1002',
+                customerName: 'Test Customer',
+                status: 'COMPLETED',
+                totalPrice: 40,
+                createdAt: '2026-01-01T10:00:00.000Z',
+                products: [],
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: {
+            cancelOrder: {
+              order: { id: 'order-2', status: 'CANCELLED' },
+              emailSent: true,
+              pushSent: true,
+            },
+          },
+        }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    render(<StaffOrders />);
+
+    const cancelButton = await screen.findByRole('button', {
+      name: 'Cancel order',
+    });
+    expect(cancelButton).toBeEnabled();
+    fireEvent.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('CANCELLED')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText('Order cancelled. Email: sent; Push: sent.')
+    ).toBeInTheDocument();
+    expect(window.confirm).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('shows order details and updates status after starting production', async () => {
     const fetchMock = vi
       .fn()

@@ -11,6 +11,7 @@ interface IOrdersProps extends IProtoProps {
 interface IOrdersState extends IProtoState {
   loading: boolean;
   updatingOrderId: string | null;
+  cancellingOrderId: string | null;
   expandedOrderId: string | null;
   error: string | null;
   notice: string | null;
@@ -22,6 +23,8 @@ interface OrderAcceptanceResult {
   emailSent: boolean;
   pushSent: boolean;
 }
+
+type OrderCancellationResult = OrderAcceptanceResult;
 
 const ORDERS_QUERY = `
   query LocationOrders {
@@ -81,10 +84,24 @@ const START_ORDER_PRODUCTION_MUTATION = `
   }
 `;
 
+const CANCEL_ORDER_MUTATION = `
+  mutation CancelOrder($orderId: ID!) {
+    cancelOrder(orderId: $orderId) {
+      order {
+        id
+        status
+      }
+      emailSent
+      pushSent
+    }
+  }
+`;
+
 export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
   state: Readonly<IOrdersState> = {
     loading: false,
     updatingOrderId: null,
+    cancellingOrderId: null,
     expandedOrderId: this.props.objectId ?? null,
     error: null,
     notice: null,
@@ -155,6 +172,54 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
     } catch (error: unknown) {
       this.setState({
         updatingOrderId: null,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  private cancelOrder = async (order: IOrder) => {
+    if (!order.id || order.status === OrderStatus.CANCELLED) return;
+    if (!window.confirm(this.ML('Are you sure you want to cancel this order?'))) {
+      return;
+    }
+
+    this.setState({
+      updatingOrderId: order.id,
+      cancellingOrderId: order.id,
+      error: null,
+      notice: null,
+    });
+    try {
+      const data = await this.gql(CANCEL_ORDER_MUTATION, {
+        orderId: order.id,
+      });
+      const result = data.cancelOrder as OrderCancellationResult;
+      if (!result?.order?.id) {
+        throw new Error(this.ML('The server did not return the updated order.'));
+      }
+
+      const message = `${this.ML('Order cancelled.')} ${this.ML(
+        'Email'
+      )}: ${this.ML(result.emailSent ? 'sent' : 'failed')}; ${this.ML(
+        'Push'
+      )}: ${this.ML(result.pushSent ? 'sent' : 'failed')}.`;
+      this.setState((previousState) => ({
+        orders: previousState.orders.map((existingOrder) =>
+          existingOrder.id === result.order.id
+            ? { ...existingOrder, status: result.order.status }
+            : existingOrder
+        ),
+        updatingOrderId: null,
+        cancellingOrderId: null,
+        notice:
+          result.emailSent && result.pushSent ? message : null,
+        error:
+          result.emailSent && result.pushSent ? null : message,
+      }));
+    } catch (error: unknown) {
+      this.setState({
+        updatingOrderId: null,
+        cancellingOrderId: null,
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -394,6 +459,19 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
                                     : this.ML('Start production')}
                                 </button>
                               )}
+                              <button
+                                type="button"
+                                className="btn-secondary cj-btn-danger"
+                                disabled={
+                                  order.status === OrderStatus.CANCELLED ||
+                                  this.state.updatingOrderId === orderId
+                                }
+                                onClick={() => void this.cancelOrder(order)}
+                              >
+                                {this.state.cancellingOrderId === orderId
+                                  ? this.ML('Cancelling order...')
+                                  : this.ML('Cancel order')}
+                              </button>
                             </div>
                           </td>
                         </tr>

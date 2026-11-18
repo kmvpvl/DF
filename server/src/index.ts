@@ -4,7 +4,6 @@ import express, { type Request, type Response } from 'express';
 import bcrypt from 'bcrypt';
 import cors, { type CorsOptions } from 'cors';
 import session from 'express-session';
-import nodemailer, { Transporter } from 'nodemailer';
 import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
@@ -49,7 +48,6 @@ import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
 import { IMLString, MLString } from './lib/mlstring';
 import { AddressService } from './services/address.service';
-import { IPushMessage } from './types/pushes';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -117,71 +115,6 @@ interface SendOrderInput {
     deliveryLat: number;
     deliveryLon: number;
     note?: string;
-}
-
-let smtpTransporter: Transporter | null = null;
-
-function parseBoolean(value: string | undefined, fallback = false): boolean {
-    if (!value) return fallback;
-    const normalized = value.trim().toLowerCase();
-    return normalized === '1' || normalized === 'true' || normalized === 'yes';
-}
-
-function getSmtpTransporter(): Transporter {
-    if (smtpTransporter) {
-        return smtpTransporter;
-    }
-
-    const host = process.env.SMTP_HOST;
-    const port = Number.parseInt(process.env.SMTP_PORT ?? '587', 10);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const secure = parseBoolean(process.env.SMTP_SECURE, false);
-
-    if (!host || !Number.isFinite(port) || !user || !pass) {
-        throw new Error(
-            'SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS.'
-        );
-    }
-
-    smtpTransporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: {
-            user,
-            pass,
-        },
-    });
-
-    return smtpTransporter;
-}
-
-function getOrderAcceptedPushMessage(orderNumber: string): IPushMessage {
-    return {
-        title: {
-            default: 'Order accepted',
-            ts: {
-                de: 'Bestellung angenommen',
-                fr: 'Commande acceptée',
-                es: 'Pedido aceptado',
-                ru: 'Заказ принят',
-                it: 'Ordine accettato',
-                sr: 'Porudžbina je prihvaćena',
-            },
-        },
-        body: {
-            default: `Your order #${orderNumber} is being prepared.`,
-            ts: {
-                de: `Ihre Bestellung Nr. ${orderNumber} wird vorbereitet.`,
-                fr: `Votre commande n° ${orderNumber} est en préparation.`,
-                es: `Tu pedido n.º ${orderNumber} está en preparación.`,
-                ru: `Заказ №${orderNumber} принят и готовится.`,
-                it: `Il tuo ordine n. ${orderNumber} è in preparazione.`,
-                sr: `Vaša porudžbina br. ${orderNumber} je u pripremi.`,
-            },
-        },
-    };
 }
 
 type IngredientWithRefs = {
@@ -662,42 +595,13 @@ const resolvers = {
                 throw new Error('Provide at least email or phone');
             }
 
-            const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
-            const feedbackTo =
-                process.env.SMTP_TO_FEEDBACK || process.env.CONTACT_EMAIL_TO;
-            const freeOrderTo =
-                process.env.SMTP_TO_FREE_ORDER || process.env.CONTACT_EMAIL_TO;
-            const recipient =
-                input.type === 'FREE_TEST_BATCH' ? freeOrderTo : feedbackTo;
-
-            if (!fromAddress || !recipient) {
-                throw new Error(
-                    'Email routing is not configured. Set SMTP_FROM and CONTACT_EMAIL_TO or SMTP_TO_*.'
-                );
-            }
-
-            const prefix = process.env.EMAIL_SUBJECT_PREFIX?.trim();
-            const typeLabel =
-                input.type === 'FREE_TEST_BATCH'
-                    ? 'FREE_TEST_BATCH'
-                    : 'FEEDBACK';
-            const finalSubject = `${prefix ? `${prefix} ` : ''}[${typeLabel}] ${subject}`;
-
-            const transporter = getSmtpTransporter();
-
-            await transporter.sendMail({
-                from: fromAddress,
-                to: recipient,
-                replyTo: email || undefined,
-                subject: finalSubject,
-                text: [
-                    `Type: ${typeLabel}`,
-                    `Name: ${name}`,
-                    `Email: ${email || '-'}`,
-                    `Phone: ${phone || '-'}`,
-                    '',
-                    message,
-                ].join('\n'),
+            await PushService.sendContactEmail({
+                type: input.type,
+                name,
+                email,
+                phone,
+                subject,
+                message,
             });
 
             return true;
@@ -1004,20 +908,6 @@ const resolvers = {
                 );
             }
 
-            const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
-            const recipient =
-                process.env.SMTP_TO_ORDER || 'sales@dolceforte.rs';
-
-            if (!fromAddress) {
-                throw new Error(
-                    'SMTP sender is not configured. Set SMTP_FROM or SMTP_USER.'
-                );
-            }
-
-            const transporter = getSmtpTransporter();
-            const subjectPrefix = process.env.EMAIL_SUBJECT_PREFIX?.trim();
-            const subject = `${subjectPrefix ? `${subjectPrefix} ` : ''}[ORDER] ${customerName}`;
-
             const sessionUserId = req.session.userId;
             const sessionUser = sessionUserId
                 ? await prisma.user.findUnique({ where: { id: sessionUserId } })
@@ -1043,39 +933,19 @@ const resolvers = {
                     .join('\n');
             });
 
-            await transporter.sendMail({
-                from: fromAddress,
-                to: recipient,
-                replyTo: customerEmail,
-                subject,
-                text: [
-                    'New DolceForte order',
-                    '',
-                    `Customer name: ${customerName}`,
-                    `Customer email: ${customerEmail}`,
-                    `Customer phone: ${customerPhone}`,
-                    `Delivery address: ${customerDeliveryAddress}`,
-                    `Delivery distance: ${
-                        deliveryEstimate.distanceMeters == null
-                            ? '-'
-                            : `${(deliveryEstimate.distanceMeters / 1000).toFixed(2)} km`
-                    }`,
-                    `Estimated delivery cost: ${
-                        deliveryEstimate.deliveryCost == null
-                            ? 'not configured'
-                            : `${deliveryEstimate.deliveryCost.toFixed(2)} ${deliveryEstimate.currencySymbol}`
-                    }`,
-                    `Session user id: ${sessionUser?.id ?? '-'}`,
-                    `Session user entity type: ${sessionUser?.entityType ?? '-'}`,
-                    '',
-                    'Order items:',
-                    ...orderLines,
-                    '',
-                    `Products subtotal: ${draftOrder.totalPrice.toFixed(2)} din`,
-                    `Delivery fee: ${deliveryFee.toFixed(2)} ${deliveryEstimate.currencySymbol}`,
-                    `Total: ${(draftOrder.totalPrice + deliveryFee).toFixed(2)} din`,
-                    `Note: ${note || '-'}`,
-                ].join('\n'),
+            await PushService.sendNewOrderEmail({
+                customerName,
+                customerEmail,
+                customerPhone,
+                deliveryAddress: customerDeliveryAddress,
+                distanceMeters: deliveryEstimate.distanceMeters,
+                deliveryCost: deliveryFee,
+                currencySymbol: deliveryEstimate.currencySymbol,
+                sessionUserId: sessionUser?.id,
+                sessionUserEntityType: sessionUser?.entityType,
+                orderLines,
+                productsSubtotal: draftOrder.totalPrice,
+                note,
             });
 
             await OrderService.confirmCustomerDraft(ctx, input.orderId, {
@@ -1097,98 +967,26 @@ const resolvers = {
             ctx: GraphQLContext
         ) => {
             const order = await OrderService.startProduction(ctx, orderId);
-            const customer = order.customerUserId
-                ? await prisma.user
-                      .findUnique({
-                          where: { id: order.customerUserId },
-                          select: {
-                              email: true,
-                              lang: true,
-                              pushSubscription: true,
-                          },
-                      })
-                      .catch((error: unknown) => {
-                          console.error(
-                              `Failed to load customer details for accepted order ${order.id}:`,
-                              error
-                          );
-                          return null;
-                      })
-                : null;
-            const customerEmail =
-                order.customerEmail?.trim() || customer?.email?.trim();
-            const lang = customer?.lang ?? undefined;
-            const message = getOrderAcceptedPushMessage(order.number);
-            const customerOrderUrl = `/customer/Orders/${encodeURIComponent(order.id)}`;
-
-            const emailNotification = Promise.resolve().then(async () => {
-                if (!customerEmail) {
-                    throw new Error('Customer email is not available');
-                }
-                const fromAddress =
-                    process.env.SMTP_FROM || process.env.SMTP_USER;
-                if (!fromAddress) {
-                    throw new Error(
-                        'SMTP sender is not configured. Set SMTP_FROM or SMTP_USER.'
-                    );
-                }
-                await getSmtpTransporter().sendMail({
-                    from: fromAddress,
-                    to: customerEmail,
-                    subject: new MLString({
-                        default: `Order #${order.number} accepted`,
-                        ts: {
-                            de: `Bestellung Nr. ${order.number} angenommen`,
-                            fr: `Commande n° ${order.number} acceptée`,
-                            es: `Pedido n.º ${order.number} aceptado`,
-                            ru: `Заказ №${order.number} принят`,
-                            it: `Ordine n. ${order.number} accettato`,
-                            sr: `Porudžbina br. ${order.number} je prihvaćena`,
-                        },
-                    }).toString(lang),
-                    text: new MLString({
-                        default: `Your order #${order.number} has been accepted and is being prepared.`,
-                        ts: {
-                            de: `Ihre Bestellung Nr. ${order.number} wurde angenommen und wird vorbereitet.`,
-                            fr: `Votre commande n° ${order.number} a été acceptée et est en préparation.`,
-                            es: `Tu pedido n.º ${order.number} ha sido aceptado y está en preparación.`,
-                            ru: `Ваш заказ №${order.number} принят и передан в приготовление.`,
-                            it: `Il tuo ordine n. ${order.number} è stato accettato ed è in preparazione.`,
-                            sr: `Vaša porudžbina br. ${order.number} je prihvaćena i u pripremi.`,
-                        },
-                    }).toString(lang),
-                });
-            });
-            const pushNotification = Promise.resolve().then(async () => {
-                if (!order.customerUserId || !customer?.pushSubscription) {
-                    throw new Error('Customer has no push subscription');
-                }
-                await PushService.send(
-                    order.customerUserId,
-                    message,
-                    customerOrderUrl
-                );
-            });
-            const [emailResult, pushResult] = await Promise.allSettled([
-                emailNotification,
-                pushNotification,
-            ]);
-            if (emailResult.status === 'rejected') {
-                console.error(
-                    `Failed to email customer about accepted order ${order.id}:`,
-                    emailResult.reason
-                );
-            }
-            if (pushResult.status === 'rejected') {
-                console.error(
-                    `Failed to push accepted-order notification ${order.id}:`,
-                    pushResult.reason
-                );
-            }
             return {
                 order,
-                emailSent: emailResult.status === 'fulfilled',
-                pushSent: pushResult.status === 'fulfilled',
+                ...(await PushService.notifyCustomerOrderStatus(
+                    order,
+                    'accepted'
+                )),
+            };
+        },
+        cancelOrder: async (
+            _: unknown,
+            { orderId }: { orderId: string },
+            ctx: GraphQLContext
+        ) => {
+            const order = await OrderService.cancelOrder(ctx, orderId);
+            return {
+                order,
+                ...(await PushService.notifyCustomerOrderStatus(
+                    order,
+                    'cancelled'
+                )),
             };
         },
     },
