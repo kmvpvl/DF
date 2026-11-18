@@ -478,6 +478,8 @@ input CreateOrderInput {
     isPaid: Boolean
     paymentMethod: String
     deliveryAddress: String
+    deliveryFee: Float
+    deliveryLocation: JSON
     shippingMethod: String
     trackingNumber: String
     managerId: String
