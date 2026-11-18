@@ -262,7 +262,7 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
         </div>
 
         <h3>{this.ML('Products')}</h3>
-        <div className="table-responsive">
+        <div className="cj-table">
           <table className="table staff-order-products">
             <thead>
               <tr>
@@ -314,7 +314,7 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
           )}
 
           {orders.length > 0 && (
-            <div className="table-responsive">
+            <div className="cj-table">
               <table className="table">
                 <thead>
                   <tr>
