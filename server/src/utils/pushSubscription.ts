@@ -24,7 +24,7 @@ app.get('/api/send-notification', async (req, res) => {
   const notificationPayload = JSON.stringify({
     title: 'Привет с бэкенда!',
     body: 'Это пуш-уведомление для iOS PWA',
-    url: '/profile' // Кастомное поле для роутинга
+    url: '/tool/Orders/<uid>' // Кастомное поле для роутинга
   });
 
   const promises = subscriptions.map(sub => 

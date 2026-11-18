@@ -83,7 +83,7 @@ export default class Proto<
     const location = this.props.companyInfo?.locations.find(
       (l) => l.id === this.props.currentLocation
     );
-    if (!x) return `- ${location?.currencySymbol ?? '-'}`;
+    if (x === undefined) return `- ${location?.currencySymbol ?? '-'}`;
     return `${Intl.NumberFormat(this.getLanguage(), {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

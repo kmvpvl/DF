@@ -420,6 +420,7 @@ model Order {
   orderDateReady  DateTime?
   status          OrderStatus  @default(DRAFT)
   totalPrice      Float        @default(0)
+  deliveryFee     Float        @default(0)
   isPaid          Boolean      @default(false)
   paymentMethod   String?
   deliveryAddress String?

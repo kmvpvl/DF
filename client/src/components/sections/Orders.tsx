@@ -22,6 +22,7 @@ export interface IOrder {
   orderDateReady?: Date | null;
   status: OrderStatus;
   totalPrice?: number;
+  deliveryFee?: number;
   isPaid?: boolean;
   paymentMethod?: string | null;
   deliveryAddress?: string | null;

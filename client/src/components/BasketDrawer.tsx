@@ -7,17 +7,8 @@ import { IOrder } from './sections/Orders';
 import {} from './sections/Products';
 import PushNotificationControl from './PushNotificationControl';
 
-export interface OrderItemPayload {
-  productId: string;
-  name: string;
-  qty: number;
-  unitPrice: number;
-  lineTotal: number;
-  variantLabel?: string;
-  weightGrams?: number;
-}
-
 export interface OrderPayload {
+  orderId: string;
   customerName: string;
   customerEmail: string;
   customerDeliveryAddress: string;
@@ -25,8 +16,6 @@ export interface OrderPayload {
   deliveryLon: number;
   customerPhone: string;
   note?: string;
-  items: OrderItemPayload[];
-  total: number;
 }
 
 interface AddressSuggestion {
@@ -246,7 +235,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         addressSearchError:
           error instanceof Error
             ? error.message
-            : 'Could not load the saved delivery address.',
+              : this.ML('Could not load the saved delivery address.'),
       });
     }
   };
@@ -317,7 +306,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       this.setState({
         addressSearchLoading: false,
         addressSearchError:
-          error instanceof Error ? error.message : 'Address search failed.',
+          error instanceof Error
+            ? error.message
+            : this.ML('Address search failed.'),
       });
     }
   };
@@ -397,7 +388,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         routeEstimateError:
           error instanceof Error
             ? error.message
-            : 'Could not calculate the delivery route.',
+            : this.ML('Could not calculate the delivery route.'),
       });
     }
   };
@@ -428,8 +419,17 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (this.props.order?.products?.length === 0) {
-      this.setState({ error: 'Basket is empty.', sent: false });
+    const order = this.props.order;
+    if (!order?.products.length) {
+      this.setState({ error: this.ML('Basket is empty.'), sent: false });
+      return;
+    }
+
+    if (!order.id) {
+      this.setState({
+        error: this.ML('Unable to submit order because the saved draft is missing.'),
+        sent: false,
+      });
       return;
     }
 
@@ -446,8 +446,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       !customerDeliveryAddress
     ) {
       this.setState({
-        error:
-          'Please fill in name, delivery address and phone before placing an order.',
+        error: this.ML(
+          'Please fill in name, delivery address and phone before placing an order.'
+        ),
         sent: false,
       });
       return;
@@ -458,8 +459,17 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       !this.state.routeEstimate
     ) {
       this.setState({
-        error:
-          'Choose a delivery address with a house number from the suggestions.',
+        error: this.ML(
+          'Choose a delivery address with a house number from the suggestions.'
+        ),
+        sent: false,
+      });
+      return;
+    }
+
+    if (this.state.routeEstimate.deliveryCost === null) {
+      this.setState({
+        error: this.ML('Delivery tariff is not configured.'),
         sent: false,
       });
       return;
@@ -469,6 +479,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
 
     try {
       await this.props.onSubmitOrder({
+        orderId: order.id,
         customerName,
         customerEmail,
         customerPhone,
@@ -476,8 +487,6 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         deliveryLat: this.state.selectedAddress.lat,
         deliveryLon: this.state.selectedAddress.lon,
         note: note || undefined,
-        items: [],
-        total: 0,
       });
 
       this.setState({
@@ -491,7 +500,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         loading: false,
         sent: false,
         error:
-          error instanceof Error ? error.message : 'Failed to place order.',
+          error instanceof Error
+            ? error.message
+            : this.ML('Failed to place order.'),
       });
     }
   };
@@ -500,6 +511,12 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     if (!this.props.isOpen) {
       return null;
     }
+    const hasItems = Boolean(this.props.order?.products.length);
+    const deliveryTariffUnavailable =
+      this.state.routeEstimate?.deliveryCost === null;
+    const displayedTotal =
+      (this.props.order?.totalPrice ?? 0) +
+      (this.state.routeEstimate?.deliveryCost ?? 0);
 
     return (
       <div
@@ -512,10 +529,10 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
           className="basket-drawer"
           role="dialog"
           aria-modal="true"
-          aria-label="Basket"
+          aria-label={this.ML('Basket')}
         >
           <div className="basket-header">
-            <h2>Basket</h2>
+            <h2>{this.ML('Basket')}</h2>
             {this.props.user && (
               <PushNotificationControl
                 isSubscribed={Boolean(this.props.user.pushSubscription)}
@@ -525,11 +542,31 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <button
               className="modal-close"
               onClick={this.props.onClose}
-              aria-label="Close basket"
+              aria-label={this.ML('Close basket')}
             >
               x
             </button>
           </div>
+
+          {hasItems && (
+            <div className="basket-order-top-action">
+              <button
+                className="btn-primary"
+                type="submit"
+                form="basket-order-form"
+                disabled={
+                  this.state.loading ||
+                  this.props.disableConrols ||
+                  !this.props.order?.id ||
+                  deliveryTariffUnavailable
+                }
+              >
+                {this.state.loading
+                  ? this.ML('Sending order...')
+                  : this.ML('Place order')}
+              </button>
+            </div>
+          )}
 
           {this.props.order?.products?.length === 0 ? (
             <p className="basket-empty">{this.ML('Your basket is empty')}</p>
@@ -541,9 +578,15 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                   .map((item) => {
                     const varName = item.product?.variants.find((v) =>
                       typeof v.label === 'string'
-                        ? v.label
+                        ? v.label === item.variantLabel
                         : v.label.default === item.variantLabel
                     );
+                    const productName = new MLString(
+                      item.product?.name ?? this.ML('Loading...')
+                    ).toString();
+                    const variantName = varName?.label
+                      ? new MLString(varName.label).toString()
+                      : '';
                     return (
                       <li
                         key={`${item.productId}-${item.variantLabel ?? 'default'}- none'}`}
@@ -551,10 +594,8 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                       >
                         <div className="basket-item-main">
                           <strong>
-                            {new MLString(
-                              item.product ? item.product.name : 'Loading...'
-                            ).toString()}{' '}
-                            - {new MLString(varName?.label).toString()}
+                            {productName}
+                            {variantName && ` - ${variantName}`}
                           </strong>
                           <span>{this.toCurrency(item.price)}</span>
                         </div>
@@ -568,7 +609,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                                 item.variantLabel
                               );
                             }}
-                            aria-label={`Decrease quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                            aria-label={`${this.ML('Decrease quantity for')} ${productName}`}
                             disabled={this.props.disableConrols}
                           >
                             -
@@ -585,7 +626,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                                 item.variantLabel
                               );
                             }}
-                            aria-label={`Increase quantity for ${item.product ? item.product.name : 'Loading...'}`}
+                            aria-label={`${this.ML('Increase quantity for')} ${productName}`}
                             disabled={this.props.disableConrols}
                           >
                             +
@@ -601,7 +642,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                             }
                             disabled={this.props.disableConrols}
                           >
-                            Remove
+                            {this.ML('Remove')}
                           </button>
                         </div>
                       </li>
@@ -610,20 +651,24 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               </ul>
 
               <div className="basket-total">
-                <span>Total</span>
-                <strong>{this.toCurrency(this.props.order?.totalPrice)}</strong>
+                <span>{this.ML('Total')}</span>
+                <strong>{this.toCurrency(displayedTotal)}</strong>
               </div>
             </>
           )}
 
-          <form className="basket-order-form" onSubmit={this.handleSubmit}>
+          <form
+            id="basket-order-form"
+            className="basket-order-form"
+            onSubmit={this.handleSubmit}
+          >
             <input
               className="form-input"
               value={this.state.customerName}
               onChange={(event) =>
                 this.setState({ customerName: event.target.value })
               }
-              placeholder="Full name"
+              placeholder={this.ML('Full name')}
               required
             />
             <input
@@ -633,7 +678,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               onChange={(event) =>
                 this.setState({ customerEmail: event.target.value })
               }
-              placeholder="Email"
+              placeholder={this.ML('Email')}
               required
             />
             <input
@@ -644,16 +689,18 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                 this.scheduleAddressSearch(event.target.value)
               }
               onFocus={this.handleAddressFocus}
-              placeholder="Delivery address"
+              placeholder={this.ML('Delivery address')}
               autoComplete="street-address"
               required
             />
             {this.state.addressSearchLoading && (
-              <small aria-live="polite">Searching addresses...</small>
+              <small aria-live="polite">
+                {this.ML('Searching addresses...')}
+              </small>
             )}
             {this.state.savedAddressLoading && (
               <small aria-live="polite">
-                Loading saved delivery address...
+                {this.ML('Loading saved delivery address...')}
               </small>
             )}
             {this.state.addressSearchError && (
@@ -664,7 +711,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             {this.state.addressSuggestions.length > 0 && (
               <div className="address-suggestions-panel">
                 <p className="address-suggestions-heading">
-                  Select an address to calculate delivery
+                  {this.ML('Select an address to calculate delivery')}
                 </p>
                 <ul className="address-suggestions" role="listbox">
                   {this.state.addressSuggestions.map((address) => (
@@ -677,7 +724,8 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                         onClick={() => void this.selectAddress(address)}
                       >
                         {address.formatted}
-                        {!address.isExactHouse && ' — add a house number'}
+                        {!address.isExactHouse &&
+                          ` — ${this.ML('add a house number')}`}
                       </button>
                     </li>
                   ))}
@@ -685,7 +733,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               </div>
             )}
             {this.state.routeEstimateLoading && (
-              <small aria-live="polite">Calculating delivery route...</small>
+              <small aria-live="polite">
+                {this.ML('Calculating delivery route...')}
+              </small>
             )}
             {this.state.routeEstimateError && (
               <p className="modal-error" role="alert">
@@ -695,22 +745,22 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             {this.state.routeEstimate && (
               <>
                 <p className="address-selected-note" role="status">
-                  Address selected and verified
+                  {this.ML('Address selected and verified')}
                 </p>
                 <div className="delivery-estimate" aria-live="polite">
                   <span>
-                    Distance:{' '}
+                    {this.ML('Distance')}:{' '}
                     {this.toFixed(
                       this.state.routeEstimate.distanceMeters / 1000
                     )}{' '}
-                    km
+                    {this.ML('km')}
                   </span>
-                  <span>
-                    Delivery:{' '}
+                  <strong>
+                    {this.ML('Delivery')}:{' '}
                     {this.state.routeEstimate.deliveryCost === null
-                      ? 'tariff not configured'
+                      ? this.ML('tariff not configured')
                       : `${this.toFixed(this.state.routeEstimate.deliveryCost)} ${this.state.routeEstimate.currencySymbol}`}
-                  </span>
+                  </strong>
                 </div>
               </>
             )}
@@ -721,14 +771,14 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               onChange={(event) =>
                 this.setState({ customerPhone: event.target.value })
               }
-              placeholder="Phone"
+              placeholder={this.ML('Phone')}
               required
             />
             <textarea
               className="form-input"
               value={this.state.note}
               onChange={(event) => this.setState({ note: event.target.value })}
-              placeholder="Order note (optional)"
+              placeholder={this.ML('Order note (optional)')}
             />
 
             {this.state.error && (
@@ -736,7 +786,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             )}
             {this.state.sent && (
               <p className="basket-order-success">
-                Order sent to sales@dolceforte.rs. We will contact you soon.
+                {this.ML(
+                  'Order sent to sales@dolceforte.rs. We will contact you soon.'
+                )}
               </p>
             )}
 
@@ -744,10 +796,16 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               className="btn-primary"
               type="submit"
               disabled={
-                this.state.loading || this.props.order?.products?.length === 0
+                this.state.loading ||
+                this.props.disableConrols ||
+                !hasItems ||
+                !this.props.order?.id ||
+                deliveryTariffUnavailable
               }
             >
-              {this.state.loading ? 'Sending order...' : 'Place order'}
+              {this.state.loading
+                ? this.ML('Sending order...')
+                : this.ML('Place order')}
             </button>
           </form>
         </aside>

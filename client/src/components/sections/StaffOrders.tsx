@@ -80,6 +80,7 @@ products {
     price
 }
 totalPrice
+deliveryFee
 createdAt
 updatedAt
 `;

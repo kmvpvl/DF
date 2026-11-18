@@ -12,6 +12,41 @@ import {
     IOrderProduct,
 } from '../types/order';
 import { MLString } from '../lib/mlstring';
+import { IPushMessage } from '../types/pushes';
+
+function getNewOrderPushMessage(
+    orderNumber: string,
+    customerName: string
+): IPushMessage {
+    return {
+        title: {
+            default: 'New order received',
+            ts: {
+                de: 'Neue Bestellung eingegangen',
+                fr: 'Nouvelle commande reçue',
+                es: 'Nuevo pedido recibido',
+                ru: 'Поступил новый заказ',
+                it: 'Nuovo ordine ricevuto',
+                sr: 'Primljena je nova porudžbina',
+            },
+        },
+        body: {
+            default: `Order #${orderNumber} from ${customerName}`,
+            ts: {
+                de: `Bestellung #${orderNumber} von ${customerName}`,
+                fr: `Commande n° ${orderNumber} de ${customerName}`,
+                es: `Pedido n.º ${orderNumber} de ${customerName}`,
+                ru: `Заказ №${orderNumber} от ${customerName}`,
+                it: `Ordine n. ${orderNumber} da ${customerName}`,
+                sr: `Porudžbina br. ${orderNumber} od ${customerName}`,
+            },
+        },
+    };
+}
+
+function getOrderPushUrl(orderId: string): string {
+    return `/tool/Orders/${encodeURIComponent(orderId)}`;
+}
 
 export class OrderService {
     static removeDoubles(
@@ -71,7 +106,7 @@ export class OrderService {
                         el.productId === product.productId &&
                         el.variantLabel === product.variantLabel
                 )?.quantity;
-                if (oldQty) {
+                if (oldQty && calcData[1]?.id) {
                     if (delta + oldQty < product.quantity) {
                         product.quantity = oldQty + delta;
                         PushService.sendLocationManagers(
@@ -80,7 +115,7 @@ export class OrderService {
                                 body: `Product: ${new MLString(stock.name as any).toString()} - ${product.variantLabel}\nUser: ${calcData[1]?.customerName}`,
                                 title: 'Not enough',
                             },
-                            `/tool/?order=${order.id}`
+                            getOrderPushUrl(calcData[1].id)
                         );
                     }
                 }
@@ -280,7 +315,7 @@ export class OrderService {
     }
 
     static async Draft(data: CreateOrderInput, ctx: GraphQLContext) {
-        let newData: CreateOrderInput | null;
+        let newData: Order | null;
         await authorize(ctx, Role.CUSTOMER);
         const normalizedOrder = await this.normalizeOrder(ctx, data);
         if (normalizedOrder.id === undefined) {
@@ -339,6 +374,7 @@ export class OrderService {
                     status: OrderStatus.DRAFT,
                     locationId: ctx.locationId!,
                     totalPrice: totalPrice,
+                    deliveryFee: 0,
                     products: {
                         create: resolvedProducts,
                     },
@@ -405,7 +441,8 @@ export class OrderService {
                 (sum, p) => sum + p.price,
                 0
             );
-            data.totalPrice = totalPrice;
+            const deliveryFee = newData.deliveryFee;
+            data.totalPrice = totalPrice + deliveryFee;
 
             const updatedOrder = await prisma.order.update({
                 where: { id: data.id },
@@ -414,7 +451,7 @@ export class OrderService {
                         deleteMany: { orderId: data.id },
                         create: resolvedProducts,
                     },
-                    totalPrice: totalPrice,
+                    totalPrice: totalPrice + deliveryFee,
                     customerName: normalizedOrder.customerName,
                 },
                 include: {
@@ -435,6 +472,100 @@ export class OrderService {
             return updatedOrder;
         }
     }
+    static async getCustomerDraft(ctx: GraphQLContext, orderId: string) {
+        await authorize(ctx, Role.CUSTOMER);
+        const userId = ctx.userId;
+        const locationId = ctx.locationId;
+        if (!userId || !locationId) {
+            throw new Error('Customer and location context are required');
+        }
+
+        const order = await prisma.order.findFirst({
+            where: {
+                id: orderId,
+                customerUserId: userId,
+                locationId,
+                status: OrderStatus.DRAFT,
+            },
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+        });
+        if (!order) {
+            throw new Error('Draft order not found or cannot be submitted');
+        }
+        return order;
+    }
+
+    static async confirmCustomerDraft(
+        ctx: GraphQLContext,
+        orderId: string,
+        delivery: {
+            customerName: string;
+            customerDeliveryAddress: string;
+            deliveryLat: number;
+            deliveryLon: number;
+            deliveryFee: number;
+            note?: string;
+        }
+    ) {
+        await authorize(ctx, Role.CUSTOMER);
+        const userId = ctx.userId;
+        const locationId = ctx.locationId;
+        if (!userId || !locationId) {
+            throw new Error('Customer and location context are required');
+        }
+        if (
+            !Number.isFinite(delivery.deliveryFee) ||
+            delivery.deliveryFee < 0
+        ) {
+            throw new Error('Delivery fee must be a non-negative number');
+        }
+
+        const updated = await prisma.order.updateMany({
+            where: {
+                id: orderId,
+                customerUserId: userId,
+                locationId,
+                status: OrderStatus.DRAFT,
+            },
+            data: {
+                status: OrderStatus.CONFIRMED,
+                customerName: delivery.customerName,
+                deliveryAddress: delivery.customerDeliveryAddress,
+                deliveryLocation: {
+                    lat: delivery.deliveryLat,
+                    lon: delivery.deliveryLon,
+                },
+                deliveryFee: delivery.deliveryFee,
+                totalPrice: { increment: delivery.deliveryFee },
+                notes: delivery.note ?? null,
+            },
+        });
+        if (updated.count !== 1) {
+            throw new Error('Draft order not found or cannot be submitted');
+        }
+
+        const order = await prisma.order.findUnique({
+            where: { id: orderId },
+            select: { id: true, number: true },
+        });
+        if (!order) {
+            throw new Error('Confirmed order not found');
+        }
+
+        await PushService.sendLocationManagers(
+            ctx,
+            getNewOrderPushMessage(order.number, delivery.customerName),
+            getOrderPushUrl(order.id)
+        );
+        return order;
+    }
+
     static async getDraft(ctx: GraphQLContext): Promise<Order | null> {
         await authorize(ctx, Role.CUSTOMER);
         const data = await prisma.order.findFirst({

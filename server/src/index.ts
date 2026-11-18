@@ -46,7 +46,7 @@ import {
 } from './types/product';
 import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
-import { IMLString } from './lib/mlstring';
+import { IMLString, MLString } from './lib/mlstring';
 import { AddressService } from './services/address.service';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
@@ -106,17 +106,8 @@ interface SendContactMessageInput {
     message: string;
 }
 
-interface OrderItemInput {
-    productId: number;
-    name: string;
-    qty: number;
-    unitPrice: number;
-    lineTotal: number;
-    variationLabel?: string;
-    weightGrams?: number;
-}
-
 interface SendOrderInput {
+    orderId: string;
     customerName: string;
     customerEmail: string;
     customerPhone: string;
@@ -124,8 +115,6 @@ interface SendOrderInput {
     deliveryLat: number;
     deliveryLon: number;
     note?: string;
-    items: OrderItemInput[];
-    total: number;
 }
 
 let smtpTransporter: Transporter | null = null;
@@ -968,26 +957,15 @@ const resolvers = {
                 throw new Error('Delivery coordinates are invalid');
             }
 
-            if (!input.items.length) {
-                throw new Error('Order must contain at least one item');
-            }
-
-            const invalidItem = input.items.find(
-                (item) =>
-                    !item.name.trim() ||
-                    !Number.isFinite(item.qty) ||
-                    item.qty <= 0 ||
-                    !Number.isFinite(item.unitPrice) ||
-                    item.unitPrice < 0 ||
-                    !Number.isFinite(item.lineTotal) ||
-                    item.lineTotal < 0
+            const draftOrder = await OrderService.getCustomerDraft(
+                ctx,
+                input.orderId
             );
-
-            if (invalidItem) {
-                throw new Error('Order contains invalid item data');
-            }
-
-            if (!Number.isFinite(input.total) || input.total <= 0) {
+            if (
+                !draftOrder.products.length ||
+                !Number.isFinite(draftOrder.totalPrice) ||
+                draftOrder.totalPrice <= 0
+            ) {
                 throw new Error('Order total must be greater than 0');
             }
 
@@ -996,6 +974,16 @@ const resolvers = {
                 customerDeliveryAddress,
                 { lat: input.deliveryLat, lon: input.deliveryLon }
             );
+            const deliveryFee = deliveryEstimate.deliveryCost;
+            if (
+                deliveryFee === null ||
+                !Number.isFinite(deliveryFee) ||
+                deliveryFee < 0
+            ) {
+                throw new Error(
+                    'Delivery tariff is not configured for this location'
+                );
+            }
 
             const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
             const recipient =
@@ -1016,25 +1004,21 @@ const resolvers = {
                 ? await prisma.user.findUnique({ where: { id: sessionUserId } })
                 : null;
 
-            const orderLines = input.items.map((item, index) => {
-                const attributes = [
-                    item.variationLabel
-                        ? `variation: ${item.variationLabel}`
-                        : null,
-                    typeof item.weightGrams === 'number' &&
-                    Number.isFinite(item.weightGrams)
-                        ? `weight: ${item.weightGrams}g`
-                        : null,
-                ]
-                    .filter(Boolean)
-                    .join(', ');
-
+            const orderLines = draftOrder.products.map((item, index) => {
+                const lineTotal = item.price ?? 0;
+                const unitPrice =
+                    item.quantity > 0 ? lineTotal / item.quantity : 0;
+                const productName = new MLString(
+                    item.product.name as IMLString
+                ).toString();
                 return [
-                    `${index + 1}. ${item.name}`,
-                    `   qty: ${item.qty}`,
-                    `   unit price: ${item.unitPrice.toFixed(2)} din`,
-                    `   line total: ${item.lineTotal.toFixed(2)} din`,
-                    attributes ? `   ${attributes}` : null,
+                    `${index + 1}. ${productName}`,
+                    item.variantLabel
+                        ? `   variation: ${item.variantLabel}`
+                        : null,
+                    `   qty: ${item.quantity}`,
+                    `   unit price: ${unitPrice.toFixed(2)} din`,
+                    `   line total: ${lineTotal.toFixed(2)} din`,
                 ]
                     .filter(Boolean)
                     .join('\n');
@@ -1068,9 +1052,20 @@ const resolvers = {
                     'Order items:',
                     ...orderLines,
                     '',
-                    `Total: ${input.total.toFixed(2)} din`,
+                    `Products subtotal: ${draftOrder.totalPrice.toFixed(2)} din`,
+                    `Delivery fee: ${deliveryFee.toFixed(2)} ${deliveryEstimate.currencySymbol}`,
+                    `Total: ${(draftOrder.totalPrice + deliveryFee).toFixed(2)} din`,
                     `Note: ${note || '-'}`,
                 ].join('\n'),
+            });
+
+            await OrderService.confirmCustomerDraft(ctx, input.orderId, {
+                customerName,
+                customerDeliveryAddress,
+                deliveryLat: input.deliveryLat,
+                deliveryLon: input.deliveryLon,
+                deliveryFee,
+                note,
             });
 
             return true;

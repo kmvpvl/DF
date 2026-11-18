@@ -275,6 +275,7 @@ class App extends Proto<AppProps, AppState> {
         orderDateReady
         status
         totalPrice
+        deliveryFee
         isPaid
         paymentMethod
         deliveryAddress
@@ -330,6 +331,7 @@ class App extends Proto<AppProps, AppState> {
           orderDateReady
           status
           totalPrice
+          deliveryFee
           isPaid
           paymentMethod
           deliveryAddress
@@ -630,21 +632,11 @@ class App extends Proto<AppProps, AppState> {
   };
 
   handleSubmitOrder = async (payload: OrderPayload) => {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        query: SEND_ORDER_BY_EMAIL_MUTATION,
-        variables: {
-          input: payload,
-        },
-      }),
+    const data = await this.gql(SEND_ORDER_BY_EMAIL_MUTATION, {
+      input: payload,
     });
-
-    const json = await response.json();
-    if (json.errors?.length) {
-      throw new Error(json.errors[0].message);
+    if (data.sendOrderByEmail !== true) {
+      throw new Error(this.ML('Failed to place order.'));
     }
 
     this.setState({ basket: undefined });

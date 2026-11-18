@@ -30,11 +30,7 @@ export class PushService {
         if (!user.pushSubscription)
             throw Error(`User id = "${toUserId}" has no subscription`);
 
-        if (lang === undefined) {
-            if (!user.lang) {
-                lang = user.lang ?? undefined;
-            }
-        }
+        if (lang === undefined) lang = user.lang ?? undefined;
 
         const notificationPayload = JSON.stringify({
             title: new MLString(message.title).toString(lang),
@@ -42,31 +38,37 @@ export class PushService {
             url: url, // Кастомное поле для роутинга
         });
 
-        const push = await Promise.all([
-            webpush
-                .sendNotification(
-                    user.pushSubscription as unknown as webpush.PushSubscription,
-                    notificationPayload
-                )
-                .catch((err) => {
-                    // Если статус 410 (Gone) или 404 — подписка больше не валидна (удалили PWA)
-                    if (err.statusCode === 410 || err.statusCode === 404) {
-                        //subscriptions = subscriptions.filter(s => s.endpoint !== sub.endpoint);
-                    }
-                    console.error('Ошибка отправки пуша:', err);
-                }),
-        ]);
+        await webpush.sendNotification(
+            user.pushSubscription as unknown as webpush.PushSubscription,
+            notificationPayload
+        );
     }
     static async sendLocationManagers(
         ctx: GraphQLContext,
         message: IPushMessage,
         url: string
     ) {
-        const users = await CompanyService.locationManagers(ctx);
-        users.forEach((user) => {
-            try {
-                this.send(user.userId, message, url);
-            } catch (err) {}
-        });
+        try {
+            const users = await CompanyService.locationManagers(ctx);
+            const recipients = users.filter((user) =>
+                Boolean(user.user.pushSubscription)
+            );
+            const results = await Promise.allSettled(
+                recipients.map((user) => this.send(user.userId, message, url))
+            );
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(
+                        `Push delivery failed for location user ${recipients[index].userId}:`,
+                        result.reason
+                    );
+                }
+            });
+        } catch (error: unknown) {
+            console.error(
+                'Failed to send push notifications to location managers:',
+                error
+            );
+        }
     }
 }

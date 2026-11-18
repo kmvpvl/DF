@@ -121,17 +121,8 @@ input SendContactMessageInput {
     message: String!
 }
 
-input OrderItemInput {
-    productId: Int!
-    name: String!
-    qty: Int!
-    unitPrice: Float!
-    lineTotal: Float!
-    variantLabel: String
-    weightGrams: Float
-}
-
 input SendOrderInput {
+    orderId: String!
     customerName: String!
     customerEmail: String!
     customerPhone: String!
@@ -139,8 +130,6 @@ input SendOrderInput {
     deliveryLat: Float!
     deliveryLon: Float!
     note: String
-    items: [OrderItemInput!]!
-    total: Float!
 }
 
 input UpdateSessionUserInput {
@@ -409,7 +398,10 @@ scalar DateTime
 
 enum OrderStatus {
     DRAFT
-    PENDING
+    CONFIRMED
+    IN_PRODUCTION
+    READY
+    SHIPPED
     COMPLETED
     CANCELLED
 }
@@ -424,6 +416,7 @@ type Order {
     orderDateReady: DateTime
     status: OrderStatus!
     totalPrice: Float!
+    deliveryFee: Float!
     isPaid: Boolean!
     paymentMethod: String
     deliveryAddress: String

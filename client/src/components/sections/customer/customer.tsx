@@ -17,6 +17,7 @@ const ORDER_QUERY_BY_ID = `
       orderDateReady
       status
       totalPrice
+      deliveryFee
       isPaid
       paymentMethod
       deliveryAddress
@@ -286,6 +287,10 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
             </div>
 
             <dl className="customer-order-info">
+              <div>
+                <dt>{this.ML('Delivery')}</dt>
+                <dd>{this.toCurrency(order.deliveryFee)}</dd>
+              </div>
               <div>
                 <dt>{this.ML('Delivery address')}</dt>
                 <dd>{order.deliveryAddress || '—'}</dd>

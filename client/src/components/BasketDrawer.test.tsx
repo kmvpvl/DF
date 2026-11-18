@@ -7,12 +7,12 @@ import {
   cleanup,
   fireEvent,
   render,
-  screen,
+  within,
 } from '@testing-library/react';
 import BasketDrawer from './BasketDrawer';
 import { OrderStatus } from './sections/Orders';
 
-describe('BasketDrawer address lookup', () => {
+describe.sequential('BasketDrawer address lookup', () => {
   const mockFetch = vi.fn();
 
   beforeEach(() => {
@@ -69,7 +69,7 @@ describe('BasketDrawer address lookup', () => {
       };
     });
 
-    render(
+    const { container } = render(
       <BasketDrawer
         isOpen
         order={{ status: OrderStatus.DRAFT, products: [] }}
@@ -82,8 +82,9 @@ describe('BasketDrawer address lookup', () => {
         disableConrols={false}
       />
     );
+    const view = within(container);
 
-    const input = screen.getByPlaceholderText('Delivery address');
+    const input = view.getByPlaceholderText('Delivery address');
     fireEvent.change(input, { target: { value: 'Bel' } });
     fireEvent.change(input, {
       target: { value: 'Belgrade, Knez Mihailova 1' },
@@ -95,15 +96,15 @@ describe('BasketDrawer address lookup', () => {
     });
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(
-      screen.getByRole('option', { name: address.formatted })
+      view.getByRole('option', { name: address.formatted })
     ).toBeVisible();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('option', { name: address.formatted }));
+      fireEvent.click(view.getByRole('option', { name: address.formatted }));
     });
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(screen.getByText(/tariff not configured/)).toBeVisible();
-    expect(screen.getByText('Address selected and verified')).toBeVisible();
+    expect(view.getByText(/tariff not configured/)).toBeVisible();
+    expect(view.getByText('Address selected and verified')).toBeVisible();
   });
 
   it('automatically selects the only exact address suggestion', async () => {
@@ -135,10 +136,15 @@ describe('BasketDrawer address lookup', () => {
       };
     });
 
-    render(
+    const { container } = render(
       <BasketDrawer
         isOpen
-        order={{ status: OrderStatus.DRAFT, products: [] }}
+        order={{
+          id: 'draft-1',
+          status: OrderStatus.DRAFT,
+          totalPrice: 120,
+          products: [{ productId: 'product-1', quantity: 1, price: 120 }],
+        }}
         onClose={vi.fn()}
         onIncreaseQty={vi.fn()}
         onDecreaseQty={vi.fn()}
@@ -148,8 +154,9 @@ describe('BasketDrawer address lookup', () => {
         disableConrols={false}
       />
     );
+    const view = within(container);
 
-    fireEvent.change(screen.getByPlaceholderText('Delivery address'), {
+    fireEvent.change(view.getByPlaceholderText('Delivery address'), {
       target: { value: 'Knez Mihailova 1' },
     });
     await act(async () => {
@@ -157,9 +164,76 @@ describe('BasketDrawer address lookup', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(screen.getByText('Address selected and verified')).toBeVisible();
-    expect(screen.getByText(/260.00 din/)).toBeVisible();
+    expect(view.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(view.getByText('Address selected and verified')).toBeVisible();
+    expect(view.getByText(/260.00 din/)).toBeVisible();
+    expect(view.getByText('Total').parentElement).toHaveTextContent(
+      '380.00 -'
+    );
+  });
+
+  it('prevents placing an order when delivery has no configured tariff', async () => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const request = JSON.parse(String(init.body)) as { query: string };
+      return {
+        json: async () => ({
+          data: request.query.includes('SearchAddress')
+            ? {
+                searchAddress: [
+                  {
+                    formatted: 'Knez Mihailova 1, Belgrade',
+                    lat: 44.8176,
+                    lon: 20.4569,
+                    isExactHouse: true,
+                  },
+                ],
+              }
+            : {
+                verifyDeliveryAddress: {
+                  distanceMeters: 1200,
+                  durationSeconds: 300,
+                  isValidAddress: true,
+                  deliveryCost: null,
+                  currencySymbol: 'din',
+                },
+              },
+        }),
+      };
+    });
+
+    const { container } = render(
+      <BasketDrawer
+        isOpen
+        order={{
+          id: 'draft-1',
+          status: OrderStatus.DRAFT,
+          totalPrice: 120,
+          products: [{ productId: 'product-1', quantity: 1, price: 120 }],
+        }}
+        onClose={vi.fn()}
+        onIncreaseQty={vi.fn()}
+        onDecreaseQty={vi.fn()}
+        onRemoveItem={vi.fn()}
+        onSubmitOrder={vi.fn()}
+        onPushSubscribe={vi.fn()}
+        disableConrols={false}
+      />
+    );
+    const view = within(container);
+
+    fireEvent.change(view.getByPlaceholderText('Delivery address'), {
+      target: { value: 'Knez Mihailova 1' },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(350);
+    });
+
+    expect(view.getByText(/tariff not configured/)).toBeVisible();
+    expect(
+      view.getAllByRole('button', { name: 'Place order' }).every((button) =>
+        button.hasAttribute('disabled')
+      )
+    ).toBe(true);
   });
 
   it('reuses the verified address and saved route for the next order', async () => {
@@ -180,7 +254,7 @@ describe('BasketDrawer address lookup', () => {
       }),
     }));
 
-    render(
+    const { container } = render(
       <BasketDrawer
         isOpen
         user={{
@@ -201,6 +275,7 @@ describe('BasketDrawer address lookup', () => {
         disableConrols={false}
       />
     );
+    const view = within(container);
 
     await act(async () => {
       await Promise.resolve();
@@ -211,6 +286,6 @@ describe('BasketDrawer address lookup', () => {
     expect(JSON.parse(String(mockFetch.mock.calls[0][1].body)).query).toContain(
       'myVerifiedDeliveryAddress'
     );
-    expect(screen.getByText(/0.00 din/)).toBeVisible();
+    expect(view.getByText(/0.00 din/)).toBeVisible();
   });
 });

@@ -280,6 +280,20 @@ main {
   font-size: 0.76rem;
 }
 
+.basket-order-top-action {
+  position: sticky;
+  top: -1.2rem;
+  z-index: 2;
+  margin: -0.35rem -0.2rem 0;
+  padding: 0.35rem 0.2rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.basket-order-top-action .btn-primary {
+  width: 100%;
+}
+
 .basket-empty {
   color: var(--text-light);
   font-size: 0.95rem;
