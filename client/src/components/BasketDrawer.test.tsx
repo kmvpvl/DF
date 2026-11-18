@@ -263,6 +263,7 @@ describe.sequential('BasketDrawer address lookup', () => {
           fullName: 'Customer One',
           entityType: 'INDIVIDUAL',
           email: 'customer@example.com',
+          phone: '+381601234567',
           deliveryAddress: 'Knez Mihailova 1, Belgrade',
         }}
         order={{ status: OrderStatus.DRAFT, products: [] }}
@@ -287,5 +288,6 @@ describe.sequential('BasketDrawer address lookup', () => {
       'myVerifiedDeliveryAddress'
     );
     expect(view.getByText(/0.00 din/)).toBeVisible();
+    expect(view.getByPlaceholderText('Phone')).toHaveValue('+381601234567');
   });
 });

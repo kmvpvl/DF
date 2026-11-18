@@ -639,7 +639,12 @@ class App extends Proto<AppProps, AppState> {
       throw new Error(this.ML('Failed to place order.'));
     }
 
-    this.setState({ basket: undefined });
+    this.setState((prevState) => ({
+      basket: undefined,
+      user: prevState.user
+        ? { ...prevState.user, phone: payload.customerPhone }
+        : prevState.user,
+    }));
   };
 
   async subscribeUserToPush() {

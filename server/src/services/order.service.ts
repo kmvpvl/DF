@@ -527,32 +527,43 @@ export class OrderService {
         ) {
             throw new Error('Delivery fee must be a non-negative number');
         }
-
-        const updated = await prisma.order.updateMany({
-            where: {
-                id: orderId,
-                customerUserId: userId,
-                locationId,
-                status: OrderStatus.DRAFT,
-            },
-            data: {
-                status: OrderStatus.CONFIRMED,
-                customerName: delivery.customerName,
-                customerEmail: delivery.customerEmail,
-                customerPhone: delivery.customerPhone,
-                deliveryAddress: delivery.customerDeliveryAddress,
-                deliveryLocation: {
-                    lat: delivery.deliveryLat,
-                    lon: delivery.deliveryLon,
-                },
-                deliveryFee: delivery.deliveryFee,
-                totalPrice: { increment: delivery.deliveryFee },
-                notes: delivery.note ?? null,
-            },
-        });
-        if (updated.count !== 1) {
-            throw new Error('Draft order not found or cannot be submitted');
+        const customerPhone = delivery.customerPhone.trim();
+        if (!customerPhone) {
+            throw new Error('Customer phone is required');
         }
+
+        await prisma.$transaction(async (transaction) => {
+            const updated = await transaction.order.updateMany({
+                where: {
+                    id: orderId,
+                    customerUserId: userId,
+                    locationId,
+                    status: OrderStatus.DRAFT,
+                },
+                data: {
+                    status: OrderStatus.CONFIRMED,
+                    customerName: delivery.customerName,
+                    customerEmail: delivery.customerEmail,
+                    customerPhone,
+                    deliveryAddress: delivery.customerDeliveryAddress,
+                    deliveryLocation: {
+                        lat: delivery.deliveryLat,
+                        lon: delivery.deliveryLon,
+                    },
+                    deliveryFee: delivery.deliveryFee,
+                    totalPrice: { increment: delivery.deliveryFee },
+                    notes: delivery.note ?? null,
+                },
+            });
+            if (updated.count !== 1) {
+                throw new Error('Draft order not found or cannot be submitted');
+            }
+
+            await transaction.user.update({
+                where: { id: userId },
+                data: { phone: customerPhone },
+            });
+        });
 
         const order = await prisma.order.findUnique({
             where: { id: orderId },

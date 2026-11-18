@@ -8,11 +8,14 @@ const mocks = vi.hoisted(() => ({
     findFirst: vi.fn(),
     findMany: vi.fn(),
     findCustomers: vi.fn(),
+    updateCustomer: vi.fn(),
+    transaction: vi.fn(),
     sendLocationManagers: vi.fn(),
 }));
 
 vi.mock('../lib/prisma', () => ({
     prisma: {
+        $transaction: mocks.transaction,
         order: {
             updateMany: mocks.updateMany,
             findUnique: mocks.findUnique,
@@ -21,6 +24,7 @@ vi.mock('../lib/prisma', () => ({
         },
         user: {
             findMany: mocks.findCustomers,
+            update: mocks.updateCustomer,
         },
     },
 }));
@@ -51,6 +55,13 @@ describe('OrderService.confirmCustomerDraft', () => {
         vi.clearAllMocks();
         mocks.authorize.mockResolvedValue(undefined);
         mocks.updateMany.mockResolvedValue({ count: 1 });
+        mocks.updateCustomer.mockResolvedValue({ id: 'customer-1' });
+        mocks.transaction.mockImplementation(async (operation) =>
+            operation({
+                order: { updateMany: mocks.updateMany },
+                user: { update: mocks.updateCustomer },
+            })
+        );
         mocks.findUnique.mockResolvedValue({
             id: 'order-1',
             number: '2026-1',
@@ -79,6 +90,10 @@ describe('OrderService.confirmCustomerDraft', () => {
                 totalPrice: { increment: 25 },
                 notes: 'Call on arrival',
             },
+        });
+        expect(mocks.updateCustomer).toHaveBeenCalledWith({
+            where: { id: 'customer-1' },
+            data: { phone: '+381601234567' },
         });
         expect(mocks.sendLocationManagers).toHaveBeenCalledWith(
             ctx,
