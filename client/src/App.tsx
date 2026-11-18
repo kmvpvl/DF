@@ -789,6 +789,7 @@ class App extends Proto<AppProps, AppState> {
       ? <><Customer
         user={this.state.user}
         companyInfo={this.state.companyInfo}
+        currentLocation={this.state.currentLocation}
         chapter={this.state.activeChapter}
         objectId={this.state.objectId}
         onLoginRequired={this.handleOpenLogin}
