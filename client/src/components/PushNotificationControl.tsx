@@ -1,11 +1,14 @@
-import React from 'react';
+import Proto, { type IProtoProps, type IProtoState } from '../proto';
 
-interface PushNotificationControlProps {
+interface PushNotificationControlProps extends IProtoProps {
   isSubscribed: boolean;
   onSubscribe: () => void;
 }
 
-export default class PushNotificationControl extends React.Component<PushNotificationControlProps> {
+export default class PushNotificationControl extends Proto<
+  PushNotificationControlProps,
+  IProtoState
+> {
   render() {
     const { isSubscribed, onSubscribe } = this.props;
     if (isSubscribed) {
@@ -14,7 +17,7 @@ export default class PushNotificationControl extends React.Component<PushNotific
           <span className="push-notifications-check" aria-hidden="true">
             ✓
           </span>
-          Push notifications enabled
+          {this.ML('Push notifications enabled')}
         </span>
       );
     }
@@ -39,7 +42,7 @@ export default class PushNotificationControl extends React.Component<PushNotific
             strokeLinejoin="round"
           />
         </svg>
-        Enable push notifications
+        {this.ML('Enable push notifications')}
       </button>
     );
   }

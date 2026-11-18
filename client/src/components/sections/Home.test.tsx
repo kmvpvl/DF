@@ -8,6 +8,7 @@ import {
   type I18nContextValue,
 } from '../../i18n/I18nContext';
 import { dictionaries } from '../../i18n/dictionaries';
+import PushNotificationControl from '../PushNotificationControl';
 import Home from './Home';
 
 describe('Home push notification control', () => {
@@ -66,5 +67,17 @@ describe('Home push notification control', () => {
     expect(
       screen.queryByRole('button', { name: 'Enable push notifications' })
     ).not.toBeInTheDocument();
+  });
+
+  it('uses the existing ML strings for translated notification labels', () => {
+    render(
+      <I18nContext.Provider value={{ ...i18nValue, language: 'sr' }}>
+        <PushNotificationControl isSubscribed onSubscribe={vi.fn()} />
+      </I18nContext.Provider>
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Push obaveštenja su uključena'
+    );
   });
 });

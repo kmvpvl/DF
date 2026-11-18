@@ -265,6 +265,28 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `Enable push notifications`,
+    new Map([
+      [`de`, 'Push-Benachrichtigungen aktivieren'],
+      [`fr`, 'Activer les notifications push'],
+      [`es`, 'Activar las notificaciones push'],
+      [`ru`, 'Включить push-уведомления'],
+      [`it`, 'Attiva le notifiche push'],
+      [`sr`, 'Omogući push obaveštenja'],
+    ]),
+  ],
+  [
+    `Push notifications enabled`,
+    new Map([
+      [`de`, 'Push-Benachrichtigungen aktiviert'],
+      [`fr`, 'Notifications push activées'],
+      [`es`, 'Notificaciones push activadas'],
+      [`ru`, 'Push-уведомления включены'],
+      [`it`, 'Notifiche push attivate'],
+      [`sr`, 'Push obaveštenja su uključena'],
+    ]),
+  ],
+  [
     `Order a test batch for free`,
     new Map([
       [`de`, undefined],
