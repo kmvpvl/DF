@@ -9,13 +9,15 @@ import Orders from './StaffOrders';
 
 interface ToolProps extends IProtoProps {
   activeChapter: string;
+  objectId?: string;
 }
 
 interface ToolState extends IProtoState {}
 
 class Tool extends Proto<ToolProps, ToolState> {
   render() {
-    const { activeChapter, user, companyInfo } = this.props;
+    const { activeChapter, objectId, user, companyInfo, currentLocation } =
+      this.props;
 
     return (
       <section className="tool-page" id="tool">
@@ -32,7 +34,12 @@ class Tool extends Proto<ToolProps, ToolState> {
         ) : activeChapter === 'Certificates' ? (
           <Certificates />
         ) : activeChapter === 'Orders' ? (
-          <Orders user={user} />
+          <Orders
+            objectId={objectId}
+            user={user}
+            companyInfo={companyInfo}
+            currentLocation={currentLocation}
+          />
         ) : (
           <div className="section-inner tool-page-inner">
             <p className="section-label">Staff</p>

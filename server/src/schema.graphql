@@ -412,11 +412,14 @@ type Order {
     numberInt: Int!
     customerName: String!
     customerUserId: String
-    orderDate: DateTime!
+    customerEmail: String
+    customerPhone: String
+    orderDate: DateTime
     orderDateReady: DateTime
     status: OrderStatus!
     totalPrice: Float!
     deliveryFee: Float!
+    deliveryLocation: JSON
     isPaid: Boolean!
     paymentMethod: String
     deliveryAddress: String
@@ -448,6 +451,12 @@ type OrderProduct {
     # Связи (Relations)
     order: Order!
     product: Product!
+}
+
+type OrderAcceptanceResult {
+    order: Order!
+    emailSent: Boolean!
+    pushSent: Boolean!
 }
 
 input DiscountTierInput {
@@ -899,6 +908,7 @@ type Mutation {
     verifyDeliveryAddress(address: String!, lat: Float!, lon: Float!): RouteEstimate!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
     sendOrderByEmail(input: SendOrderInput!): Boolean!
+    startOrderProduction(orderId: ID!): OrderAcceptanceResult!
     createEquipment(input: CreateEquipmentInput!): Equipment!
     updateEquipment(id: ID!, input: UpdateEquipmentInput!): Equipment!
     deleteEquipment(id: ID!): Boolean!

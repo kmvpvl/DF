@@ -506,6 +506,8 @@ export class OrderService {
         orderId: string,
         delivery: {
             customerName: string;
+            customerEmail: string;
+            customerPhone: string;
             customerDeliveryAddress: string;
             deliveryLat: number;
             deliveryLon: number;
@@ -536,6 +538,8 @@ export class OrderService {
             data: {
                 status: OrderStatus.CONFIRMED,
                 customerName: delivery.customerName,
+                customerEmail: delivery.customerEmail,
+                customerPhone: delivery.customerPhone,
                 deliveryAddress: delivery.customerDeliveryAddress,
                 deliveryLocation: {
                     lat: delivery.deliveryLat,
@@ -563,6 +567,96 @@ export class OrderService {
             getNewOrderPushMessage(order.number, delivery.customerName),
             getOrderPushUrl(order.id)
         );
+        return order;
+    }
+
+    static async getLocationOrders(ctx: GraphQLContext) {
+        await authorize(ctx, [Role.MANAGER, Role.SUPERVISOR, Role.EMPLOYEE]);
+        const locationId = ctx.locationId;
+        if (!locationId) {
+            throw new Error('Location context is required to view orders');
+        }
+
+        const orders = await prisma.order.findMany({
+            where: { locationId },
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+            orderBy: [{ createdAt: 'desc' }],
+        });
+        const customerIds = [
+            ...new Set(
+                orders
+                    .map((order) => order.customerUserId)
+                    .filter((userId): userId is string => Boolean(userId))
+            ),
+        ];
+        const customers = customerIds.length
+            ? await prisma.user.findMany({
+                  where: { id: { in: customerIds } },
+                  select: { id: true, email: true, phone: true },
+              })
+            : [];
+        const customerById = new Map(
+            customers.map((customer) => [customer.id, customer])
+        );
+
+        return orders.map((order) => {
+            const customer = order.customerUserId
+                ? customerById.get(order.customerUserId)
+                : undefined;
+            return {
+                ...order,
+                customerEmail: order.customerEmail ?? customer?.email ?? null,
+                customerPhone: order.customerPhone ?? customer?.phone ?? null,
+            };
+        });
+    }
+
+    static async startProduction(ctx: GraphQLContext, orderId: string) {
+        await authorize(ctx, [
+            Role.MANAGER,
+            Role.SUPERVISOR,
+            Role.EMPLOYEE,
+        ]);
+        const locationId = ctx.locationId;
+        if (!locationId) {
+            throw new Error('Location context is required to update orders');
+        }
+
+        const updated = await prisma.order.updateMany({
+            where: {
+                id: orderId,
+                locationId,
+                status: OrderStatus.CONFIRMED,
+            },
+            data: {
+                status: OrderStatus.IN_PRODUCTION,
+            },
+        });
+        if (updated.count !== 1) {
+            throw new Error(
+                'Order not found in this location or is not awaiting acceptance'
+            );
+        }
+
+        const order = await prisma.order.findFirst({
+            where: { id: orderId, locationId },
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
+        });
+        if (!order) {
+            throw new Error('Updated order could not be loaded');
+        }
         return order;
     }
 

@@ -817,8 +817,10 @@ class App extends Proto<AppProps, AppState> {
             canAccessTool ? (
               <Tool
                 activeChapter={activeToolChapter}
+                objectId={this.state.objectId}
                 user={user}
                 companyInfo={companyInfo}
+                currentLocation={this.state.currentLocation}
               />
             ) : (
               <section className="tool-access-denied" aria-live="polite">

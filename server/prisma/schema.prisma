@@ -416,6 +416,8 @@ model Order {
   numberInt  Int
   customerName    String
   customerUserId  String?
+  customerEmail   String?
+  customerPhone   String?
   orderDate       DateTime?
   orderDateReady  DateTime?
   status          OrderStatus  @default(DRAFT)

@@ -18,11 +18,14 @@ export interface IOrder {
   numberInt?: number;
   customerName?: string;
   customerUserId?: string | null;
-  orderDate?: Date;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  orderDate?: Date | string | null;
   orderDateReady?: Date | null;
   status: OrderStatus;
   totalPrice?: number;
   deliveryFee?: number;
+  deliveryLocation?: { lat?: number; lon?: number } | null;
   isPaid?: boolean;
   paymentMethod?: string | null;
   deliveryAddress?: string | null;

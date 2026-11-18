@@ -39,6 +39,7 @@ import { StorageConditionService } from './services/storage-condition.service';
 import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
 import { OrderService } from './services/order.service';
+import { PushService } from './services/push.service';
 import {
     CreateProductInput,
     IProductVariant,
@@ -48,6 +49,7 @@ import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
 import { IMLString, MLString } from './lib/mlstring';
 import { AddressService } from './services/address.service';
+import { IPushMessage } from './types/pushes';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -155,6 +157,33 @@ function getSmtpTransporter(): Transporter {
     return smtpTransporter;
 }
 
+function getOrderAcceptedPushMessage(orderNumber: string): IPushMessage {
+    return {
+        title: {
+            default: 'Order accepted',
+            ts: {
+                de: 'Bestellung angenommen',
+                fr: 'Commande acceptée',
+                es: 'Pedido aceptado',
+                ru: 'Заказ принят',
+                it: 'Ordine accettato',
+                sr: 'Porudžbina je prihvaćena',
+            },
+        },
+        body: {
+            default: `Your order #${orderNumber} is being prepared.`,
+            ts: {
+                de: `Ihre Bestellung Nr. ${orderNumber} wird vorbereitet.`,
+                fr: `Votre commande n° ${orderNumber} est en préparation.`,
+                es: `Tu pedido n.º ${orderNumber} está en preparación.`,
+                ru: `Заказ №${orderNumber} принят и готовится.`,
+                it: `Il tuo ordine n. ${orderNumber} è in preparazione.`,
+                sr: `Vaša porudžbina br. ${orderNumber} je u pripremi.`,
+            },
+        },
+    };
+}
+
 type IngredientWithRefs = {
     productId?: string | null;
     materialId?: string | null;
@@ -242,18 +271,8 @@ const resolvers = {
             return await ProcessMapService.getAll(productId, ctx);
         },
 
-        orders: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
-            if (!req.session.userId) throw new Error('Not authenticated');
-            return await prisma.order.findMany({
-                include: {
-                    products: {
-                        include: {
-                            product: true,
-                        },
-                    },
-                },
-                orderBy: [{ createdAt: 'desc' }],
-            });
+        orders: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
+            return await OrderService.getLocationOrders(ctx);
         },
 
         getDraft: async (_: unknown, __: unknown, ctx: GraphQLContext) => {
@@ -1061,6 +1080,8 @@ const resolvers = {
 
             await OrderService.confirmCustomerDraft(ctx, input.orderId, {
                 customerName,
+                customerEmail,
+                customerPhone,
                 customerDeliveryAddress,
                 deliveryLat: input.deliveryLat,
                 deliveryLon: input.deliveryLon,
@@ -1069,6 +1090,106 @@ const resolvers = {
             });
 
             return true;
+        },
+        startOrderProduction: async (
+            _: unknown,
+            { orderId }: { orderId: string },
+            ctx: GraphQLContext
+        ) => {
+            const order = await OrderService.startProduction(ctx, orderId);
+            const customer = order.customerUserId
+                ? await prisma.user
+                      .findUnique({
+                          where: { id: order.customerUserId },
+                          select: {
+                              email: true,
+                              lang: true,
+                              pushSubscription: true,
+                          },
+                      })
+                      .catch((error: unknown) => {
+                          console.error(
+                              `Failed to load customer details for accepted order ${order.id}:`,
+                              error
+                          );
+                          return null;
+                      })
+                : null;
+            const customerEmail =
+                order.customerEmail?.trim() || customer?.email?.trim();
+            const lang = customer?.lang ?? undefined;
+            const message = getOrderAcceptedPushMessage(order.number);
+            const customerOrderUrl = `/customer/Orders/${encodeURIComponent(order.id)}`;
+
+            const emailNotification = Promise.resolve().then(async () => {
+                if (!customerEmail) {
+                    throw new Error('Customer email is not available');
+                }
+                const fromAddress =
+                    process.env.SMTP_FROM || process.env.SMTP_USER;
+                if (!fromAddress) {
+                    throw new Error(
+                        'SMTP sender is not configured. Set SMTP_FROM or SMTP_USER.'
+                    );
+                }
+                await getSmtpTransporter().sendMail({
+                    from: fromAddress,
+                    to: customerEmail,
+                    subject: new MLString({
+                        default: `Order #${order.number} accepted`,
+                        ts: {
+                            de: `Bestellung Nr. ${order.number} angenommen`,
+                            fr: `Commande n° ${order.number} acceptée`,
+                            es: `Pedido n.º ${order.number} aceptado`,
+                            ru: `Заказ №${order.number} принят`,
+                            it: `Ordine n. ${order.number} accettato`,
+                            sr: `Porudžbina br. ${order.number} je prihvaćena`,
+                        },
+                    }).toString(lang),
+                    text: new MLString({
+                        default: `Your order #${order.number} has been accepted and is being prepared.`,
+                        ts: {
+                            de: `Ihre Bestellung Nr. ${order.number} wurde angenommen und wird vorbereitet.`,
+                            fr: `Votre commande n° ${order.number} a été acceptée et est en préparation.`,
+                            es: `Tu pedido n.º ${order.number} ha sido aceptado y está en preparación.`,
+                            ru: `Ваш заказ №${order.number} принят и передан в приготовление.`,
+                            it: `Il tuo ordine n. ${order.number} è stato accettato ed è in preparazione.`,
+                            sr: `Vaša porudžbina br. ${order.number} je prihvaćena i u pripremi.`,
+                        },
+                    }).toString(lang),
+                });
+            });
+            const pushNotification = Promise.resolve().then(async () => {
+                if (!order.customerUserId || !customer?.pushSubscription) {
+                    throw new Error('Customer has no push subscription');
+                }
+                await PushService.send(
+                    order.customerUserId,
+                    message,
+                    customerOrderUrl
+                );
+            });
+            const [emailResult, pushResult] = await Promise.allSettled([
+                emailNotification,
+                pushNotification,
+            ]);
+            if (emailResult.status === 'rejected') {
+                console.error(
+                    `Failed to email customer about accepted order ${order.id}:`,
+                    emailResult.reason
+                );
+            }
+            if (pushResult.status === 'rejected') {
+                console.error(
+                    `Failed to push accepted-order notification ${order.id}:`,
+                    pushResult.reason
+                );
+            }
+            return {
+                order,
+                emailSent: emailResult.status === 'fulfilled',
+                pushSent: pushResult.status === 'fulfilled',
+            };
         },
     },
     User: {
