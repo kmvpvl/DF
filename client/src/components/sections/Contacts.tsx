@@ -1,8 +1,7 @@
 import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import Proto from '../../proto';
+import Proto, { IProtoState } from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 const CONTACT_REQUEST_TYPE_KEY = 'dolceforte.contactRequestType';
 
 const SEND_CONTACT_MESSAGE_MUTATION = `
@@ -11,26 +10,7 @@ const SEND_CONTACT_MESSAGE_MUTATION = `
   }
 `;
 
-async function gql<T>(
-  query: string,
-  variables: Record<string, unknown>
-): Promise<T> {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ query, variables }),
-  });
-
-  const json = await res.json();
-  if (json.errors?.length) {
-    throw new Error(json.errors[0].message);
-  }
-
-  return json.data as T;
-}
-
-interface ContactsState {
+interface ContactsState extends IProtoState {
   sent: boolean;
   validationError: string;
   loading: boolean;
@@ -114,7 +94,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
     this.setState({ loading: true, validationError: '' });
 
     try {
-      await gql<{ sendContactMessage: boolean }>(
+      await this.gql(
         SEND_CONTACT_MESSAGE_MUTATION,
         {
           input: {

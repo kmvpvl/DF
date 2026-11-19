@@ -151,7 +151,7 @@ export class PushService {
             customerUserId: string | null;
             customerEmail: string | null;
         },
-        status: 'accepted' | 'cancelled'
+        status: 'accepted' | 'cancelled' | 'ready'
     ) {
         const message = this.getOrderStatusPushMessage(order.number, status);
         const customer = order.customerUserId
@@ -219,10 +219,10 @@ export class PushService {
 
     private static getOrderStatusPushMessage(
         orderNumber: string,
-        status: 'accepted' | 'cancelled'
+        status: 'accepted' | 'cancelled' | 'ready'
     ): IPushMessage {
-        return status === 'accepted'
-            ? {
+        if (status === 'accepted') {
+            return {
                   title: {
                       default: 'Order accepted',
                       ts: {
@@ -245,8 +245,10 @@ export class PushService {
                           sr: `Vaša porudžbina br. ${orderNumber} je u pripremi.`,
                       },
                   },
-              }
-            : {
+              };
+        }
+        if (status === 'cancelled') {
+            return {
                   title: {
                       default: 'Order cancelled',
                       ts: {
@@ -270,11 +272,36 @@ export class PushService {
                       },
                   },
               };
+        }
+        return {
+            title: {
+                default: 'Order ready',
+                ts: {
+                    de: 'Bestellung ist fertig',
+                    fr: 'Commande prête',
+                    es: 'Pedido listo',
+                    ru: 'Заказ готов',
+                    it: 'Ordine pronto',
+                    sr: 'Porudžbina je spremna',
+                },
+            },
+            body: {
+                default: `Your order #${orderNumber} is ready.`,
+                ts: {
+                    de: `Ihre Bestellung Nr. ${orderNumber} ist fertig.`,
+                    fr: `Votre commande n° ${orderNumber} est prête.`,
+                    es: `Tu pedido n.º ${orderNumber} está listo.`,
+                    ru: `Заказ №${orderNumber} готов.`,
+                    it: `Il tuo ordine n. ${orderNumber} è pronto.`,
+                    sr: `Vaša porudžbina br. ${orderNumber} je spremna.`,
+                },
+            },
+        };
     }
 
     private static getOrderStatusEmail(
         orderNumber: string,
-        status: 'accepted' | 'cancelled'
+        status: 'accepted' | 'cancelled' | 'ready'
     ): { subject: IMLString; text: IMLString } {
         if (status === 'accepted') {
             return {
@@ -298,6 +325,32 @@ export class PushService {
                         ru: `Ваш заказ №${orderNumber} принят и передан в приготовление.`,
                         it: `Il tuo ordine n. ${orderNumber} è stato accettato ed è in preparazione.`,
                         sr: `Vaša porudžbina br. ${orderNumber} je prihvaćena i u pripremi.`,
+                    },
+                },
+            };
+        }
+        if (status === 'ready') {
+            return {
+                subject: {
+                    default: `Order #${orderNumber} is ready`,
+                    ts: {
+                        de: `Bestellung Nr. ${orderNumber} ist fertig`,
+                        fr: `Commande n° ${orderNumber} prête`,
+                        es: `Pedido n.º ${orderNumber} listo`,
+                        ru: `Заказ №${orderNumber} готов`,
+                        it: `Ordine n. ${orderNumber} pronto`,
+                        sr: `Porudžbina br. ${orderNumber} je spremna`,
+                    },
+                },
+                text: {
+                    default: `Your order #${orderNumber} is ready.`,
+                    ts: {
+                        de: `Ihre Bestellung Nr. ${orderNumber} ist fertig.`,
+                        fr: `Votre commande n° ${orderNumber} est prête.`,
+                        es: `Tu pedido n.º ${orderNumber} está listo.`,
+                        ru: `Ваш заказ №${orderNumber} готов.`,
+                        it: `Il tuo ordine n. ${orderNumber} è pronto.`,
+                        sr: `Vaša porudžbina br. ${orderNumber} je spremna.`,
                     },
                 },
             };

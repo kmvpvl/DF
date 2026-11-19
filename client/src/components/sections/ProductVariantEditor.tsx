@@ -1,11 +1,11 @@
 import { Component } from 'react';
 import { IProductVariant } from '@betypes/product';
 import MLStringEditor from '../mlstring/mlstring';
-import { Location } from '@betypes/location';
+import { ILocation } from "@betypes/company";
 
 interface IProductVariantEditorProps {
   variant: IProductVariant;
-  locations: Location[];
+  locations: ILocation[];
   onChange: (variant: IProductVariant) => void;
   onRemove: () => void;
 }

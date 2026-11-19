@@ -12,6 +12,7 @@ export class MLString extends String {
     private _translations: Record<string, string> = {};
 
     constructor(input?: IMLString | null) {
+        super('');
         if (!input) {
             super('');
         } else if (typeof input === 'string') {

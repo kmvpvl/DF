@@ -1,5 +1,5 @@
 import { type ChangeEvent } from 'react';
-import Proto from '../../proto';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const REST_API_URL = `${import.meta.env.VITE_API_BASE_URL}`;
 
@@ -155,7 +155,7 @@ interface EditForm {
   extraCertificateData: string;
 }
 
-interface CertificatesState {
+interface CertificatesState extends IProtoState {
   certificates: CertificateData[];
   availableBatches: CertificateBatchOption[];
   products: ProductOption[];
@@ -183,7 +183,7 @@ const INITIAL_CREATE_FORM: CreateForm = {
   extraCertificateData: '',
 };
 
-class Certificates extends Proto<Record<string, never>, CertificatesState> {
+class Certificates extends Proto<IProtoProps, CertificatesState> {
   state: CertificatesState = {
     certificates: [],
     availableBatches: [],
@@ -207,7 +207,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
     this.setState({ loading: true, error: null, notice: null });
 
     try {
-      const data = await this.gql(INITIAL_QUERY);
+      const data = await this.gql<{ certificateBatchOptions: CertificateBatchOption[]; products: ProductOption[]; certificates: CertificateData[] }>(INITIAL_QUERY);
 
       this.setState({
         loading: false,
@@ -262,7 +262,7 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
     this.setState({ saving: true, error: null, notice: null });
 
     try {
-      const data = await this.gql(CREATE_CERTIFICATE_MUTATION, {
+      const data = await this.gql<{ createCertificate: CertificateData }>(CREATE_CERTIFICATE_MUTATION, {
         input: {
           batchId: createForm.batchId,
           extraCertificateData: createForm.extraCertificateData.trim() || null,
@@ -305,11 +305,11 @@ class Certificates extends Proto<Record<string, never>, CertificatesState> {
         input.number = Number.parseInt(searchForm.number, 10);
       }
 
-      const data = await this.gql(SEARCH_CERTIFICATES_QUERY, { input });
+      const data = await this.gql<{ searchCertificates: CertificateData[] }>(SEARCH_CERTIFICATES_QUERY, { input });
 
       this.setState({
         searching: false,
-        certificates: data.searchCertificates as CertificateData[],
+        certificates: data.searchCertificates,
       });
     } catch (error) {
       this.setState({ searching: false, error: String(error) });

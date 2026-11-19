@@ -124,4 +124,28 @@ describe('PushService notifications', () => {
             expect.stringContaining('/customer/Orders/order-1')
         );
     });
+
+    it('sends a ready notification by email and push', async () => {
+        const result = await PushService.notifyCustomerOrderStatus(
+            {
+                id: 'order-2',
+                number: '1002',
+                customerUserId: 'customer-1',
+                customerEmail: 'customer@example.com',
+            },
+            'ready'
+        );
+
+        expect(result).toEqual({ emailSent: true, pushSent: true });
+        expect(mocks.sendMail).toHaveBeenCalledWith(
+            expect.objectContaining({
+                subject: 'Заказ №1002 готов',
+                text: 'Ваш заказ №1002 готов.',
+            })
+        );
+        expect(mocks.sendNotification).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.stringContaining('Заказ №1002 готов.')
+        );
+    });
 });

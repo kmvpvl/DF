@@ -161,7 +161,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     const requestId = ++this.savedAddressRequestId;
     this.setState({ savedAddressLoading: true, addressSearchError: '' });
     try {
-      const data = await this.gql(`
+      const data = await this.gql<{ myVerifiedDeliveryAddress: VerifiedDeliveryAddress | null }>(`
         query MyVerifiedDeliveryAddress {
           myVerifiedDeliveryAddress {
             address
@@ -276,7 +276,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   ) => {
     this.setState({ addressSearchLoading: true, addressSearchError: '' });
     try {
-      const data = await this.gql(
+      const data = await this.gql<{ searchAddress: AddressSuggestion[] }>(
         `query SearchAddress($query: String!) {
           searchAddress(query: $query) {
             formatted
@@ -349,7 +349,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       selectedAddressRequiresVerification: verifyAddress,
     });
     try {
-      const data = await this.gql(
+      const data = await this.gql<{ verifyDeliveryAddress: RouteEstimate | null; estimateDelivery: RouteEstimate | null }>(
         verifyAddress
           ? `mutation VerifyDeliveryAddress($address: String!, $lat: Float!, $lon: Float!) {
                 verifyDeliveryAddress(address: $address, lat: $lat, lon: $lon) {

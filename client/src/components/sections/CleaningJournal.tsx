@@ -181,9 +181,9 @@ class CleaningJournal extends Proto<
   private fetchEquipments = async () => {
     this.setState({ equipmentsLoading: true, equipmentError: null });
     try {
-      const data = await this.gql(EQUIPMENTS_QUERY);
+      const data = await this.gql<{ equipments: EquipmentData[] }>(EQUIPMENTS_QUERY);
       this.setState({
-        equipments: data.equipments as EquipmentData[],
+        equipments: data.equipments,
         equipmentsLoading: false,
       });
     } catch (e) {
@@ -194,9 +194,9 @@ class CleaningJournal extends Proto<
   private fetchUsers = async () => {
     this.setState({ usersLoading: true });
     try {
-      const data = await this.gql(USERS_QUERY);
+      const data = await this.gql<{ users: UserData[] }>(USERS_QUERY);
       this.setState(
-        { users: data.users as UserData[], usersLoading: false },
+        { users: data.users, usersLoading: false },
         this.applyLoggedInUserDefaults
       );
     } catch {
@@ -211,11 +211,11 @@ class CleaningJournal extends Proto<
     this.setState({ equipmentSaving: true, equipmentError: null });
     try {
       if (editingEquipment) {
-        const data = await this.gql(UPDATE_EQUIPMENT_MUTATION, {
+        const data = await this.gql<{ updateEquipment: EquipmentData }>(UPDATE_EQUIPMENT_MUTATION, {
           id: editingEquipment.id,
           input: { numId, fullName: equipmentForm.fullName.trim() },
         });
-        const updated = data.updateEquipment as EquipmentData;
+        const updated = data.updateEquipment;
         this.setState((prev) => ({
           equipments: prev.equipments.map((e) =>
             e.id === updated.id ? updated : e
@@ -226,10 +226,10 @@ class CleaningJournal extends Proto<
           equipmentSaving: false,
         }));
       } else {
-        const data = await this.gql(CREATE_EQUIPMENT_MUTATION, {
+        const data = await this.gql<{ createEquipment: EquipmentData }>(CREATE_EQUIPMENT_MUTATION, {
           input: { numId, fullName: equipmentForm.fullName.trim() },
         });
-        const created = data.createEquipment as EquipmentData;
+        const created = data.createEquipment;
         this.setState((prev) => ({
           equipments: [...prev.equipments, created].sort(
             (a, b) => a.numId - b.numId
@@ -294,7 +294,7 @@ class CleaningJournal extends Proto<
       reportQueried: true,
     });
     try {
-      const data = await this.gql(CLEAN_ACTIONS_QUERY, {
+      const data = await this.gql<{ cleanActions: CleanActionData[] }>(CLEAN_ACTIONS_QUERY, {
         cleaningType: reportType || undefined,
         fromDate: reportFrom || undefined,
         toDate: reportTo || undefined,

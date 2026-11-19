@@ -180,6 +180,26 @@ describe('OrderService staff order access', () => {
         expect(order.status).toBe('IN_PRODUCTION');
     });
 
+    it('marks only an in-production order in the current location as ready', async () => {
+        mocks.findFirst.mockResolvedValue({
+            id: 'order-1',
+            status: 'READY',
+            products: [],
+        });
+
+        const order = await OrderService.markReady(ctx, 'order-1');
+
+        expect(mocks.updateMany).toHaveBeenCalledWith({
+            where: {
+                id: 'order-1',
+                locationId: 'location-1',
+                status: 'IN_PRODUCTION',
+            },
+            data: { status: 'READY' },
+        });
+        expect(order.status).toBe('READY');
+    });
+
     it('allows management roles to cancel any non-cancelled order in their location', async () => {
         mocks.findFirst.mockResolvedValue({
             id: 'order-1',

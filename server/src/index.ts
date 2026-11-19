@@ -975,6 +975,20 @@ const resolvers = {
                 )),
             };
         },
+        markOrderReady: async (
+            _: unknown,
+            { orderId }: { orderId: string },
+            ctx: GraphQLContext
+        ) => {
+            const order = await OrderService.markReady(ctx, orderId);
+            return {
+                order,
+                ...(await PushService.notifyCustomerOrderStatus(
+                    order,
+                    'ready'
+                )),
+            };
+        },
         cancelOrder: async (
             _: unknown,
             { orderId }: { orderId: string },

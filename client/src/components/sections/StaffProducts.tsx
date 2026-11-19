@@ -504,7 +504,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
   private hydrateCostSettings = async () => {
     try {
-      const data = await this.gql(COST_SETTINGS_QUERY);
+      const data = await this.gql<{ costSettings: any }>(COST_SETTINGS_QUERY);
       const settings = data.costSettings as {
         marginalCoefficient: number;
         containerCost: number;
@@ -660,10 +660,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       return cached;
     }
 
-    const data = await this.gql(PRODUCT_PROCESS_MAPS_FOR_COST_QUERY, {
+    const data = await this.gql<{ processMaps: ProcessMapForCost[] }>(PRODUCT_PROCESS_MAPS_FOR_COST_QUERY, {
       productId,
     });
-    const maps = (data.processMaps as ProcessMapForCost[]) ?? [];
+    const maps = data.processMaps ?? [];
     this.processMapsForCostCache.set(productId, maps);
     return maps;
   };
@@ -1315,8 +1315,8 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(PRODUCTS_QUERY);
-      const products = (data.products as StaffProductData[]).sort((a, b) =>
+      const data = await this.gql<{ products: StaffProductData[], materials: MaterialOption[] }>(PRODUCTS_QUERY);
+      const products = data.products.sort((a, b) =>
         new MLString(a.name)
           .toString()
           .localeCompare(new MLString(b.name).toString())
@@ -1325,7 +1325,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
         {
           loading: false,
           products,
-          materials: data.materials as MaterialOption[],
+          materials: data.materials,
         },
         () => {
           this.triggerProductTableAutoCostCalculation();
@@ -1343,8 +1343,8 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       error: null,
     });
     try {
-      const data = await this.gql(PROCESS_MAPS_QUERY, { productId });
-      const processMaps = data.processMaps as ProcessMapData[];
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(PROCESS_MAPS_QUERY, { productId });
+      const processMaps = data.processMaps;
       this.setState({
         processMaps,
         processMapLoading: false,
@@ -1363,7 +1363,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     this.setState({ csvProcessing: true, error: null, csvResult: null });
 
     try {
-      const data = await this.gql(PRODUCTS_CSV_QUERY);
+      const data = await this.gql<{ productsCsv: string }>(PRODUCTS_CSV_QUERY);
       const csv = String(data.productsCsv ?? '');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1399,12 +1399,12 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
     try {
       const csv = await file.text();
-      const data = await this.gql(IMPORT_PRODUCTS_CSV_MUTATION, {
+      const data = await this.gql<{ importProductsCsv: ImportProductsCsvResult }>(IMPORT_PRODUCTS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
 
-      const result = data.importProductsCsv as ImportProductsCsvResult;
+      const result = data.importProductsCsv;
       await this.fetchProducts();
 
       const summary = `Imported ${result.importedCount}, skipped ${result.skippedCount}.`;
@@ -2048,11 +2048,11 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
     try {
       if (editingProduct) {
-        const data = await this.gql(UPDATE_PRODUCT_MUTATION, {
+        const data = await this.gql<{ updateProduct: StaffProductData }>(UPDATE_PRODUCT_MUTATION, {
           id: editingProduct.id,
           input,
         });
-        const updated = data.updateProduct as StaffProductData;
+        const updated = data.updateProduct;
         this.setState(
           (prevState) => ({
             saving: false,
@@ -2072,8 +2072,8 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
           }
         );
       } else {
-        const data = await this.gql(CREATE_PRODUCT_MUTATION, { input });
-        const created = data.createProduct as StaffProductData;
+        const data = await this.gql<{ createProduct: StaffProductData }>(CREATE_PRODUCT_MUTATION, { input });
+        const created = data.createProduct;
 
         this.setState(
           (prevState) => ({

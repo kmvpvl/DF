@@ -157,8 +157,8 @@ class App extends Proto<AppProps, AppState> {
 
   async fetchProducts() {
     try {
-      const data = await this.gql(QUERY_PUBLIC_STOCKS);
-      const products = data.getPublicProductsWithStock as PublicProductData[];
+      const data = await this.gql<{ getPublicProductsWithStock: PublicProductData[] }>(QUERY_PUBLIC_STOCKS);
+      const products = data.getPublicProductsWithStock;
       this.setState(
         {
           ...this.state,
@@ -632,7 +632,7 @@ class App extends Proto<AppProps, AppState> {
   };
 
   handleSubmitOrder = async (payload: OrderPayload) => {
-    const data = await this.gql(SEND_ORDER_BY_EMAIL_MUTATION, {
+    const data = await this.gql<{ sendOrderByEmail: boolean }>(SEND_ORDER_BY_EMAIL_MUTATION, {
       input: payload,
     });
     if (data.sendOrderByEmail !== true) {
@@ -719,7 +719,7 @@ class App extends Proto<AppProps, AppState> {
             }
           }
         `;
-        const newData = await this.gql(MUTATION_ADD_PUSH_SUBSCRIPTION, {
+        const newData = await this.gql<{ updateSessionUser: User }>(MUTATION_ADD_PUSH_SUBSCRIPTION, {
           input: {
             name: this.state.user?.name,
             fullName: this.state.user?.fullName,

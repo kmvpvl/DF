@@ -260,7 +260,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(INITIAL_QUERY);
+      const data = await this.gql<{ products: BatchProductOption[]; storageConditions: StorageConditionOption[]; batches: StaffBatchData[]; costSettings: { productMainProcessMaps?: string } }>(INITIAL_QUERY);
       this.setState({
         loading: false,
         products: (data.products as BatchProductOption[]).sort((a, b) =>
@@ -309,10 +309,10 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
       nextBatchPreview: null,
     });
     try {
-      const data = await this.gql(NEXT_BATCH_PREVIEW_QUERY, { productId });
+      const data = await this.gql<{ nextBatchPreview: BatchPreview }>(NEXT_BATCH_PREVIEW_QUERY, { productId });
       this.setState({
         previewLoading: false,
-        nextBatchPreview: data.nextBatchPreview as BatchPreview,
+        nextBatchPreview: data.nextBatchPreview,
       });
     } catch (error) {
       this.setState({ previewLoading: false, error: String(error) });
@@ -326,9 +326,9 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
     }
     this.setState({ processMapLoading: true });
     try {
-      const data = await this.gql(PROCESS_MAPS_QUERY, { productId });
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(PROCESS_MAPS_QUERY, { productId });
       this.setState({
-        processMaps: data.processMaps as ProcessMapData[],
+        processMaps: data.processMaps,
         processMapLoading: false,
       });
     } catch (error) {
@@ -566,7 +566,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
 
     try {
       if (adding) {
-        const data = await this.gql(CREATE_BATCH_MUTATION, {
+        const data = await this.gql<{ createBatch: StaffBatchData }>(CREATE_BATCH_MUTATION, {
           input: {
             productId: form.productId,
             variantLabel: form.variantLabel,

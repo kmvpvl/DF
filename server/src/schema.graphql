@@ -465,6 +465,12 @@ type OrderCancellationResult {
     pushSent: Boolean!
 }
 
+type OrderReadyResult {
+    order: Order!
+    emailSent: Boolean!
+    pushSent: Boolean!
+}
+
 input DiscountTierInput {
     threshold: Float! # Может быть Float для весовых товаров (например, от 1.5 кг)
     discount: Float! # Процент скидки (например, 10 для 10%)
@@ -918,6 +924,7 @@ type Mutation {
     sendOrderByEmail(input: SendOrderInput!): Boolean!
     startOrderProduction(orderId: ID!): OrderAcceptanceResult!
     cancelOrder(orderId: ID!): OrderCancellationResult!
+    markOrderReady(orderId: ID!): OrderReadyResult!
     createEquipment(input: CreateEquipmentInput!): Equipment!
     updateEquipment(id: ID!, input: UpdateEquipmentInput!): Equipment!
     deleteEquipment(id: ID!): Boolean!

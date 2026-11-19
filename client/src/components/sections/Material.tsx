@@ -1,5 +1,5 @@
 import { type ChangeEvent, createRef } from 'react';
-import Proto from '../../proto';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const MATERIAL_FIELDS = `
   id
@@ -123,7 +123,7 @@ interface ImportMaterialsCsvResult {
   errors: string[];
 }
 
-interface MaterialState {
+interface MaterialState extends IProtoState {
   materials: MaterialData[];
   loading: boolean;
   saving: boolean;
@@ -156,7 +156,7 @@ const INITIAL_FORM: MaterialForm = {
   ratio: '',
 };
 
-class Material extends Proto<Record<string, never>, MaterialState> {
+class Material extends Proto<IProtoProps, MaterialState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
 
   state: MaterialState = {
@@ -179,10 +179,10 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(MATERIALS_QUERY);
+      const data = await this.gql<{ materials: MaterialData[] }>(MATERIALS_QUERY);
       this.setState({
         loading: false,
-        materials: data.materials as MaterialData[],
+        materials: data.materials.sort((a, b) => a.name.localeCompare(b.name)),
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
@@ -193,7 +193,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     this.setState({ csvProcessing: true, error: null, csvResult: null });
 
     try {
-      const data = await this.gql(MATERIALS_CSV_QUERY);
+      const data = await this.gql<{ materialsCsv: string | null }>(MATERIALS_CSV_QUERY);
       const csv = String(data.materialsCsv ?? '');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -232,12 +232,12 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
     try {
       const csv = await file.text();
-      const data = await this.gql(IMPORT_MATERIALS_CSV_MUTATION, {
+      const data = await this.gql<{ importMaterialsCsv: ImportMaterialsCsvResult }>(IMPORT_MATERIALS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
 
-      const result = data.importMaterialsCsv as ImportMaterialsCsvResult;
+      const result = data.importMaterialsCsv;
       await this.fetchMaterials();
 
       const summary = `Imported ${result.importedCount}, skipped ${result.skippedCount}.`;
@@ -370,11 +370,11 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
     try {
       if (editingMaterial) {
-        const data = await this.gql(UPDATE_MATERIAL_MUTATION, {
+        const data = await this.gql<{ updateMaterial: MaterialData }>(UPDATE_MATERIAL_MUTATION, {
           id: editingMaterial.id,
           input,
         });
-        const updated = data.updateMaterial as MaterialData;
+        const updated = data.updateMaterial;
 
         this.setState((prevState) => ({
           saving: false,
@@ -388,8 +388,8 @@ class Material extends Proto<Record<string, never>, MaterialState> {
             .sort((a, b) => a.name.localeCompare(b.name)),
         }));
       } else {
-        const data = await this.gql(CREATE_MATERIAL_MUTATION, { input });
-        const created = data.createMaterial as MaterialData;
+        const data = await this.gql<{ createMaterial: MaterialData }>(CREATE_MATERIAL_MUTATION, { input });
+        const created = data.createMaterial;
 
         this.setState((prevState) => ({
           saving: false,

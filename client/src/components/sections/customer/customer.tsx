@@ -139,10 +139,10 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
     });
 
     try {
-      const data = await this.gql(ORDER_QUERY_BY_ID, { orderId });
+      const data = await this.gql<{ order: IOrder | null }>(ORDER_QUERY_BY_ID, { orderId });
       if (requestId !== this.orderRequestId) return;
       this.setState({
-        order: (data.order as IOrder | null) ?? null,
+        order: data.order ?? null,
         isOrderLoading: false,
       });
     } catch (error: unknown) {

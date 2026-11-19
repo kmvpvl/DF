@@ -1,5 +1,5 @@
 import { type ChangeEvent } from 'react';
-import Proto from '../../proto';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const SAMPLE_FIELDS = `
   id
@@ -69,7 +69,7 @@ interface EditingData {
   studyAt: string;
 }
 
-interface SamplesState {
+interface SamplesState extends IProtoState {
   samples: SampleData[];
   loading: boolean;
   searching: boolean;
@@ -86,7 +86,7 @@ const INITIAL_SEARCH_FORM: SearchForm = {
   sampleNumber: '',
 };
 
-class Samples extends Proto<Record<string, never>, SamplesState> {
+class Samples extends Proto<IProtoProps, SamplesState> {
   state: SamplesState = {
     samples: [],
     loading: false,
@@ -122,11 +122,11 @@ class Samples extends Proto<Record<string, never>, SamplesState> {
         input.sampleNumber = Number.parseInt(searchForm.sampleNumber, 10);
       }
 
-      const data = await this.gql(SEARCH_SAMPLES_QUERY, { input });
+      const data = await this.gql<{ searchSamples: SampleData[] }>(SEARCH_SAMPLES_QUERY, { input });
 
       this.setState({
         loading: false,
-        samples: data.searchSamples as SampleData[],
+        samples: data.searchSamples,
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
