@@ -119,7 +119,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
   };
 
   render() {
-    const chaptersOut = this.props.products.flatMap((val) => val.chapters);
+    const chaptersOut = [... new Set(this.props.products.flatMap((val) => val.chapters))];
     if (this.props.products.filter((el) => el.chapters?.length === 0))
       chaptersOut.push('');
 

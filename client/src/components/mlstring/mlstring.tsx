@@ -14,12 +14,14 @@ export interface IMLStringEditorProps {
   onChange?: (newMLString: IMLString) => void;
   className?: string;
   viewMode?: ViewModeCode;
+  lines?: number;
 }
 
 export interface IMLStringEditorState {
   value: IMLString;
   viewMode: ViewModeCode;
   curLanguageIndex?: string;
+  lines: number;
 }
 
 export default class MLStringEditor extends React.Component<
@@ -33,8 +35,9 @@ export default class MLStringEditor extends React.Component<
         ? this.props.viewMode
         : ViewModeCode.compact,
     curLanguageIndex: undefined,
+    lines: this.props.lines !== undefined ? this.props.lines : 1,
   };
-  compactEditRef?: RefObject<HTMLInputElement> = React.createRef();
+  compactEditRef?: RefObject<HTMLTextAreaElement> = React.createRef();
   compactNewLangRef?: RefObject<HTMLSelectElement> = React.createRef();
   componentDidUpdate(
     _: Readonly<IMLStringEditorProps>,
@@ -153,8 +156,9 @@ export default class MLStringEditor extends React.Component<
             <></>
           )}
         </span>
-        <input
-          type="text"
+        <textarea
+          name="mlstring-editor-compact-textarea"
+          rows={this.state.lines}
           ref={this.compactEditRef}
           key={this.state.curLanguageIndex}
           defaultValue={
@@ -209,7 +213,8 @@ export default class MLStringEditor extends React.Component<
           <span onClick={this.addNewLanguage.bind(this)}>+</span>
         </div>
         <div className="mlstring-editor-default">
-          <input
+          <textarea
+            rows={this.state.lines}
             defaultValue={
               typeof this.state.value === 'string'
                 ? (this.state.value as string)

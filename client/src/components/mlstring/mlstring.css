@@ -35,8 +35,8 @@
   grid-template-rows: min-content min-content;
 }
 
-.mlstring-editor-compact > input,
-.mlstring-editor-compact > input:focus {
+.mlstring-editor-compact > textarea,
+.mlstring-editor-compact > textarea:focus {
   grid-column: span 2;
   border-bottom: 1px solid var(--border);
   border-left: 1px solid var(--border);

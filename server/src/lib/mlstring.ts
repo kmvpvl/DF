@@ -12,13 +12,8 @@ export class MLString extends String {
     private _translations: Record<string, string> = {};
 
     constructor(input?: IMLString | null) {
-        super('');
-        if (!input) {
-            super('');
-        } else if (typeof input === 'string') {
-            super(input);
-        } else {
-            super(input.default);
+        super(!input ? '' : typeof input === 'string' ? input : input.default);
+        if (input && typeof input !== 'string') {
             this._translations = input.ts || {};
         }
     }

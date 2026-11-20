@@ -2257,6 +2257,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                   onChange={(val) =>
                     this.setState({ form: { ...form, description: val } })
                   }
+                  lines={3}
                 />
               </label>
 
