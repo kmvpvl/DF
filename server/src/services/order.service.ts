@@ -318,6 +318,24 @@ export class OrderService {
         let newData: Order | null;
         await authorize(ctx, Role.CUSTOMER);
         const normalizedOrder = await this.normalizeOrder(ctx, data);
+        const oldDraft = await prisma.order.findFirst({
+            where: {
+                status: OrderStatus.DRAFT,
+                customerUserId: ctx.userId,
+                locationId: ctx.locationId,
+            },
+            include: {
+                products: true,
+            },
+        });
+        if (oldDraft && oldDraft.id !== data.id) {
+            await prisma.order.delete({
+                where: { id: oldDraft.id },
+                include: {
+                    products: true,
+                },
+            });
+        }
         if (normalizedOrder.id === undefined) {
             //
             const { start, end } = getYearRange(new Date());
