@@ -163,7 +163,7 @@ const resolvers = {
             ctx: GraphQLContext
         ) => await MovementService.getAll(ctx, fromDate, toDate),
         userById: async (_: unknown, { id }: { id: string }) => {
-            return await prisma.user.findFirst({ where: { id } });
+            return await prisma.user.findFirst({ where: { id, blocked: false} });
         },
         userInfo: async (
             _: unknown,
@@ -180,10 +180,10 @@ const resolvers = {
             }
 
             if (id) {
-                return await prisma.user.findUnique({ where: { id } });
+                return await prisma.user.findUnique({ where: { id, blocked: false } });
             }
 
-            return await prisma.user.findUnique({ where: { email: email! } });
+            return await prisma.user.findUnique({ where: { email: email!, blocked: false } });
         },
         companyInfo: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
             CompanyService.info(ctx),
@@ -191,7 +191,7 @@ const resolvers = {
             EquipmentService.getAll(ctx),
         users: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
             if (!req.session.userId) throw new Error('Not authenticated');
-            return await prisma.user.findMany({ orderBy: { name: 'asc' } });
+            return await prisma.user.findMany({where: {blocked: false},  orderBy: { name: 'asc' } });
         },
         cleanActions: async (
             _: unknown,
@@ -418,7 +418,7 @@ const resolvers = {
             }
 
             const user = await prisma.user.findUnique({
-                where: { id: userId },
+                where: { id: userId , blocked: false},
             });
             if (!user) {
                 req.session.userId = undefined;
@@ -472,7 +472,7 @@ const resolvers = {
             { email, password }: { email: string; password: string },
             ctx: GraphQLContext
         ) => {
-            const user = await prisma.user.findUnique({ where: { email } });
+            const user = await prisma.user.findUnique({ where: { email, blocked: false } });
             if (!user) throw new Error('Invalid email or password');
             const valid = await bcrypt.compare(password, user.passwordHash);
             if (!valid) throw new Error('Invalid email or password');
@@ -948,7 +948,7 @@ const resolvers = {
 
             const sessionUserId = req.session.userId;
             const sessionUser = sessionUserId
-                ? await prisma.user.findUnique({ where: { id: sessionUserId } })
+                ? await prisma.user.findUnique({ where: { id: sessionUserId , blocked: false} })
                 : null;
             if (!sessionUser)
                 throw new Error('Authenticated customer not found');

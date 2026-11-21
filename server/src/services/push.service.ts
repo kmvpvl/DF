@@ -392,7 +392,7 @@ export class PushService {
         lang?: string
     ) {
         const user = await prisma.user.findFirst({
-            where: { id: toUserId },
+            where: { id: toUserId, blocked: false },
             select: {
                 pushSubscription: true,
                 lang: true,

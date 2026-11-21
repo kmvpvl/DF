@@ -161,7 +161,7 @@ export class OrderService {
         let isLegalEntity = false;
         if (ctx.userId) {
             const user = await prisma.user.findFirst({
-                where: { id: ctx.userId },
+                where: { id: ctx.userId, blocked: false  },
                 select: { entityType: true },
             });
             if (user?.entityType === 'LEGAL_ENTITY') {
@@ -646,7 +646,7 @@ export class OrderService {
         ];
         const customers = customerIds.length
             ? await prisma.user.findMany({
-                  where: { id: { in: customerIds } },
+                  where: { id: { in: customerIds }, blocked: false },
                   select: { id: true, email: true, phone: true },
               })
             : [];

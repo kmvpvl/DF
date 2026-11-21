@@ -108,6 +108,7 @@ model User {
   lang              String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+  blocked           Boolean             @default(false)
   cleanActions      CleanAction[]       @relation("PerformerRelation")
   supervisedActions CleanAction[]       @relation("SupervisorRelation")
   companies         Company[]
