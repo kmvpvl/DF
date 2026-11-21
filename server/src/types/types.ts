@@ -65,7 +65,9 @@ export interface CreateMovementInput {
     variantLabel?: string;
     batchId?: string;
     quantity: number;
-    locationId: string;
+    locationId?: string;
+    targetLocationId?: string;
+    label?: string;
 }
 
 export interface CreateMaterialInput {

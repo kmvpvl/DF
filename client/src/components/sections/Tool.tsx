@@ -6,6 +6,7 @@ import StaffProducts from './StaffProducts';
 import Samples from './Samples';
 import Certificates from './Certificates';
 import Orders from './StaffOrders';
+import StaffMovements from './StaffMovements';
 
 interface ToolProps extends IProtoProps {
   activeChapter: string;
@@ -33,6 +34,12 @@ class Tool extends Proto<ToolProps, ToolState> {
           <Samples />
         ) : activeChapter === 'Certificates' ? (
           <Certificates />
+        ) : activeChapter === 'Movements' ? (
+          <StaffMovements
+            user={user}
+            companyInfo={companyInfo}
+            currentLocation={currentLocation}
+          />
         ) : activeChapter === 'Orders' ? (
           <Orders
             objectId={objectId}

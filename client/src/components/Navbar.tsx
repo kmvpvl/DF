@@ -60,9 +60,10 @@ class Navbar extends Proto<NavbarProps, NavbarState> {
     const toolChapters = [
       'Orders',
       'Batches',
-      'Cleaning',
-      'Material',
+      'Movements',
       'Products',
+      'Material',
+      'Cleaning',
       'Samples',
       'Certificates',
     ];

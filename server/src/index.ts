@@ -16,6 +16,7 @@ import {
     CreateCleanActionInput,
     CreateEquipmentInput,
     CreateMaterialInput,
+    CreateMovementInput,
     CreateProcessMapInput,
     GraphQLContext,
     SearchCertificatesInput,
@@ -156,6 +157,11 @@ const resolvers = {
     },
     Query: {
         hello: () => 'DolceForte API',
+        movements: async (
+            _: unknown,
+            { fromDate, toDate }: { fromDate?: string; toDate?: string },
+            ctx: GraphQLContext
+        ) => await MovementService.getAll(ctx, fromDate, toDate),
         userById: async (_: unknown, { id }: { id: string }) => {
             return await prisma.user.findFirst({ where: { id } });
         },
@@ -456,6 +462,11 @@ const resolvers = {
             await AddressService.estimateDelivery(ctx, dest),
     },
     Mutation: {
+        createMovement: async (
+            _: unknown,
+            { input }: { input: CreateMovementInput & { type: MovementType } },
+            ctx: GraphQLContext
+        ) => await MovementService.createMovement(input, ctx),
         login: async (
             _: unknown,
             { email, password }: { email: string; password: string },
@@ -1092,6 +1103,11 @@ const resolvers = {
         },
         updatedAt: (user: { updatedAt: Date | string }) => {
             return new Date(user.updatedAt).toISOString();
+        },
+    },
+    Movement: {
+        createdAt: (user: { createdAt: Date | string }) => {
+            return new Date(user.createdAt).toISOString();
         },
     },
     Company: {

@@ -93,8 +93,24 @@ type Movement {
     productId: ID!
     batchId: ID
     quantity: Float!
+    variantLabel: String
     groupId: ID
+    locationId: ID!
+    location: Location
+    product: Product
+    batch: Batch
+    user: User
     createdAt: String!
+}
+
+input CreateMovementInput {
+    type: String!
+    productId: ID!
+    batchId: ID
+    variantLabel: String
+    quantity: Float!
+    targetLocationId: ID
+    label: String
 }
 
 input CreateUserInput {
@@ -911,6 +927,7 @@ type Query {
     searchCertificates(input: SearchCertificatesInput!): [Certificate!]!
     nextBatchPreview(productId: ID!): BatchNumberPreview!
     searchSamples(input: SearchSamplesInput!): [Sample!]!
+    movements(fromDate: String, toDate: String): [Movement!]!
     costSettings: CostSettings!
     getPublicProductsWithStock(locationId: String): [PublicProduct!]!
     orders(input: SearchOrderInput): [Order!]
@@ -922,6 +939,7 @@ type Query {
 }
 
 type Mutation {
+    createMovement(input: CreateMovementInput!): Movement!
     createUser(input: CreateUserInput!): User!
     login(email: String!, password: String!): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
