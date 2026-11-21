@@ -978,22 +978,6 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                 )}
               </p>
             )}
-
-            <button
-              className="btn-primary"
-              type="submit"
-              disabled={
-                this.state.loading ||
-                this.props.disableConrols ||
-                !hasItems ||
-                !this.props.order?.id ||
-                deliveryTariffUnavailable
-              }
-            >
-              {this.state.loading
-                ? this.ML('Sending order...')
-                : this.ML('Place order')}
-            </button>
           </form>
         </aside>
       </div>
