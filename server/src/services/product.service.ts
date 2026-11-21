@@ -84,6 +84,7 @@ export class ProductService {
             data: {
                 name: input.name!,
                 type: input.type,
+                productionHours: input.productionHours ?? 24,
                 batchPrefix: input.batchPrefix!.trim(),
                 description: input.description,
                 caloriesKcal: input.caloriesKcal,
@@ -168,6 +169,8 @@ export class ProductService {
             data.batchPrefix = input.batchPrefix.trim();
         if (input.description !== undefined)
             data.description = new MLString(input.description).Json;
+        if (input.productionHours !== undefined)
+            data.productionHours = input.productionHours;
         if (input.caloriesKcal !== undefined)
             data.caloriesKcal = input.caloriesKcal;
         if (input.fatGrams !== undefined) data.fatGrams = input.fatGrams;

@@ -58,6 +58,7 @@ export const NESTED_PRODUCT_FIELDS = `
 
 export const SLIM_PRODUCT_FIELDS = `
   id
+  productionHours
   name ${MLSTRING_FIELDS}
   description ${MLSTRING_FIELDS}
   ${NESTED_PRODUCT_FIELDS}
@@ -65,6 +66,7 @@ export const SLIM_PRODUCT_FIELDS = `
 
 export const PUBLIC_PRODUCT_FIELDS = `
   id
+  productionHours
   name ${MLSTRING_FIELDS}
   description ${MLSTRING_FIELDS}
   photos
@@ -78,6 +80,7 @@ export const PUBLIC_PRODUCT_FIELDS = `
 
 export const ALL_PRODUCT_FIELDS = `
   id
+  productionHours
   batchPrefix
   name ${MLSTRING_FIELDS}
   description ${MLSTRING_FIELDS}

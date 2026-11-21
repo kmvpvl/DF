@@ -91,37 +91,48 @@ export class OrderService {
             },
         });
         const calcData = await Promise.all([stocks, userDraft]);
+        let plannedReadyAt: Date | null = null;
         for (const product of order.products) {
             const stock = calcData[0].find((el) => el.id === product.productId);
-            if (stock !== undefined && stock.stockBalances.length > 0) {
+            if (stock !== undefined) {
                 const balances = stock.stockBalances.find(
                     (s) => s.variantLabel === product.variantLabel
                 );
                 const delta = balances
                     ? balances.physical_balance - balances.reserved_balance
                     : 0;
-                //console.log(delta);
                 const oldQty = calcData[1]?.products.find(
                     (el) =>
                         el.productId === product.productId &&
                         el.variantLabel === product.variantLabel
                 )?.quantity;
-                if (oldQty && calcData[1]?.id) {
-                    if (delta + oldQty < product.quantity) {
-                        product.quantity = oldQty + delta;
-                        PushService.sendLocationManagers(
-                            ctx,
-                            {
-                                body: `Product: ${new MLString(stock.name as any).toString()} - ${product.variantLabel}\nUser: ${calcData[1]?.customerName}`,
-                                title: 'Not enough',
-                            },
-                            getOrderPushUrl(calcData[1].id)
-                        );
+                const availableQuantity =
+                    delta + (oldQty && calcData[1]?.id ? oldQty : 0);
+                if (product.quantity > availableQuantity) {
+                    const productionHours = Number.isFinite(
+                        stock.productionHours
+                    )
+                        ? Math.max(0, stock.productionHours)
+                        : 24;
+                    const candidate = new Date(
+                        Date.now() + productionHours * 60 * 60 * 1000
+                    );
+                    const rounded = new Date(
+                        Math.ceil(candidate.getTime() / (30 * 60 * 1000)) *
+                            30 *
+                            60 *
+                            1000
+                    );
+                    if (!plannedReadyAt || rounded > plannedReadyAt) {
+                        plannedReadyAt = rounded;
                     }
                 }
             }
         }
-        return order;
+        return {
+            ...order,
+            orderDate: plannedReadyAt,
+        };
     }
     static async normalizeOrder(
         ctx: GraphQLContext,
@@ -471,6 +482,7 @@ export class OrderService {
                     },
                     totalPrice: totalPrice + deliveryFee,
                     customerName: normalizedOrder.customerName,
+                    orderDate: normalizedOrder.orderDate,
                 },
                 include: {
                     products: {

@@ -123,6 +123,22 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     return methods.includes('COURIER') ? 'COURIER' : (methods[0] ?? '');
   };
 
+  private getPlannedReadyLabel = () => {
+    const plannedReady =
+      this.props.order?.orderDate;
+    if (!plannedReady) return null;
+    const date = new Date(plannedReady);
+    if (Number.isNaN(date.getTime())) return null;
+    const formatted = new Intl.DateTimeFormat(this.getLanguage(), {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+    return `${this.ML('Ready by')} ${formatted}`;
+  };
+
   state: BasketDrawerState = {
     customerName: '',
     customerEmail: '',
@@ -654,6 +670,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       (isPickup ? 0 : (this.state.routeEstimate?.deliveryCost ?? 0));
     const availablePaymentMethods = this.getAvailablePaymentMethods();
     const availableShippingMethods = this.getAvailableShippingMethods();
+    const plannedReadyLabel = this.getPlannedReadyLabel();
 
     return (
       <div
@@ -700,7 +717,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               >
                 {this.state.loading
                   ? this.ML('Sending order...')
-                  : this.ML('Place order')}
+                  : plannedReadyLabel
+                    ? `${this.ML('Place order')} — ${plannedReadyLabel}`
+                    : this.ML('Place order')}
               </button>
             </div>
           )}

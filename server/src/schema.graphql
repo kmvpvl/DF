@@ -201,6 +201,7 @@ type Material {
 
 type Product {
     id: ID!
+    productionHours: Float!
     name: MLString!
     batchPrefix: String!
     description: MLString!
@@ -248,6 +249,7 @@ type ProductStockBalance {
 
 type PublicProduct {
     id: ID!
+    productionHours: Float!
     name: MLString!
     description: MLString!
     photos: JSON!
@@ -638,6 +640,7 @@ input UpdateMaterialInput {
 input CreateProductInput {
     name: JSON!
     type: ProductType
+    productionHours: Float
     batchPrefix: String!
     description: JSON!
     caloriesKcal: Float!
@@ -661,6 +664,7 @@ input CreateProductInput {
 
 input UpdateProductInput {
     name: JSON
+    productionHours: Float
     batchPrefix: String
     description: JSON
     caloriesKcal: Float

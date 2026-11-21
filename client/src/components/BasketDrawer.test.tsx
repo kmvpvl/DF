@@ -420,4 +420,49 @@ describe.sequential('BasketDrawer address lookup', () => {
       within(container).getByRole('option', { name: 'Bank transfer (7 days)' })
     ).toBeInTheDocument();
   });
+
+  it('shows the planned ready date on the place-order button', () => {
+    const plannedReady = new Date('2026-11-22T12:30:00.000Z');
+    const { container } = render(
+      <BasketDrawer
+        isOpen
+        companyInfo={{
+          id: 'company-1',
+          name: 'DolceForte',
+          locations: [
+            {
+              id: 'location-1',
+              name: 'Belgrade',
+              timezone: 'Europe/Belgrade',
+              currencyCode: 'RSD',
+              currencySymbol: 'din',
+              availablePaymentMethods: ['CASH'],
+              availableShippingMethods: ['PICKUP'],
+            },
+          ],
+        }}
+        currentLocation="location-1"
+        order={{
+          id: 'draft-1',
+          status: OrderStatus.DRAFT,
+          orderDateReady: plannedReady,
+          totalPrice: 120,
+          products: [{ productId: 'product-1', quantity: 2, price: 120 }],
+        }}
+        onClose={vi.fn()}
+        onIncreaseQty={vi.fn()}
+        onDecreaseQty={vi.fn()}
+        onRemoveItem={vi.fn()}
+        onSubmitOrder={vi.fn()}
+        onPushSubscribe={vi.fn()}
+        disableConrols={false}
+      />
+    );
+
+    expect(
+      within(container).getByRole('button', {
+        name: /Place order/,
+      })
+    ).toBeInTheDocument();
+  });
 });

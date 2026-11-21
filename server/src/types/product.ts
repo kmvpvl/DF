@@ -76,6 +76,7 @@ export interface ProductBaseData {
     name?: IMLString;
     type?: ProductType;
     isPublic: boolean;
+    productionHours?: number;
 
     description?: IMLString;
     batchPrefix?: string;

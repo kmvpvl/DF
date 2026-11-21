@@ -199,6 +199,7 @@ const UPDATE_COST_SETTINGS_MUTATION = `
 
 interface StaffProductData extends ProductBaseData {
   id: string;
+  productionHours: number;
   name: IMLString;
   batchPrefix: string;
   description: IMLString;
@@ -355,6 +356,7 @@ interface StaffProductForm {
   name: IMLString;
   batchPrefix: string;
   description: IMLString;
+  productionHours: string;
   caloriesKcal: string;
   fatGrams: string;
   proteinGrams: string;
@@ -412,6 +414,7 @@ const INITIAL_FORM: StaffProductForm = {
   name: { default: '', ts: {} },
   batchPrefix: '',
   description: { default: '', ts: {} },
+  productionHours: '24',
   caloriesKcal: '0',
   fatGrams: '0',
   proteinGrams: '0',
@@ -1516,6 +1519,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
         name: product.name,
         batchPrefix: product.batchPrefix,
         description: product.description,
+        productionHours: String(product.productionHours ?? 24),
         caloriesKcal: String(product.caloriesKcal),
         fatGrams: String(product.fatGrams),
         proteinGrams: String(product.proteinGrams),
@@ -2015,6 +2019,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     const fiberGrams = Number.parseFloat(form.fiberGrams);
     const saltGrams = Number.parseFloat(form.saltGrams);
     const standardDose = Number.parseFloat(form.standardDose);
+    const productionHours = Number.parseFloat(form.productionHours);
 
     if (
       !form.name ||
@@ -2027,7 +2032,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       !Number.isFinite(sugarsGrams) ||
       !Number.isFinite(fiberGrams) ||
       !Number.isFinite(saltGrams) ||
-      !Number.isFinite(standardDose)
+      !Number.isFinite(standardDose) ||
+      !Number.isFinite(productionHours) ||
+      productionHours < 0
     ) {
       this.setState({
         error: 'Please fill all required fields with valid values.',
@@ -2041,6 +2048,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       name: form.name,
       batchPrefix: form.batchPrefix.trim(),
       description: form.description,
+      productionHours,
       caloriesKcal,
       fatGrams,
       proteinGrams,
@@ -2416,6 +2424,25 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                     onChange={(event) =>
                       this.setState({
                         form: { ...form, standardDose: event.target.value },
+                      })
+                    }
+                    required
+                  />
+                </label>
+                <label className="cj-label">
+                  Production duration, hours
+                  <input
+                    className="cj-input material-input"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={form.productionHours}
+                    onChange={(event) =>
+                      this.setState({
+                        form: {
+                          ...form,
+                          productionHours: event.target.value,
+                        },
                       })
                     }
                     required

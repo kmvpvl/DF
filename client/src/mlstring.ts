@@ -514,6 +514,17 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `Ready by`,
+    new Map([
+      [`de`, 'Fertig bis'],
+      [`fr`, 'Prêt le'],
+      [`es`, 'Listo el'],
+      [`ru`, 'Готово к'],
+      [`it`, 'Pronto entro'],
+      [`sr`, 'Spremno do'],
+    ]),
+  ],
+  [
     `Hi`,
     new Map([
       [`de`, undefined],

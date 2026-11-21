@@ -188,6 +188,7 @@ model Material {
 model Product {
   id                 String                  @id @default(cuid())
   type               ProductType             @default(SIMPLE)
+  productionHours    Float                   @default(24)
   name               Json
   batchPrefix        String                  @unique
   description        Json                    @default("{\"default\":\"\", \"ts\":{}}")
