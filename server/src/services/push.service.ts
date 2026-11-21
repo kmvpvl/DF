@@ -102,6 +102,8 @@ export class PushService {
         customerEmail: string;
         customerPhone: string;
         deliveryAddress: string;
+        paymentMethod: string;
+        shippingMethod: string;
         distanceMeters: number | null;
         deliveryCost: number;
         currencySymbol: string;
@@ -123,6 +125,8 @@ export class PushService {
                 `Customer email: ${input.customerEmail}`,
                 `Customer phone: ${input.customerPhone}`,
                 `Delivery address: ${input.deliveryAddress}`,
+                `Shipping method: ${input.shippingMethod}`,
+                `Payment method: ${input.paymentMethod}`,
                 `Delivery distance: ${
                     input.distanceMeters == null
                         ? '-'
@@ -223,55 +227,55 @@ export class PushService {
     ): IPushMessage {
         if (status === 'accepted') {
             return {
-                  title: {
-                      default: 'Order accepted',
-                      ts: {
-                          de: 'Bestellung angenommen',
-                          fr: 'Commande acceptée',
-                          es: 'Pedido aceptado',
-                          ru: 'Заказ принят',
-                          it: 'Ordine accettato',
-                          sr: 'Porudžbina je prihvaćena',
-                      },
-                  },
-                  body: {
-                      default: `Your order #${orderNumber} is being prepared.`,
-                      ts: {
-                          de: `Ihre Bestellung Nr. ${orderNumber} wird vorbereitet.`,
-                          fr: `Votre commande n° ${orderNumber} est en préparation.`,
-                          es: `Tu pedido n.º ${orderNumber} está en preparación.`,
-                          ru: `Заказ №${orderNumber} принят и готовится.`,
-                          it: `Il tuo ordine n. ${orderNumber} è in preparazione.`,
-                          sr: `Vaša porudžbina br. ${orderNumber} je u pripremi.`,
-                      },
-                  },
-              };
+                title: {
+                    default: 'Order accepted',
+                    ts: {
+                        de: 'Bestellung angenommen',
+                        fr: 'Commande acceptée',
+                        es: 'Pedido aceptado',
+                        ru: 'Заказ принят',
+                        it: 'Ordine accettato',
+                        sr: 'Porudžbina je prihvaćena',
+                    },
+                },
+                body: {
+                    default: `Your order #${orderNumber} is being prepared.`,
+                    ts: {
+                        de: `Ihre Bestellung Nr. ${orderNumber} wird vorbereitet.`,
+                        fr: `Votre commande n° ${orderNumber} est en préparation.`,
+                        es: `Tu pedido n.º ${orderNumber} está en preparación.`,
+                        ru: `Заказ №${orderNumber} принят и готовится.`,
+                        it: `Il tuo ordine n. ${orderNumber} è in preparazione.`,
+                        sr: `Vaša porudžbina br. ${orderNumber} je u pripremi.`,
+                    },
+                },
+            };
         }
         if (status === 'cancelled') {
             return {
-                  title: {
-                      default: 'Order cancelled',
-                      ts: {
-                          de: 'Bestellung storniert',
-                          fr: 'Commande annulée',
-                          es: 'Pedido cancelado',
-                          ru: 'Заказ отменён',
-                          it: 'Ordine annullato',
-                          sr: 'Porudžbina je otkazana',
-                      },
-                  },
-                  body: {
-                      default: `Your order #${orderNumber} has been cancelled.`,
-                      ts: {
-                          de: `Ihre Bestellung Nr. ${orderNumber} wurde storniert.`,
-                          fr: `Votre commande n° ${orderNumber} a été annulée.`,
-                          es: `Tu pedido n.º ${orderNumber} ha sido cancelado.`,
-                          ru: `Заказ №${orderNumber} отменён.`,
-                          it: `Il tuo ordine n. ${orderNumber} è stato annullato.`,
-                          sr: `Vaša porudžbina br. ${orderNumber} je otkazana.`,
-                      },
-                  },
-              };
+                title: {
+                    default: 'Order cancelled',
+                    ts: {
+                        de: 'Bestellung storniert',
+                        fr: 'Commande annulée',
+                        es: 'Pedido cancelado',
+                        ru: 'Заказ отменён',
+                        it: 'Ordine annullato',
+                        sr: 'Porudžbina je otkazana',
+                    },
+                },
+                body: {
+                    default: `Your order #${orderNumber} has been cancelled.`,
+                    ts: {
+                        de: `Ihre Bestellung Nr. ${orderNumber} wurde storniert.`,
+                        fr: `Votre commande n° ${orderNumber} a été annulée.`,
+                        es: `Tu pedido n.º ${orderNumber} ha sido cancelado.`,
+                        ru: `Заказ №${orderNumber} отменён.`,
+                        it: `Il tuo ordine n. ${orderNumber} è stato annullato.`,
+                        sr: `Vaša porudžbina br. ${orderNumber} je otkazana.`,
+                    },
+                },
+            };
         }
         return {
             title: {

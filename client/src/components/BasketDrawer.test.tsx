@@ -95,9 +95,7 @@ describe.sequential('BasketDrawer address lookup', () => {
       await vi.advanceTimersByTimeAsync(350);
     });
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(
-      view.getByRole('option', { name: address.formatted })
-    ).toBeVisible();
+    expect(view.getByRole('option', { name: address.formatted })).toBeVisible();
 
     await act(async () => {
       fireEvent.click(view.getByRole('option', { name: address.formatted }));
@@ -167,9 +165,7 @@ describe.sequential('BasketDrawer address lookup', () => {
     expect(view.queryByRole('listbox')).not.toBeInTheDocument();
     expect(view.getByText('Address selected and verified')).toBeVisible();
     expect(view.getByText(/260.00 din/)).toBeVisible();
-    expect(view.getByText('Total').parentElement).toHaveTextContent(
-      '380.00 -'
-    );
+    expect(view.getByText('Total').parentElement).toHaveTextContent('380.00 -');
   });
 
   it('prevents placing an order when delivery has no configured tariff', async () => {
@@ -230,9 +226,9 @@ describe.sequential('BasketDrawer address lookup', () => {
 
     expect(view.getByText(/tariff not configured/)).toBeVisible();
     expect(
-      view.getAllByRole('button', { name: 'Place order' }).every((button) =>
-        button.hasAttribute('disabled')
-      )
+      view
+        .getAllByRole('button', { name: 'Place order' })
+        .every((button) => button.hasAttribute('disabled'))
     ).toBe(true);
   });
 
@@ -289,5 +285,139 @@ describe.sequential('BasketDrawer address lookup', () => {
     );
     expect(view.getByText(/0.00 din/)).toBeVisible();
     expect(view.getByPlaceholderText('Phone')).toHaveValue('+381601234567');
+  });
+
+  it('submits pickup without looking up an address or adding a delivery fee', async () => {
+    const onSubmitOrder = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(
+      <BasketDrawer
+        isOpen
+        companyInfo={{
+          id: 'company-1',
+          name: 'DolceForte',
+          locations: [
+            {
+              id: 'location-1',
+              name: 'Belgrade',
+              timezone: 'Europe/Belgrade',
+              currencyCode: 'RSD',
+              currencySymbol: 'din',
+              availablePaymentMethods: ['CASH'],
+              availableShippingMethods: ['PICKUP'],
+            },
+          ],
+        }}
+        currentLocation="location-1"
+        order={{
+          id: 'draft-1',
+          status: OrderStatus.DRAFT,
+          totalPrice: 120,
+          products: [{ productId: 'product-1', quantity: 1, price: 120 }],
+        }}
+        onClose={vi.fn()}
+        onIncreaseQty={vi.fn()}
+        onDecreaseQty={vi.fn()}
+        onRemoveItem={vi.fn()}
+        onSubmitOrder={onSubmitOrder}
+        onPushSubscribe={vi.fn()}
+        disableConrols={false}
+      />
+    );
+    const view = within(container);
+
+    expect(
+      view.queryByPlaceholderText('Delivery address')
+    ).not.toBeInTheDocument();
+    expect(mockFetch).not.toHaveBeenCalled();
+    fireEvent.change(view.getByPlaceholderText('Full name'), {
+      target: { value: 'Customer One' },
+    });
+    fireEvent.change(view.getByPlaceholderText('Email'), {
+      target: { value: 'customer@example.com' },
+    });
+    fireEvent.change(view.getByPlaceholderText('Phone'), {
+      target: { value: '+381601234567' },
+    });
+
+    await act(async () => {
+      fireEvent.submit(container.querySelector('#basket-order-form')!);
+    });
+
+    expect(onSubmitOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentMethod: 'CASH',
+        shippingMethod: 'PICKUP',
+        customerDeliveryAddress: undefined,
+        deliveryLat: undefined,
+        deliveryLon: undefined,
+      })
+    );
+    expect(view.getByText('Total').parentElement).toHaveTextContent(
+      '120.00 din'
+    );
+  });
+
+  it('offers deferred bank transfer only to legal entities when configured', () => {
+    const props = {
+      isOpen: true,
+      companyInfo: {
+        id: 'company-1',
+        name: 'DolceForte',
+        locations: [
+          {
+            id: 'location-1',
+            name: 'Belgrade',
+            timezone: 'Europe/Belgrade',
+            currencyCode: 'RSD',
+            currencySymbol: 'din',
+            availablePaymentMethods: ['CASH', 'BANK_TRANSFER_7_DAYS'],
+            availableShippingMethods: ['PICKUP'],
+          },
+        ],
+      },
+      currentLocation: 'location-1',
+      order: { status: OrderStatus.DRAFT, products: [] },
+      onClose: vi.fn(),
+      onIncreaseQty: vi.fn(),
+      onDecreaseQty: vi.fn(),
+      onRemoveItem: vi.fn(),
+      onSubmitOrder: vi.fn(),
+      onPushSubscribe: vi.fn(),
+      disableConrols: false,
+    };
+
+    const { container, rerender } = render(
+      <BasketDrawer
+        {...props}
+        user={{
+          id: 'user-1',
+          name: 'Customer',
+          fullName: 'Customer',
+          entityType: 'INDIVIDUAL',
+          email: 'customer@example.com',
+        }}
+      />
+    );
+    expect(
+      within(container).queryByRole('option', {
+        name: 'Bank transfer (7 days)',
+      })
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <BasketDrawer
+        {...props}
+        user={{
+          id: 'user-1',
+          name: 'Customer',
+          fullName: 'Customer',
+          entityType: 'LEGAL_ENTITY',
+          email: 'customer@example.com',
+        }}
+      />
+    );
+    expect(
+      within(container).getByRole('option', { name: 'Bank transfer (7 days)' })
+    ).toBeInTheDocument();
   });
 });

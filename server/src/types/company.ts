@@ -4,6 +4,8 @@ export interface ILocation {
     timezone: string;
     currencyCode: string;
     currencySymbol: string;
+    availablePaymentMethods?: string[];
+    availableShippingMethods?: string[];
     location?: ICoords;
     city?: string;
     createdAt?: Date;

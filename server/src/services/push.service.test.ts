@@ -82,6 +82,8 @@ describe('PushService notifications', () => {
             customerEmail: 'customer@example.com',
             customerPhone: '+381123456',
             deliveryAddress: 'Main Street 1',
+            paymentMethod: 'CARD',
+            shippingMethod: 'COURIER',
             distanceMeters: 1200,
             deliveryCost: 25,
             currencySymbol: 'din',
@@ -96,6 +98,16 @@ describe('PushService notifications', () => {
                 subject: '[ORDER] Customer',
                 replyTo: 'customer@example.com',
                 text: expect.stringContaining('Total: 125.00 din'),
+            })
+        );
+        expect(mocks.sendMail).toHaveBeenCalledWith(
+            expect.objectContaining({
+                text: expect.stringContaining('Payment method: CARD'),
+            })
+        );
+        expect(mocks.sendMail).toHaveBeenCalledWith(
+            expect.objectContaining({
+                text: expect.stringContaining('Shipping method: COURIER'),
             })
         );
     });

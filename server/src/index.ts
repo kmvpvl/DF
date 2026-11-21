@@ -111,10 +111,32 @@ interface SendOrderInput {
     customerName: string;
     customerEmail: string;
     customerPhone: string;
-    customerDeliveryAddress: string;
-    deliveryLat: number;
-    deliveryLon: number;
+    customerDeliveryAddress?: string | null;
+    deliveryLat?: number | null;
+    deliveryLon?: number | null;
+    paymentMethod: string;
+    shippingMethod: string;
     note?: string;
+}
+
+const CHECKOUT_PAYMENT_METHODS = [
+    'ONLINE',
+    'CARD',
+    'CASH',
+    'BANK_TRANSFER_7_DAYS',
+];
+const CHECKOUT_SHIPPING_METHODS = ['PICKUP', 'COURIER'];
+
+function getConfiguredCheckoutMethods(
+    value: unknown,
+    supportedMethods: string[]
+): string[] {
+    if (value == null) return supportedMethods;
+    if (!Array.isArray(value)) return [];
+    return value.filter(
+        (method): method is string =>
+            typeof method === 'string' && supportedMethods.includes(method)
+    );
 }
 
 type IngredientWithRefs = {
@@ -855,29 +877,16 @@ const resolvers = {
             const customerName = input.customerName.trim();
             const customerEmail = input.customerEmail.trim();
             const customerPhone = input.customerPhone.trim();
-            const customerDeliveryAddress =
-                input.customerDeliveryAddress.trim();
+            const shippingMethod = input.shippingMethod.trim();
+            const paymentMethod = input.paymentMethod.trim();
+            const isPickup = shippingMethod === 'PICKUP';
+            const customerDeliveryAddress = isPickup
+                ? null
+                : input.customerDeliveryAddress?.trim() || null;
             const note = input.note?.trim();
 
-            if (
-                !customerName ||
-                !customerEmail ||
-                !customerPhone ||
-                !customerDeliveryAddress
-            ) {
-                throw new Error(
-                    'Customer name, email, phone and delivery address are required'
-                );
-            }
-            if (
-                !Number.isFinite(input.deliveryLat) ||
-                input.deliveryLat < -90 ||
-                input.deliveryLat > 90 ||
-                !Number.isFinite(input.deliveryLon) ||
-                input.deliveryLon < -180 ||
-                input.deliveryLon > 180
-            ) {
-                throw new Error('Delivery coordinates are invalid');
+            if (!customerName || !customerEmail || !customerPhone) {
+                throw new Error('Customer name, email and phone are required');
             }
 
             const draftOrder = await OrderService.getCustomerDraft(
@@ -892,19 +901,37 @@ const resolvers = {
                 throw new Error('Order total must be greater than 0');
             }
 
-            const deliveryEstimate = await AddressService.estimateForOrder(
-                ctx,
-                customerDeliveryAddress,
-                { lat: input.deliveryLat, lon: input.deliveryLon }
+            const locationId = ctx.locationId;
+            if (!locationId) {
+                throw new Error('Location context is required');
+            }
+            const location = await prisma.location.findUnique({
+                where: { id: locationId },
+                select: {
+                    name: true,
+                    availablePaymentMethods: true,
+                    availableShippingMethods: true,
+                    currencySymbol: true,
+                },
+            });
+            if (!location) throw new Error('Location not found');
+
+            const allowedPaymentMethods = getConfiguredCheckoutMethods(
+                location.availablePaymentMethods,
+                CHECKOUT_PAYMENT_METHODS
             );
-            const deliveryFee = deliveryEstimate.deliveryCost;
-            if (
-                deliveryFee === null ||
-                !Number.isFinite(deliveryFee) ||
-                deliveryFee < 0
-            ) {
+            const allowedShippingMethods = getConfiguredCheckoutMethods(
+                location.availableShippingMethods,
+                CHECKOUT_SHIPPING_METHODS
+            );
+            if (!allowedPaymentMethods.includes(paymentMethod)) {
                 throw new Error(
-                    'Delivery tariff is not configured for this location'
+                    'Payment method is not available at this location'
+                );
+            }
+            if (!allowedShippingMethods.includes(shippingMethod)) {
+                throw new Error(
+                    'Shipping method is not available at this location'
                 );
             }
 
@@ -912,6 +939,55 @@ const resolvers = {
             const sessionUser = sessionUserId
                 ? await prisma.user.findUnique({ where: { id: sessionUserId } })
                 : null;
+            if (!sessionUser)
+                throw new Error('Authenticated customer not found');
+            if (
+                paymentMethod === 'BANK_TRANSFER_7_DAYS' &&
+                sessionUser.entityType !== 'LEGAL_ENTITY'
+            ) {
+                throw new Error(
+                    'Deferred bank transfer is available only to legal entities'
+                );
+            }
+
+            let deliveryEstimate: Awaited<
+                ReturnType<typeof AddressService.estimateForOrder>
+            > | null = null;
+            let deliveryCoordinates: { lat: number; lon: number } | null = null;
+            let deliveryFee = 0;
+            if (!isPickup) {
+                if (!customerDeliveryAddress) {
+                    throw new Error(
+                        'Delivery address is required for courier delivery'
+                    );
+                }
+                const deliveryLat = input.deliveryLat;
+                const deliveryLon = input.deliveryLon;
+                if (
+                    typeof deliveryLat !== 'number' ||
+                    !Number.isFinite(deliveryLat) ||
+                    deliveryLat < -90 ||
+                    deliveryLat > 90 ||
+                    typeof deliveryLon !== 'number' ||
+                    !Number.isFinite(deliveryLon) ||
+                    deliveryLon < -180 ||
+                    deliveryLon > 180
+                ) {
+                    throw new Error('Delivery coordinates are invalid');
+                }
+                deliveryCoordinates = { lat: deliveryLat, lon: deliveryLon };
+                deliveryEstimate = await AddressService.estimateForOrder(
+                    ctx,
+                    customerDeliveryAddress,
+                    { lat: deliveryLat, lon: deliveryLon }
+                );
+                deliveryFee = deliveryEstimate.deliveryCost ?? NaN;
+                if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+                    throw new Error(
+                        'Delivery tariff is not configured for this location'
+                    );
+                }
+            }
 
             const orderLines = draftOrder.products.map((item, index) => {
                 const lineTotal = item.price ?? 0;
@@ -937,10 +1013,14 @@ const resolvers = {
                 customerName,
                 customerEmail,
                 customerPhone,
-                deliveryAddress: customerDeliveryAddress,
-                distanceMeters: deliveryEstimate.distanceMeters,
+                deliveryAddress: customerDeliveryAddress
+                    ?? `Pickup at ${location.name}`,
+                paymentMethod,
+                shippingMethod,
+                distanceMeters: deliveryEstimate?.distanceMeters ?? null,
                 deliveryCost: deliveryFee,
-                currencySymbol: deliveryEstimate.currencySymbol,
+                currencySymbol:
+                    deliveryEstimate?.currencySymbol ?? location.currencySymbol,
                 sessionUserId: sessionUser?.id,
                 sessionUserEntityType: sessionUser?.entityType,
                 orderLines,
@@ -953,9 +1033,11 @@ const resolvers = {
                 customerEmail,
                 customerPhone,
                 customerDeliveryAddress,
-                deliveryLat: input.deliveryLat,
-                deliveryLon: input.deliveryLon,
+                deliveryLat: deliveryCoordinates?.lat,
+                deliveryLon: deliveryCoordinates?.lon,
                 deliveryFee,
+                paymentMethod,
+                shippingMethod,
                 note,
             });
 
@@ -1022,6 +1104,14 @@ const resolvers = {
         locations: (c: { locations: ILocation[] }) => {
             return c.locations.map((l) => ({
                 ...l,
+                availablePaymentMethods: getConfiguredCheckoutMethods(
+                    l.availablePaymentMethods,
+                    CHECKOUT_PAYMENT_METHODS
+                ),
+                availableShippingMethods: getConfiguredCheckoutMethods(
+                    l.availableShippingMethods,
+                    CHECKOUT_SHIPPING_METHODS
+                ),
                 createdAt: l.createdAt
                     ? new Date(l.createdAt).toISOString()
                     : null,
@@ -1030,6 +1120,22 @@ const resolvers = {
                     : null,
             }));
         },
+    },
+    Location: {
+        availablePaymentMethods: (location: {
+            availablePaymentMethods?: unknown;
+        }) =>
+            getConfiguredCheckoutMethods(
+                location.availablePaymentMethods,
+                CHECKOUT_PAYMENT_METHODS
+            ),
+        availableShippingMethods: (location: {
+            availableShippingMethods?: unknown;
+        }) =>
+            getConfiguredCheckoutMethods(
+                location.availableShippingMethods,
+                CHECKOUT_SHIPPING_METHODS
+            ),
     },
     Equipment: {
         createdAt: (e: { createdAt: Date | string }) =>

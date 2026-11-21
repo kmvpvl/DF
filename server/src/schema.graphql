@@ -74,6 +74,8 @@ type Location {
     timezone: String!
     currencyCode: String! # ISO 4217: "USD", "GEL", "RUB"
     currencySymbol: String! # "$", "₾", "₽"
+    availablePaymentMethods: [String!]!
+    availableShippingMethods: [String!]!
     createdAt: String!
     updatedAt: String
 }
@@ -126,9 +128,11 @@ input SendOrderInput {
     customerName: String!
     customerEmail: String!
     customerPhone: String!
-    customerDeliveryAddress: String!
-    deliveryLat: Float!
-    deliveryLon: Float!
+    customerDeliveryAddress: String
+    deliveryLat: Float
+    deliveryLon: Float
+    paymentMethod: String!
+    shippingMethod: String!
     note: String
 }
 
@@ -864,21 +868,19 @@ input SearchOrderInput {
 }
 
 type AddressSuggestion {
-  formatted: String!
-  lat: Float!
-  lon: Float!
-  isExactHouse: Boolean! # true, если найден конкретный номер дома
+    formatted: String!
+    lat: Float!
+    lon: Float!
+    isExactHouse: Boolean! # true, если найден конкретный номер дома
 }
 
 type RouteEstimate {
-  distanceMeters: Float!
-  durationSeconds: Float!
-  isValidAddress: Boolean!
-  deliveryCost: Float
-  currencySymbol: String!
+    distanceMeters: Float!
+    durationSeconds: Float!
+    isValidAddress: Boolean!
+    deliveryCost: Float
+    currencySymbol: String!
 }
-
-
 
 type Query {
     hello: String
@@ -919,7 +921,11 @@ type Mutation {
     createUser(input: CreateUserInput!): User!
     login(email: String!, password: String!): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
-    verifyDeliveryAddress(address: String!, lat: Float!, lon: Float!): RouteEstimate!
+    verifyDeliveryAddress(
+        address: String!
+        lat: Float!
+        lon: Float!
+    ): RouteEstimate!
     sendContactMessage(input: SendContactMessageInput!): Boolean!
     sendOrderByEmail(input: SendOrderInput!): Boolean!
     startOrderProduction(orderId: ID!): OrderAcceptanceResult!

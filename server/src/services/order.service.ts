@@ -1,4 +1,4 @@
-import { Order, OrderStatus, Role, User } from '@prisma/client';
+import { Order, OrderStatus, Prisma, Role, User } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { GraphQLContext } from '../types/types';
 import { authorize } from '../utils/auth';
@@ -508,10 +508,12 @@ export class OrderService {
             customerName: string;
             customerEmail: string;
             customerPhone: string;
-            customerDeliveryAddress: string;
-            deliveryLat: number;
-            deliveryLon: number;
+            customerDeliveryAddress: string | null;
+            deliveryLat?: number;
+            deliveryLon?: number;
             deliveryFee: number;
+            paymentMethod: string;
+            shippingMethod: string;
             note?: string;
         }
     ) {
@@ -546,12 +548,18 @@ export class OrderService {
                     customerEmail: delivery.customerEmail,
                     customerPhone,
                     deliveryAddress: delivery.customerDeliveryAddress,
-                    deliveryLocation: {
-                        lat: delivery.deliveryLat,
-                        lon: delivery.deliveryLon,
-                    },
+                    deliveryLocation:
+                        delivery.deliveryLat !== undefined &&
+                        delivery.deliveryLon !== undefined
+                            ? {
+                                  lat: delivery.deliveryLat,
+                                  lon: delivery.deliveryLon,
+                              }
+                            : Prisma.DbNull,
                     deliveryFee: delivery.deliveryFee,
                     totalPrice: { increment: delivery.deliveryFee },
+                    paymentMethod: delivery.paymentMethod,
+                    shippingMethod: delivery.shippingMethod,
                     notes: delivery.note ?? null,
                 },
             });
@@ -629,11 +637,7 @@ export class OrderService {
     }
 
     static async startProduction(ctx: GraphQLContext, orderId: string) {
-        await authorize(ctx, [
-            Role.MANAGER,
-            Role.SUPERVISOR,
-            Role.EMPLOYEE,
-        ]);
+        await authorize(ctx, [Role.MANAGER, Role.SUPERVISOR, Role.EMPLOYEE]);
         const locationId = ctx.locationId;
         if (!locationId) {
             throw new Error('Location context is required to update orders');
@@ -672,11 +676,7 @@ export class OrderService {
     }
 
     static async markReady(ctx: GraphQLContext, orderId: string) {
-        await authorize(ctx, [
-            Role.MANAGER,
-            Role.SUPERVISOR,
-            Role.EMPLOYEE,
-        ]);
+        await authorize(ctx, [Role.MANAGER, Role.SUPERVISOR, Role.EMPLOYEE]);
         const locationId = ctx.locationId;
         if (!locationId) {
             throw new Error('Location context is required to update orders');
@@ -775,11 +775,14 @@ export class OrderService {
         return data;
     }
 
-    static async order(ctx: GraphQLContext, orderId: string): Promise<Order | null> {
+    static async order(
+        ctx: GraphQLContext,
+        orderId: string
+    ): Promise<Order | null> {
         await authorize(ctx, Role.CUSTOMER);
         const order = await prisma.order.findFirst({
             where: {
-                id: orderId
+                id: orderId,
             },
             include: {
                 products: {
@@ -793,11 +796,14 @@ export class OrderService {
                         },
                     },
                 },
-            }
+            },
         });
-        if (order?.customerUserId === ctx.userId || await authorize(ctx, Role.MANAGER)) {
-            return order
+        if (
+            order?.customerUserId === ctx.userId ||
+            (await authorize(ctx, Role.MANAGER))
+        ) {
+            return order;
         }
-        return null
+        return null;
     }
 }

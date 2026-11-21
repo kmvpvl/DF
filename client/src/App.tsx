@@ -72,6 +72,8 @@ const SESSION_USER_QUERY = `
           timezone
           currencyCode
           currencySymbol
+          availablePaymentMethods
+          availableShippingMethods
           createdAt
           updatedAt
         }
@@ -134,16 +136,16 @@ class App extends Proto<AppProps, AppState> {
     companyInfo: null,
     currentLocation: null,
     currentPage:
-      typeof window !== 'undefined' && window.location.pathname.split("/")[1]
-        ? window.location.pathname.split("/")[1]
+      typeof window !== 'undefined' && window.location.pathname.split('/')[1]
+        ? window.location.pathname.split('/')[1]
         : 'home',
-    activeChapter: 
-      typeof window !== 'undefined' && window.location.pathname.split("/")[2]
-        ? window.location.pathname.split("/")[2]
+    activeChapter:
+      typeof window !== 'undefined' && window.location.pathname.split('/')[2]
+        ? window.location.pathname.split('/')[2]
         : 'Orders',
     objectId:
-      typeof window !== 'undefined' && window.location.pathname.split("/")[3]
-        ? window.location.pathname.split("/")[3]
+      typeof window !== 'undefined' && window.location.pathname.split('/')[3]
+        ? window.location.pathname.split('/')[3]
         : undefined,
     isLoadingBasket: false,
     basketOpen: false,
@@ -157,7 +159,9 @@ class App extends Proto<AppProps, AppState> {
 
   async fetchProducts() {
     try {
-      const data = await this.gql<{ getPublicProductsWithStock: PublicProductData[] }>(QUERY_PUBLIC_STOCKS);
+      const data = await this.gql<{
+        getPublicProductsWithStock: PublicProductData[];
+      }>(QUERY_PUBLIC_STOCKS);
       const products = data.getPublicProductsWithStock;
       this.setState(
         {
@@ -182,20 +186,20 @@ class App extends Proto<AppProps, AppState> {
   }
 
   private syncPageFromLocation = () => {
-      this.setState({ 
-    currentPage:
-      typeof window !== 'undefined' && window.location.pathname.split("/")[1]
-        ? window.location.pathname.split("/")[1]
-        : 'home',
-    activeChapter: 
-      typeof window !== 'undefined' && window.location.pathname.split("/")[2]
-        ? window.location.pathname.split("/")[2]
-        : 'Orders',
-    objectId:
-      typeof window !== 'undefined' && window.location.pathname.split("/")[3]
-        ? window.location.pathname.split("/")[3]
-        : undefined,
-       });
+    this.setState({
+      currentPage:
+        typeof window !== 'undefined' && window.location.pathname.split('/')[1]
+          ? window.location.pathname.split('/')[1]
+          : 'home',
+      activeChapter:
+        typeof window !== 'undefined' && window.location.pathname.split('/')[2]
+          ? window.location.pathname.split('/')[2]
+          : 'Orders',
+      objectId:
+        typeof window !== 'undefined' && window.location.pathname.split('/')[3]
+          ? window.location.pathname.split('/')[3]
+          : undefined,
+    });
   };
 
   private navigateTo = (path: '/tool' | '/' | '/customer') => {
@@ -632,9 +636,12 @@ class App extends Proto<AppProps, AppState> {
   };
 
   handleSubmitOrder = async (payload: OrderPayload) => {
-    const data = await this.gql<{ sendOrderByEmail: boolean }>(SEND_ORDER_BY_EMAIL_MUTATION, {
-      input: payload,
-    });
+    const data = await this.gql<{ sendOrderByEmail: boolean }>(
+      SEND_ORDER_BY_EMAIL_MUTATION,
+      {
+        input: payload,
+      }
+    );
     if (data.sendOrderByEmail !== true) {
       throw new Error(this.ML('Failed to place order.'));
     }
@@ -719,33 +726,36 @@ class App extends Proto<AppProps, AppState> {
             }
           }
         `;
-        const newData = await this.gql<{ updateSessionUser: User }>(MUTATION_ADD_PUSH_SUBSCRIPTION, {
-          input: {
-            name: this.state.user?.name,
-            fullName: this.state.user?.fullName,
-            entityType: this.state.user?.entityType,
-            email: this.state.user?.email,
-            phone: this.state.user?.phone || undefined,
-            pib:
-              this.state.user?.entityType === 'LEGAL_ENTITY'
-                ? this.state.user?.pib
-                : null,
-            mbr:
-              this.state.user?.entityType === 'LEGAL_ENTITY'
-                ? this.state.user?.mbr
-                : null,
-            account:
-              this.state.user?.entityType === 'LEGAL_ENTITY'
-                ? this.state.user?.account
-                : null,
-            bank:
-              this.state.user?.entityType === 'LEGAL_ENTITY'
-                ? this.state.user?.bank
-                : null,
-            pushSubscription: subscription,
-            deliveryAddress: this.state.user?.deliveryAddress,
-          },
-        });
+        const newData = await this.gql<{ updateSessionUser: User }>(
+          MUTATION_ADD_PUSH_SUBSCRIPTION,
+          {
+            input: {
+              name: this.state.user?.name,
+              fullName: this.state.user?.fullName,
+              entityType: this.state.user?.entityType,
+              email: this.state.user?.email,
+              phone: this.state.user?.phone || undefined,
+              pib:
+                this.state.user?.entityType === 'LEGAL_ENTITY'
+                  ? this.state.user?.pib
+                  : null,
+              mbr:
+                this.state.user?.entityType === 'LEGAL_ENTITY'
+                  ? this.state.user?.mbr
+                  : null,
+              account:
+                this.state.user?.entityType === 'LEGAL_ENTITY'
+                  ? this.state.user?.account
+                  : null,
+              bank:
+                this.state.user?.entityType === 'LEGAL_ENTITY'
+                  ? this.state.user?.bank
+                  : null,
+              pushSubscription: subscription,
+              deliveryAddress: this.state.user?.deliveryAddress,
+            },
+          }
+        );
 
         this.setState({
           ...this.state,
@@ -781,17 +791,17 @@ class App extends Proto<AppProps, AppState> {
     const isToolPage = currentPage === 'tool';
     const canAccessTool = isToolPage && isStaffUser;
 
-    return (
-      this.state.currentPage === "customer" 
-      ? <><Customer
-        user={this.state.user}
-        companyInfo={this.state.companyInfo}
-        currentLocation={this.state.currentLocation}
-        chapter={this.state.activeChapter}
-        objectId={this.state.objectId}
-        onLoginRequired={this.handleOpenLogin}
-        onCloseAuth={this.handleCloseAuth}
-        /> 
+    return this.state.currentPage === 'customer' ? (
+      <>
+        <Customer
+          user={this.state.user}
+          companyInfo={this.state.companyInfo}
+          currentLocation={this.state.currentLocation}
+          chapter={this.state.activeChapter}
+          objectId={this.state.objectId}
+          onLoginRequired={this.handleOpenLogin}
+          onCloseAuth={this.handleCloseAuth}
+        />
         {authOpen && (
           <AuthModal
             onSuccess={this.handleAuthSuccess}
@@ -803,7 +813,7 @@ class App extends Proto<AppProps, AppState> {
           />
         )}
       </>
-      :
+    ) : (
       <div className="app">
         <Navbar
           user={user}

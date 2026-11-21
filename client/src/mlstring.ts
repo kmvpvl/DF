@@ -265,7 +265,7 @@ export const mlStrings = new Map([
       [`fr`, 'Sélectionnez une adresse pour calculer la livraison'],
       [`es`, 'Selecciona una dirección para calcular la entrega'],
       [`ru`, 'Выберите адрес для расчёта доставки'],
-      [`it`, "Seleziona un indirizzo per calcolare la consegna"],
+      [`it`, 'Seleziona un indirizzo per calcolare la consegna'],
       [`sr`, 'Izaberite adresu za obračun isporuke'],
     ]),
   ],
@@ -287,7 +287,7 @@ export const mlStrings = new Map([
       [`fr`, "Calcul de l'itinéraire de livraison..."],
       [`es`, 'Calculando la ruta de entrega...'],
       [`ru`, 'Расчёт маршрута доставки...'],
-      [`it`, "Calcolo del percorso di consegna..."],
+      [`it`, 'Calcolo del percorso di consegna...'],
       [`sr`, 'Izračunavanje rute isporuke...'],
     ]),
   ],
@@ -349,33 +349,72 @@ export const mlStrings = new Map([
   [
     `Unable to submit order because the saved draft is missing.`,
     new Map([
-      [`de`, 'Die Bestellung kann nicht gesendet werden, da der gespeicherte Entwurf fehlt.'],
-      [`fr`, "Impossible d'envoyer la commande : le brouillon enregistré est introuvable."],
-      [`es`, 'No se puede enviar el pedido porque no se encuentra el borrador guardado.'],
+      [
+        `de`,
+        'Die Bestellung kann nicht gesendet werden, da der gespeicherte Entwurf fehlt.',
+      ],
+      [
+        `fr`,
+        "Impossible d'envoyer la commande : le brouillon enregistré est introuvable.",
+      ],
+      [
+        `es`,
+        'No se puede enviar el pedido porque no se encuentra el borrador guardado.',
+      ],
       [`ru`, 'Не удалось отправить заказ: сохранённый черновик не найден.'],
-      [`it`, "Impossibile inviare l'ordine: la bozza salvata non è disponibile."],
+      [
+        `it`,
+        "Impossibile inviare l'ordine: la bozza salvata non è disponibile.",
+      ],
       [`sr`, 'Porudžbina nije poslata jer sačuvani nacrt nije pronađen.'],
     ]),
   ],
   [
     `Please fill in name, delivery address and phone before placing an order.`,
     new Map([
-      [`de`, 'Bitte geben Sie vor der Bestellung Ihren Namen, Ihre Lieferadresse und Telefonnummer ein.'],
-      [`fr`, 'Veuillez saisir votre nom, votre adresse de livraison et votre téléphone avant de commander.'],
-      [`es`, 'Introduce tu nombre, dirección de entrega y teléfono antes de realizar el pedido.'],
+      [
+        `de`,
+        'Bitte geben Sie vor der Bestellung Ihren Namen, Ihre Lieferadresse und Telefonnummer ein.',
+      ],
+      [
+        `fr`,
+        'Veuillez saisir votre nom, votre adresse de livraison et votre téléphone avant de commander.',
+      ],
+      [
+        `es`,
+        'Introduce tu nombre, dirección de entrega y teléfono antes de realizar el pedido.',
+      ],
       [`ru`, 'Перед оформлением заказа укажите имя, адрес доставки и телефон.'],
-      [`it`, "Inserisci nome, indirizzo di consegna e telefono prima di effettuare l'ordine."],
-      [`sr`, 'Pre slanja porudžbine unesite ime, adresu za isporuku i broj telefona.'],
+      [
+        `it`,
+        "Inserisci nome, indirizzo di consegna e telefono prima di effettuare l'ordine.",
+      ],
+      [
+        `sr`,
+        'Pre slanja porudžbine unesite ime, adresu za isporuku i broj telefona.',
+      ],
     ]),
   ],
   [
     `Choose a delivery address with a house number from the suggestions.`,
     new Map([
-      [`de`, 'Wählen Sie in den Vorschlägen eine Lieferadresse mit Hausnummer aus.'],
-      [`fr`, 'Choisissez dans les suggestions une adresse de livraison avec numéro.'],
-      [`es`, 'Elige en las sugerencias una dirección de entrega con número de casa.'],
+      [
+        `de`,
+        'Wählen Sie in den Vorschlägen eine Lieferadresse mit Hausnummer aus.',
+      ],
+      [
+        `fr`,
+        'Choisissez dans les suggestions une adresse de livraison avec numéro.',
+      ],
+      [
+        `es`,
+        'Elige en las sugerencias una dirección de entrega con número de casa.',
+      ],
       [`ru`, 'Выберите в подсказках адрес доставки с номером дома.'],
-      [`it`, "Seleziona tra i suggerimenti un indirizzo di consegna con numero civico."],
+      [
+        `it`,
+        'Seleziona tra i suggerimenti un indirizzo di consegna con numero civico.',
+      ],
       [`sr`, 'Izaberite predloženu adresu za isporuku koja sadrži kućni broj.'],
     ]),
   ],
@@ -426,12 +465,30 @@ export const mlStrings = new Map([
   [
     `Order sent to sales@dolceforte.rs. We will contact you soon.`,
     new Map([
-      [`de`, 'Die Bestellung wurde an sales@dolceforte.rs gesendet. Wir werden Sie bald kontaktieren.'],
-      [`fr`, 'La commande a été envoyée à sales@dolceforte.rs. Nous vous contacterons bientôt.'],
-      [`es`, 'El pedido se envió a sales@dolceforte.rs. Nos pondremos en contacto contigo pronto.'],
-      [`ru`, 'Заказ отправлен на sales@dolceforte.rs. Мы скоро свяжемся с вами.'],
-      [`it`, "L'ordine è stato inviato a sales@dolceforte.rs. Ti contatteremo presto."],
-      [`sr`, 'Porudžbina je poslata na sales@dolceforte.rs. Uskoro ćemo vas kontaktirati.'],
+      [
+        `de`,
+        'Die Bestellung wurde an sales@dolceforte.rs gesendet. Wir werden Sie bald kontaktieren.',
+      ],
+      [
+        `fr`,
+        'La commande a été envoyée à sales@dolceforte.rs. Nous vous contacterons bientôt.',
+      ],
+      [
+        `es`,
+        'El pedido se envió a sales@dolceforte.rs. Nos pondremos en contacto contigo pronto.',
+      ],
+      [
+        `ru`,
+        'Заказ отправлен на sales@dolceforte.rs. Мы скоро свяжемся с вами.',
+      ],
+      [
+        `it`,
+        "L'ordine è stato inviato a sales@dolceforte.rs. Ti contatteremo presto.",
+      ],
+      [
+        `sr`,
+        'Porudžbina je poslata na sales@dolceforte.rs. Uskoro ćemo vas kontaktirati.',
+      ],
     ]),
   ],
   [
@@ -498,6 +555,89 @@ export const mlStrings = new Map([
       [`ru`, 'Тариф доставки не настроен.'],
       [`it`, 'La tariffa di consegna non è configurata.'],
       [`sr`, 'Tarifa isporuke nije podešena.'],
+    ]),
+  ],
+  [
+    `Online payment`,
+    new Map([
+      [`de`, 'Online-Zahlung'],
+      [`fr`, 'Paiement en ligne'],
+      [`es`, 'Pago en línea'],
+      [`ru`, 'Онлайн-оплата'],
+      [`it`, 'Pagamento online'],
+      [`sr`, 'Plaćanje onlajn'],
+    ]),
+  ],
+  [
+    `Card`,
+    new Map([
+      [`de`, 'Karte'],
+      [`fr`, 'Carte'],
+      [`es`, 'Tarjeta'],
+      [`ru`, 'Картой'],
+      [`it`, 'Carta'],
+      [`sr`, 'Karticom'],
+    ]),
+  ],
+  [
+    `Cash`,
+    new Map([
+      [`de`, 'Barzahlung'],
+      [`fr`, 'Espèces'],
+      [`es`, 'Efectivo'],
+      [`ru`, 'Наличными'],
+      [`it`, 'Contanti'],
+      [`sr`, 'Gotovinom'],
+    ]),
+  ],
+  [
+    `Bank transfer (7 days)`,
+    new Map([
+      [`de`, 'Banküberweisung (7 Tage)'],
+      [`fr`, 'Virement bancaire (7 jours)'],
+      [`es`, 'Transferencia bancaria (7 días)'],
+      [`ru`, 'Банковский перевод (7 дней)'],
+      [`it`, 'Bonifico bancario (7 giorni)'],
+      [`sr`, 'Bankovni transfer (7 dana)'],
+    ]),
+  ],
+  [
+    `Pickup`,
+    new Map([
+      [`de`, 'Abholung'],
+      [`fr`, 'Retrait sur place'],
+      [`es`, 'Recogida'],
+      [`ru`, 'Самовывоз'],
+      [`it`, 'Ritiro'],
+      [`sr`, 'Preuzimanje'],
+    ]),
+  ],
+  [
+    `Courier delivery`,
+    new Map([
+      [`de`, 'Kurierlieferung'],
+      [`fr`, 'Livraison par coursier'],
+      [`es`, 'Entrega por mensajero'],
+      [`ru`, 'Доставка курьером'],
+      [`it`, 'Consegna tramite corriere'],
+      [`sr`, 'Kurirska dostava'],
+    ]),
+  ],
+  [
+    `Please fill in name and phone before placing an order.`,
+    new Map([
+      [
+        `de`,
+        'Bitte geben Sie vor der Bestellung Ihren Namen und Ihre Telefonnummer ein.',
+      ],
+      [
+        `fr`,
+        'Veuillez saisir votre nom et votre téléphone avant de commander.',
+      ],
+      [`es`, 'Introduce tu nombre y teléfono antes de realizar el pedido.'],
+      [`ru`, 'Перед оформлением заказа укажите имя и телефон.'],
+      [`it`, 'Inserisci nome e telefono prima di effettuare l’ordine.'],
+      [`sr`, 'Pre slanja porudžbine unesite ime i broj telefona.'],
     ]),
   ],
   [
@@ -2657,7 +2797,10 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
   [
     `The server did not return the updated order.`,
     new Map([
-      [`de`, 'Der Server hat die aktualisierte Bestellung nicht zurückgegeben.'],
+      [
+        `de`,
+        'Der Server hat die aktualisierte Bestellung nicht zurückgegeben.',
+      ],
       [`fr`, 'Le serveur n’a pas renvoyé la commande mise à jour.'],
       [`es`, 'El servidor no devolvió el pedido actualizado.'],
       [`ru`, 'Сервер не вернул обновлённый заказ.'],

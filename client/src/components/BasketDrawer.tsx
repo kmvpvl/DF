@@ -11,12 +11,17 @@ export interface OrderPayload {
   orderId: string;
   customerName: string;
   customerEmail: string;
-  customerDeliveryAddress: string;
-  deliveryLat: number;
-  deliveryLon: number;
+  customerDeliveryAddress?: string;
+  deliveryLat?: number;
+  deliveryLon?: number;
   customerPhone: string;
+  paymentMethod: string;
+  shippingMethod: string;
   note?: string;
 }
+
+const PAYMENT_METHODS = ['ONLINE', 'CARD', 'CASH', 'BANK_TRANSFER_7_DAYS'];
+const SHIPPING_METHODS = ['PICKUP', 'COURIER'];
 
 interface AddressSuggestion {
   formatted: string;
@@ -56,6 +61,8 @@ interface BasketDrawerState extends IProtoState {
   customerEmail: string;
   customerPhone: string;
   customerDeliveryAddress: string;
+  paymentMethod: string;
+  shippingMethod: string;
   addressSuggestions: AddressSuggestion[];
   selectedAddress: AddressSuggestion | null;
   addressSearchLoading: boolean;
@@ -80,11 +87,49 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   private loadedSavedAddressUserId: string | null = null;
   private routeEstimateRequestId = 0;
 
+  private getCurrentLocation = () =>
+    this.props.companyInfo?.locations.find(
+      (location) => location.id === this.props.currentLocation
+    );
+
+  private getAvailablePaymentMethods = () => {
+    const configured = this.getCurrentLocation()?.availablePaymentMethods;
+    const methods = Array.isArray(configured)
+      ? configured.filter(
+          (method): method is string =>
+            typeof method === 'string' && PAYMENT_METHODS.includes(method)
+        )
+      : PAYMENT_METHODS;
+    return this.props.user?.entityType === 'LEGAL_ENTITY'
+      ? methods
+      : methods.filter((method) => method !== 'BANK_TRANSFER_7_DAYS');
+  };
+
+  private getAvailableShippingMethods = () => {
+    const configured = this.getCurrentLocation()?.availableShippingMethods;
+    return Array.isArray(configured)
+      ? configured.filter(
+          (method): method is string =>
+            typeof method === 'string' && SHIPPING_METHODS.includes(method)
+        )
+      : SHIPPING_METHODS;
+  };
+
+  private getDefaultPaymentMethod = () =>
+    this.getAvailablePaymentMethods()[0] ?? '';
+
+  private getDefaultShippingMethod = () => {
+    const methods = this.getAvailableShippingMethods();
+    return methods.includes('COURIER') ? 'COURIER' : (methods[0] ?? '');
+  };
+
   state: BasketDrawerState = {
     customerName: '',
     customerEmail: '',
     customerPhone: '',
     customerDeliveryAddress: this.props.user?.deliveryAddress ?? '',
+    paymentMethod: this.getDefaultPaymentMethod(),
+    shippingMethod: this.getDefaultShippingMethod(),
     addressSuggestions: [],
     selectedAddress: null,
     addressSearchLoading: false,
@@ -102,7 +147,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
 
   componentDidMount() {
     this.hydrateCustomerFields();
-    if (this.props.user) {
+    if (this.props.user && this.state.shippingMethod === 'COURIER') {
       void this.loadVerifiedDeliveryAddress();
     }
   }
@@ -116,7 +161,35 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     this.routeEstimateRequestId += 1;
   }
 
-  componentDidUpdate(prevProps: BasketDrawerProps) {
+  componentDidUpdate(
+    prevProps: BasketDrawerProps,
+    prevState: BasketDrawerState
+  ) {
+    const checkoutSettingsChanged =
+      prevProps.currentLocation !== this.props.currentLocation ||
+      prevProps.companyInfo !== this.props.companyInfo ||
+      prevProps.user?.entityType !== this.props.user?.entityType;
+    if (checkoutSettingsChanged) {
+      const availablePaymentMethods = this.getAvailablePaymentMethods();
+      const availableShippingMethods = this.getAvailableShippingMethods();
+      const paymentMethod = availablePaymentMethods.includes(
+        this.state.paymentMethod
+      )
+        ? this.state.paymentMethod
+        : this.getDefaultPaymentMethod();
+      const shippingMethod = availableShippingMethods.includes(
+        this.state.shippingMethod
+      )
+        ? this.state.shippingMethod
+        : this.getDefaultShippingMethod();
+      if (
+        paymentMethod !== this.state.paymentMethod ||
+        shippingMethod !== this.state.shippingMethod
+      ) {
+        this.setState({ paymentMethod, shippingMethod });
+      }
+    }
+
     if (
       prevProps.user !== this.props.user ||
       prevProps.isOpen !== this.props.isOpen
@@ -125,7 +198,14 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     }
     const userChanged = prevProps.user?.id !== this.props.user?.id;
     const drawerOpened = !prevProps.isOpen && this.props.isOpen;
-    if (this.props.user && (userChanged || drawerOpened)) {
+    const switchedToCourier =
+      prevState.shippingMethod !== this.state.shippingMethod &&
+      this.state.shippingMethod === 'COURIER';
+    if (
+      this.props.user &&
+      this.state.shippingMethod === 'COURIER' &&
+      (userChanged || drawerOpened || switchedToCourier)
+    ) {
       if (drawerOpened && !userChanged) {
         this.loadedSavedAddressUserId = null;
       }
@@ -161,7 +241,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     const requestId = ++this.savedAddressRequestId;
     this.setState({ savedAddressLoading: true, addressSearchError: '' });
     try {
-      const data = await this.gql<{ myVerifiedDeliveryAddress: VerifiedDeliveryAddress | null }>(`
+      const data = await this.gql<{
+        myVerifiedDeliveryAddress: VerifiedDeliveryAddress | null;
+      }>(`
         query MyVerifiedDeliveryAddress {
           myVerifiedDeliveryAddress {
             address
@@ -235,7 +317,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         addressSearchError:
           error instanceof Error
             ? error.message
-              : this.ML('Could not load the saved delivery address.'),
+            : this.ML('Could not load the saved delivery address.'),
       });
     }
   };
@@ -289,18 +371,21 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       );
       if (requestId !== this.addressSearchRequestId) return;
       const suggestions = data.searchAddress as AddressSuggestion[];
-      this.setState({
-        addressSuggestions: suggestions,
-        addressSearchLoading: false,
-      }, () => {
-        if (
-          requestId === this.addressSearchRequestId &&
-          suggestions.length === 1 &&
-          suggestions[0].isExactHouse
-        ) {
-          void this.selectAddress(suggestions[0]);
+      this.setState(
+        {
+          addressSuggestions: suggestions,
+          addressSearchLoading: false,
+        },
+        () => {
+          if (
+            requestId === this.addressSearchRequestId &&
+            suggestions.length === 1 &&
+            suggestions[0].isExactHouse
+          ) {
+            void this.selectAddress(suggestions[0]);
+          }
         }
-      });
+      );
     } catch (error: unknown) {
       if (requestId !== this.addressSearchRequestId) return;
       this.setState({
@@ -349,7 +434,10 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       selectedAddressRequiresVerification: verifyAddress,
     });
     try {
-      const data = await this.gql<{ verifyDeliveryAddress: RouteEstimate | null; estimateDelivery: RouteEstimate | null }>(
+      const data = await this.gql<{
+        verifyDeliveryAddress: RouteEstimate | null;
+        estimateDelivery: RouteEstimate | null;
+      }>(
         verifyAddress
           ? `mutation VerifyDeliveryAddress($address: String!, $lat: Float!, $lon: Float!) {
                 verifyDeliveryAddress(address: $address, lat: $lat, lon: $lon) {
@@ -416,6 +504,41 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     }
   };
 
+  private handleShippingMethodChange = (shippingMethod: string) => {
+    this.setState({ shippingMethod }, () => {
+      if (shippingMethod === 'PICKUP') {
+        if (this.addressSearchTimeoutId) {
+          clearTimeout(this.addressSearchTimeoutId);
+          this.addressSearchTimeoutId = null;
+        }
+        this.addressSearchRequestId += 1;
+        this.savedAddressRequestId += 1;
+        this.routeEstimateRequestId += 1;
+        this.loadedSavedAddressUserId = null;
+        this.setState({
+          addressSuggestions: [],
+          addressSearchLoading: false,
+          savedAddressLoading: false,
+          routeEstimateLoading: false,
+        });
+        return;
+      }
+
+      if (
+        this.state.selectedAddress &&
+        !this.state.routeEstimate &&
+        !this.state.routeEstimateLoading
+      ) {
+        void this.requestRouteEstimate(
+          this.state.selectedAddress,
+          this.state.selectedAddressRequiresVerification
+        );
+      } else if (this.props.user) {
+        void this.loadVerifiedDeliveryAddress();
+      }
+    });
+  };
+
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -427,7 +550,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
 
     if (!order.id) {
       this.setState({
-        error: this.ML('Unable to submit order because the saved draft is missing.'),
+        error: this.ML(
+          'Unable to submit order because the saved draft is missing.'
+        ),
         sent: false,
       });
       return;
@@ -436,27 +561,34 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     const customerName = this.state.customerName.trim();
     const customerEmail = this.state.customerEmail.trim();
     const customerPhone = this.state.customerPhone.trim();
-    const customerDeliveryAddress = this.state.customerDeliveryAddress.trim();
+    const isPickup = this.state.shippingMethod === 'PICKUP';
+    const customerDeliveryAddress = isPickup
+      ? ''
+      : this.state.customerDeliveryAddress.trim();
     const note = this.state.note.trim();
 
     if (
       !customerName ||
       !customerEmail ||
       !customerPhone ||
-      !customerDeliveryAddress
+      !this.state.paymentMethod ||
+      !this.state.shippingMethod ||
+      (!isPickup && !customerDeliveryAddress)
     ) {
       this.setState({
-        error: this.ML(
-          'Please fill in name, delivery address and phone before placing an order.'
-        ),
+        error: isPickup
+          ? this.ML('Please fill in name and phone before placing an order.')
+          : this.ML(
+              'Please fill in name, delivery address and phone before placing an order.'
+            ),
         sent: false,
       });
       return;
     }
 
     if (
-      !this.state.selectedAddress?.isExactHouse ||
-      !this.state.routeEstimate
+      !isPickup &&
+      (!this.state.selectedAddress?.isExactHouse || !this.state.routeEstimate)
     ) {
       this.setState({
         error: this.ML(
@@ -467,7 +599,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       return;
     }
 
-    if (this.state.routeEstimate.deliveryCost === null) {
+    if (!isPickup && this.state.routeEstimate?.deliveryCost === null) {
       this.setState({
         error: this.ML('Delivery tariff is not configured.'),
         sent: false,
@@ -483,9 +615,11 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         customerName,
         customerEmail,
         customerPhone,
-        customerDeliveryAddress,
-        deliveryLat: this.state.selectedAddress.lat,
-        deliveryLon: this.state.selectedAddress.lon,
+        customerDeliveryAddress: isPickup ? undefined : customerDeliveryAddress,
+        deliveryLat: isPickup ? undefined : this.state.selectedAddress!.lat,
+        deliveryLon: isPickup ? undefined : this.state.selectedAddress!.lon,
+        paymentMethod: this.state.paymentMethod,
+        shippingMethod: this.state.shippingMethod,
         note: note || undefined,
       });
 
@@ -512,11 +646,14 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
       return null;
     }
     const hasItems = Boolean(this.props.order?.products.length);
+    const isPickup = this.state.shippingMethod === 'PICKUP';
     const deliveryTariffUnavailable =
-      this.state.routeEstimate?.deliveryCost === null;
+      !isPickup && this.state.routeEstimate?.deliveryCost === null;
     const displayedTotal =
       (this.props.order?.totalPrice ?? 0) +
-      (this.state.routeEstimate?.deliveryCost ?? 0);
+      (isPickup ? 0 : (this.state.routeEstimate?.deliveryCost ?? 0));
+    const availablePaymentMethods = this.getAvailablePaymentMethods();
+    const availableShippingMethods = this.getAvailableShippingMethods();
 
     return (
       <div
@@ -681,87 +818,137 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
               placeholder={this.ML('Email')}
               required
             />
-            <input
-              className="form-input"
-              type="text"
-              value={this.state.customerDeliveryAddress}
-              onChange={(event) =>
-                this.scheduleAddressSearch(event.target.value)
-              }
-              onFocus={this.handleAddressFocus}
-              placeholder={this.ML('Delivery address')}
-              autoComplete="street-address"
-              required
-            />
-            {this.state.addressSearchLoading && (
-              <small aria-live="polite">
-                {this.ML('Searching addresses...')}
-              </small>
-            )}
-            {this.state.savedAddressLoading && (
-              <small aria-live="polite">
-                {this.ML('Loading saved delivery address...')}
-              </small>
-            )}
-            {this.state.addressSearchError && (
-              <p className="modal-error" role="alert">
-                {this.state.addressSearchError}
-              </p>
-            )}
-            {this.state.addressSuggestions.length > 0 && (
-              <div className="address-suggestions-panel">
-                <p className="address-suggestions-heading">
-                  {this.ML('Select an address to calculate delivery')}
-                </p>
-                <ul className="address-suggestions" role="listbox">
-                  {this.state.addressSuggestions.map((address) => (
-                    <li key={`${address.formatted}:${address.lat}:${address.lon}`}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected="false"
-                        disabled={!address.isExactHouse}
-                        onClick={() => void this.selectAddress(address)}
-                      >
-                        {address.formatted}
-                        {!address.isExactHouse &&
-                          ` — ${this.ML('add a house number')}`}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {this.state.routeEstimateLoading && (
-              <small aria-live="polite">
-                {this.ML('Calculating delivery route...')}
-              </small>
-            )}
-            {this.state.routeEstimateError && (
-              <p className="modal-error" role="alert">
-                {this.state.routeEstimateError}
-              </p>
-            )}
-            {this.state.routeEstimate && (
+            <label className="basket-checkout-field">
+              {this.ML('Payment method')}
+              <select
+                className="form-input"
+                value={this.state.paymentMethod}
+                onChange={(event) =>
+                  this.setState({ paymentMethod: event.target.value })
+                }
+                required
+              >
+                {availablePaymentMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {this.ML(
+                      method === 'ONLINE'
+                        ? 'Online payment'
+                        : method === 'CARD'
+                          ? 'Card'
+                          : method === 'CASH'
+                            ? 'Cash'
+                            : 'Bank transfer (7 days)'
+                    )}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="basket-checkout-field">
+              {this.ML('Shipping method')}
+              <select
+                className="form-input"
+                value={this.state.shippingMethod}
+                onChange={(event) =>
+                  this.handleShippingMethodChange(event.target.value)
+                }
+                required
+              >
+                {availableShippingMethods.map((method) => (
+                  <option key={method} value={method}>
+                    {this.ML(
+                      method === 'PICKUP' ? 'Pickup' : 'Courier delivery'
+                    )}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {!isPickup && (
               <>
-                <p className="address-selected-note" role="status">
-                  {this.ML('Address selected and verified')}
-                </p>
-                <div className="delivery-estimate" aria-live="polite">
-                  <span>
-                    {this.ML('Distance')}:{' '}
-                    {this.toFixed(
-                      this.state.routeEstimate.distanceMeters / 1000
-                    )}{' '}
-                    {this.ML('km')}
-                  </span>
-                  <strong>
-                    {this.ML('Delivery')}:{' '}
-                    {this.state.routeEstimate.deliveryCost === null
-                      ? this.ML('tariff not configured')
-                      : `${this.toFixed(this.state.routeEstimate.deliveryCost)} ${this.state.routeEstimate.currencySymbol}`}
-                  </strong>
-                </div>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={this.state.customerDeliveryAddress}
+                  onChange={(event) =>
+                    this.scheduleAddressSearch(event.target.value)
+                  }
+                  onFocus={this.handleAddressFocus}
+                  placeholder={this.ML('Delivery address')}
+                  autoComplete="street-address"
+                  required
+                />
+                {this.state.addressSearchLoading && (
+                  <small aria-live="polite">
+                    {this.ML('Searching addresses...')}
+                  </small>
+                )}
+                {this.state.savedAddressLoading && (
+                  <small aria-live="polite">
+                    {this.ML('Loading saved delivery address...')}
+                  </small>
+                )}
+                {this.state.addressSearchError && (
+                  <p className="modal-error" role="alert">
+                    {this.state.addressSearchError}
+                  </p>
+                )}
+                {this.state.addressSuggestions.length > 0 && (
+                  <div className="address-suggestions-panel">
+                    <p className="address-suggestions-heading">
+                      {this.ML('Select an address to calculate delivery')}
+                    </p>
+                    <ul className="address-suggestions" role="listbox">
+                      {this.state.addressSuggestions.map((address) => (
+                        <li
+                          key={`${address.formatted}:${address.lat}:${address.lon}`}
+                        >
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected="false"
+                            disabled={!address.isExactHouse}
+                            onClick={() => void this.selectAddress(address)}
+                          >
+                            {address.formatted}
+                            {!address.isExactHouse &&
+                              ` — ${this.ML('add a house number')}`}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {this.state.routeEstimateLoading && (
+                  <small aria-live="polite">
+                    {this.ML('Calculating delivery route...')}
+                  </small>
+                )}
+                {this.state.routeEstimateError && (
+                  <p className="modal-error" role="alert">
+                    {this.state.routeEstimateError}
+                  </p>
+                )}
+                {this.state.routeEstimate && (
+                  <>
+                    <p className="address-selected-note" role="status">
+                      {this.ML('Address selected and verified')}
+                    </p>
+                    <div className="delivery-estimate" aria-live="polite">
+                      <span>
+                        {this.ML('Distance')}:{' '}
+                        {this.toFixed(
+                          this.state.routeEstimate.distanceMeters / 1000
+                        )}{' '}
+                        {this.ML('km')}
+                      </span>
+                      <strong>
+                        {this.ML('Delivery')}:{' '}
+                        {this.state.routeEstimate.deliveryCost === null
+                          ? this.ML('tariff not configured')
+                          : `${this.toFixed(this.state.routeEstimate.deliveryCost)} ${this.state.routeEstimate.currencySymbol}`}
+                      </strong>
+                    </div>
+                  </>
+                )}
               </>
             )}
             <input

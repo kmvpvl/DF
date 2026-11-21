@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import type { GraphQLContext } from '../types/types';
+import { Prisma } from '@prisma/client';
 
 const mocks = vi.hoisted(() => ({
     authorize: vi.fn(),
@@ -48,6 +49,8 @@ describe('OrderService.confirmCustomerDraft', () => {
         deliveryLat: 44.8176,
         deliveryLon: 20.4569,
         deliveryFee: 25,
+        paymentMethod: 'CARD',
+        shippingMethod: 'COURIER',
         note: 'Call on arrival',
     };
 
@@ -88,6 +91,8 @@ describe('OrderService.confirmCustomerDraft', () => {
                 deliveryLocation: { lat: 44.8176, lon: 20.4569 },
                 deliveryFee: 25,
                 totalPrice: { increment: 25 },
+                paymentMethod: 'CARD',
+                shippingMethod: 'COURIER',
                 notes: 'Call on arrival',
             },
         });
@@ -116,6 +121,30 @@ describe('OrderService.confirmCustomerDraft', () => {
             OrderService.confirmCustomerDraft(ctx, 'order-1', delivery)
         ).rejects.toThrow('Draft order not found or cannot be submitted');
         expect(mocks.sendLocationManagers).not.toHaveBeenCalled();
+    });
+
+    it('confirms pickup without a delivery address, coordinates, or fee', async () => {
+        await OrderService.confirmCustomerDraft(ctx, 'order-1', {
+            ...delivery,
+            customerDeliveryAddress: null,
+            deliveryLat: undefined,
+            deliveryLon: undefined,
+            deliveryFee: 0,
+            shippingMethod: 'PICKUP',
+        });
+
+        expect(mocks.updateMany).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    deliveryAddress: null,
+                    deliveryLocation: Prisma.DbNull,
+                    deliveryFee: 0,
+                    totalPrice: { increment: 0 },
+                    paymentMethod: 'CARD',
+                    shippingMethod: 'PICKUP',
+                }),
+            })
+        );
     });
 });
 
@@ -227,9 +256,9 @@ describe('OrderService staff order access', () => {
     it('does not process an order that is already cancelled', async () => {
         mocks.updateMany.mockResolvedValue({ count: 0 });
 
-        await expect(
-            OrderService.cancelOrder(ctx, 'order-1')
-        ).rejects.toThrow('already cancelled');
+        await expect(OrderService.cancelOrder(ctx, 'order-1')).rejects.toThrow(
+            'already cancelled'
+        );
         expect(mocks.findFirst).not.toHaveBeenCalled();
     });
 });

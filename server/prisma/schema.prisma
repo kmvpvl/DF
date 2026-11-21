@@ -1,7 +1,7 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library"
-  previewFeatures = ["views"] 
+  provider        = "prisma-client-js"
+  engineType      = "library"
+  previewFeatures = ["views"]
 }
 
 datasource db {
@@ -17,35 +17,36 @@ enum Role {
 }
 
 enum ProductType {
-  SIMPLE    // Обычный товар (или товар с вариациями/модификаторами)
-  COMBO     // Комбо-набор, состоящий из других товаров
+  SIMPLE // Обычный товар (или товар с вариациями/модификаторами)
+  COMBO // Комбо-набор, состоящий из других товаров
 }
 
 // company  088e3a63cbcd11f1ba2cd256a398ea10
 // location 233c58f8cbcd11f1ba2cd256a398ea10
 
-
 model Location {
-  id        String   @id @default(cuid())
-  name      String
-  timezone  String  @default("Europe/Belgrade") // Например: "Europe/Moscow"
-  currencyCode   String @default("RSD")  // ISO 4217: "USD", "EUR", "GEL", "RUB"
-  currencySymbol String @default("din")  // "$", "€", "₾", "₽"  
-  city   String?
-  location  Json?
-  deliveryPricePerKm Float?
-  deliveryDispatchFee Float?
-  deliveryMeetingFee Float?
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  employees User[]
-  userLocationRoles UserLocationRoles[]
-  movements Movement[]
-  equipments Equipment[]
-  orders    Order[]
-  batches   Batch[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime? @updatedAt
+  id                       String              @id @default(cuid())
+  name                     String
+  timezone                 String              @default("Europe/Belgrade") // Например: "Europe/Moscow"
+  currencyCode             String              @default("RSD") // ISO 4217: "USD", "EUR", "GEL", "RUB"
+  currencySymbol           String              @default("din") // "$", "€", "₾", "₽"
+  city                     String?
+  location                 Json?
+  deliveryPricePerKm       Float?
+  deliveryDispatchFee      Float?
+  deliveryMeetingFee       Float?
+  availablePaymentMethods  Json?
+  availableShippingMethods Json?
+  companyId                String
+  company                  Company             @relation(fields: [companyId], references: [id])
+  employees                User[]
+  userLocationRoles        UserLocationRoles[]
+  movements                Movement[]
+  equipments               Equipment[]
+  orders                   Order[]
+  batches                  Batch[]
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime?           @updatedAt
 
   // ...
 
@@ -53,49 +54,51 @@ model Location {
 }
 
 model UserLocationRoles {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   locationId String
-  location Location @relation(fields: [locationId], references: [id])
-  userId String
-  user User @relation(fields: [userId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  role       Role     @default(EMPLOYEE)
+
   @@unique([userId, locationId])
-  role      Role     @default(EMPLOYEE)
 }
 
 model UserCompanyRoles {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   companyId String
-  company Company @relation(fields: [companyId], references: [id])
-  userId String
-  user User @relation(fields: [userId], references: [id])
+  company   Company @relation(fields: [companyId], references: [id])
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  role      Role    @default(EMPLOYEE)
+
   @@unique([userId, companyId])
-  role      Role     @default(EMPLOYEE)
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  products  Product[]
-  materials Material[]
+  id               String             @id @default(cuid())
+  name             String
+  products         Product[]
+  materials        Material[]
   storageCondition StorageCondition[]
-  locations Location[]
-  users     User[]
+  locations        Location[]
+  users            User[]
   userCompanyRoles UserCompanyRoles[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 }
 
 model User {
-  id                String        @id @default(cuid())
+  id                String              @id @default(cuid())
   name              String
   fullName          String
-  entityType        EntityType    @default(INDIVIDUAL)
+  entityType        EntityType          @default(INDIVIDUAL)
   pib               String?
   mbr               String?
   account           String?
   bank              String?
   phone             String?
-  email             String        @unique
+  email             String              @unique
   bio               String?
   pushSubscription  Json?
   tgId              String?
@@ -103,10 +106,10 @@ model User {
   location          Json?
   passwordHash      String
   lang              String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  cleanActions      CleanAction[] @relation("PerformerRelation")
-  supervisedActions CleanAction[] @relation("SupervisorRelation")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  cleanActions      CleanAction[]       @relation("PerformerRelation")
+  supervisedActions CleanAction[]       @relation("SupervisorRelation")
   companies         Company[]
   locations         Location[]
   userLocationRoles UserLocationRoles[]
@@ -122,8 +125,8 @@ model Equipment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   cleanActions CleanAction[] @relation("EquipmentRelation")
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
+  locationId   String
+  location     Location      @relation(fields: [locationId], references: [id])
 }
 
 model CleanAction {
@@ -155,224 +158,224 @@ enum CleaningType {
 }
 
 model Material {
-  id                    String   @id @default(cuid())
-  name                  String
-  description           String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  selfProduced          Boolean  @default(false)
-  isPublicComposition   Boolean  @default(true)
-  ingredients           Ingredient[]
+  id                  String       @id @default(cuid())
+  name                String
+  description         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  selfProduced        Boolean      @default(false)
+  isPublicComposition Boolean      @default(true)
+  ingredients         Ingredient[]
 
-  caloriesKcal          Decimal  @default(0) @db.Decimal(10, 3)
-  fatGrams              Decimal  @default(0) @db.Decimal(10, 3)
-  proteinGrams          Decimal  @default(0) @db.Decimal(10, 3)
-  carbohydratesGrams    Decimal  @default(0) @db.Decimal(10, 3)
-  sugarsGrams           Decimal  @default(0) @db.Decimal(10, 3)
-  fiberGrams            Decimal  @default(0) @db.Decimal(10, 3)
-  saltGrams             Decimal  @default(0) @db.Decimal(10, 3)
-  VAT                   Float
-  Price                 Float
-  purchaseUnit          String
-  purchaseUnitAmount    Float
-  consumptionUnit       String
-  rateOfLoss            Float @default(0.0)
-  ratio                 Float
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
+  caloriesKcal       Decimal @default(0) @db.Decimal(10, 3)
+  fatGrams           Decimal @default(0) @db.Decimal(10, 3)
+  proteinGrams       Decimal @default(0) @db.Decimal(10, 3)
+  carbohydratesGrams Decimal @default(0) @db.Decimal(10, 3)
+  sugarsGrams        Decimal @default(0) @db.Decimal(10, 3)
+  fiberGrams         Decimal @default(0) @db.Decimal(10, 3)
+  saltGrams          Decimal @default(0) @db.Decimal(10, 3)
+  VAT                Float
+  Price              Float
+  purchaseUnit       String
+  purchaseUnitAmount Float
+  consumptionUnit    String
+  rateOfLoss         Float   @default(0.0)
+  ratio              Float
+  companyId          String
+  company            Company @relation(fields: [companyId], references: [id])
 }
 
 model Product {
-  id                 String   @id @default(cuid())
-  type               ProductType @default(SIMPLE)
+  id                 String                  @id @default(cuid())
+  type               ProductType             @default(SIMPLE)
   name               Json
-  batchPrefix        String   @unique
-  description        Json @default("{\"default\":\"\", \"ts\":{}}")
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  batchPrefix        String                  @unique
+  description        Json                    @default("{\"default\":\"\", \"ts\":{}}")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
   batches            Batch[]
   processMaps        ProcessMap[]
   orderProducts      OrderProduct[]
-  caloriesKcal       Decimal  @default(0) @db.Decimal(10, 3)
-  fatGrams           Decimal  @default(0) @db.Decimal(10, 3)
-  proteinGrams       Decimal  @default(0) @db.Decimal(10, 3)
-  carbohydratesGrams Decimal  @default(0) @db.Decimal(10, 3)
-  sugarsGrams        Decimal  @default(0) @db.Decimal(10, 3)
-  fiberGrams         Decimal  @default(0) @db.Decimal(10, 3)
-  saltGrams          Decimal  @default(0) @db.Decimal(10, 3)
+  caloriesKcal       Decimal                 @default(0) @db.Decimal(10, 3)
+  fatGrams           Decimal                 @default(0) @db.Decimal(10, 3)
+  proteinGrams       Decimal                 @default(0) @db.Decimal(10, 3)
+  carbohydratesGrams Decimal                 @default(0) @db.Decimal(10, 3)
+  sugarsGrams        Decimal                 @default(0) @db.Decimal(10, 3)
+  fiberGrams         Decimal                 @default(0) @db.Decimal(10, 3)
+  saltGrams          Decimal                 @default(0) @db.Decimal(10, 3)
   variants           ProductVariant[]
   modifierGroups     ProductModifierGroup[]
   locationConfigs    LocationProductConfig[]
   ingredients        Ingredient[]
-  standardDose Float        @default(100.0) // Добавили стандартную порцию
-  units Json?
-  movements    Movement[]
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-  photos Json @default("[]")
-  tags Json @default("[]")
-  chapters Json @default("[]")
-  priority Int @default(0)
-  isPublic Boolean @default(false)
-  stockBalances StockFreeBalance[]
-   // СВЯЗИ ДЛЯ КОМБО (Добавляем в существующую модель)
-  comboItems        ComboItem[] @relation("ComboToParent") // Если этот товар — КОМБО, тут его состав
-  includedInCombos  ComboItem[] @relation("ComboToSource") // В каких комбо участвует этот товар
+  standardDose       Float                   @default(100.0) // Добавили стандартную порцию
+  units              Json?
+  movements          Movement[]
+  companyId          String
+  company            Company                 @relation(fields: [companyId], references: [id])
+  photos             Json                    @default("[]")
+  tags               Json                    @default("[]")
+  chapters           Json                    @default("[]")
+  priority           Int                     @default(0)
+  isPublic           Boolean                 @default(false)
+  stockBalances      StockFreeBalance[]
+  // СВЯЗИ ДЛЯ КОМБО (Добавляем в существующую модель)
+  comboItems         ComboItem[]             @relation("ComboToParent") // Если этот товар — КОМБО, тут его состав
+  includedInCombos   ComboItem[]             @relation("ComboToSource") // В каких комбо участвует этот товар
 }
 
 model ProductVariant {
-  id            String   @id @default(uuid())
-  productId     String
-  sku           String?
-  label         Json     // IMLString: "100г", "Большая", "Сырный борт"
-  
+  id        String  @id @default(uuid())
+  productId String
+  sku       String?
+  label     Json // IMLString: "100г", "Большая", "Сырный борт"
+
   // Логика весового товара
-  isWeightBased Boolean  @default(false) // true - если продается на вес (цена за кг)
-  weight        Float    @default(0)     // Дефолтный вес или шаг веса (например, 0.1 для 100г)
-  weightUnit    String   @default("g")   // "g", "kg"
+  isWeightBased Boolean @default(false) // true - если продается на вес (цена за кг)
+  weight        Float   @default(0) // Дефолтный вес или шаг веса (например, 0.1 для 100г)
+  weightUnit    String  @default("g") // "g", "kg"
 
   // Связи
-  product       Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
   locationPrices LocationVariantConfig[]
 
   @@index([productId])
 }
 
 model ProductModifierGroup {
-  id          String             @id @default(uuid())
-  productId   String
-  title       Json               // IMLString: "Выберите соус", "Доп. топпинги"
-  isRequired  Boolean            @default(false)
-  minSelect   Int                @default(0)
-  maxSelect   Int                @default(1)
+  id         String  @id @default(uuid())
+  productId  String
+  title      Json // IMLString: "Выберите соус", "Доп. топпинги"
+  isRequired Boolean @default(false)
+  minSelect  Int     @default(0)
+  maxSelect  Int     @default(1)
 
   // Связи
-  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  modifiers   ProductModifier[]
+  product   Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifiers ProductModifier[]
 
   @@index([productId])
 }
 
 model ProductModifier {
-  id              String                    @id @default(uuid())
-  groupId         String
-  name            Json                      // IMLString: "Двойной сыр"
-  weight          Float?
-  weightUnit      String?
-  
+  id         String  @id @default(uuid())
+  groupId    String
+  name       Json // IMLString: "Двойной сыр"
+  weight     Float?
+  weightUnit String?
+
   // Связи
-  group           ProductModifierGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  locationPrices  LocationModifierConfig[]
+  group          ProductModifierGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  locationPrices LocationModifierConfig[]
 
   @@index([groupId])
 }
 
 model LocationProductConfig {
-  id                 String   @id @default(uuid())
+  id                 String  @id @default(uuid())
   locationId         String
   productId          String
-  isPublicInLocation Boolean  @default(true) // Можно скрыть товар в конкретном городе
+  isPublicInLocation Boolean @default(true) // Можно скрыть товар в конкретном городе
 
   // Связи
-  location           Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, productId]) // Защита от дублей конфига товара на одной точке
 }
 
 model LocationVariantConfig {
-  id                 String   @id @default(uuid())
-  locationId         String
-  variantId          String
-  
+  id         String @id @default(uuid())
+  locationId String
+  variantId  String
+
   // Ценообразование (Физлица / Юрлица)
-  individualPrice    Float
-  legalEntityPrice   Float?
-  
+  individualPrice  Float
+  legalEntityPrice Float?
+
   // Скидочные тиры (Хранятся в JSON массиве: [{threshold: 10, discount: 5}])
-  individualDiscounts Json?   @default("[]")
-  legalDiscounts      Json?   @default("[]")
+  individualDiscounts Json? @default("[]")
+  legalDiscounts      Json? @default("[]")
 
   // Складской учет для конкретной локации
-  stock              Float    @default(0) // Float для весовых товаров (например, 15.4 кг остатка)
-  isAvailable        Boolean  @default(true)
+  stock       Float   @default(0) // Float для весовых товаров (например, 15.4 кг остатка)
+  isAvailable Boolean @default(true)
 
   // Связи
-  variant            ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, variantId])
 }
 
 model LocationModifierConfig {
-  id               String   @id @default(uuid())
-  locationId       String
-  modifierId       String
-  
+  id         String @id @default(uuid())
+  locationId String
+  modifierId String
+
   // Цены топпинга в этой локации
   individualPrice  Float
   legalEntityPrice Float?
-  isAvailable      Boolean  @default(true)
+  isAvailable      Boolean @default(true)
 
   // Связи
-  modifier         ProductModifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
+  modifier ProductModifier @relation(fields: [modifierId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, modifierId])
 }
 
 model Batch {
-  id        String   @id @default(cuid())
-  productId String
-  nettoWeight Float
-  number    Int
-  numberStr String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id])
+  id                  String           @id @default(cuid())
+  productId           String
+  nettoWeight         Float
+  number              Int
+  numberStr           String
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  product             Product          @relation(fields: [productId], references: [id])
   storageDurationDays Int
-  storageConditionId String
-  storageCondition   StorageCondition @relation(fields: [storageConditionId], references: [id])
-  processMapId String?
-  processMap   ProcessMap? @relation(fields: [processMapId], references: [id])
-  processDeviations String?
-  samples Sample[]
-  certificate Certificate?
+  storageConditionId  String
+  storageCondition    StorageCondition @relation(fields: [storageConditionId], references: [id])
+  processMapId        String?
+  processMap          ProcessMap?      @relation(fields: [processMapId], references: [id])
+  processDeviations   String?
+  samples             Sample[]
+  certificate         Certificate?
+  movements           Movement[]
+  locationId          String
+  location            Location         @relation(fields: [locationId], references: [id])
 
   @@index([productId], map: "Batch_productId_fkey")
-  movements    Movement[]
-  locationId String 
-  location   Location @relation(fields: [locationId], references: [id])
 }
 
 model ProcessMap {
-  id        String   @id @default(cuid())
-  name      String
-  productId String
-  outcome   Float
-  rateOfLoss Float  @default(0.0)
-  VAT       Float    @default(20.0)
-  containerCost Float @default(35.0)
-  dose      Float    @default(100.0)
-  marginalCoefficient Float @default(2.01)
-  outcomeUnit String  @default("g")
-  product   Product  @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  batches   Batch[]
-  parameters ProcessParameter[]
-  ingredients Ingredient[]
+  id                  String             @id @default(cuid())
+  name                String
+  productId           String
+  outcome             Float
+  rateOfLoss          Float              @default(0.0)
+  VAT                 Float              @default(20.0)
+  containerCost       Float              @default(35.0)
+  dose                Float              @default(100.0)
+  marginalCoefficient Float              @default(2.01)
+  outcomeUnit         String             @default("g")
+  product             Product            @relation(fields: [productId], references: [id])
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  batches             Batch[]
+  parameters          ProcessParameter[]
+  ingredients         Ingredient[]
 }
 
 model Ingredient {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   productId    String?
   materialId   String?
   amount       Float
-  product      Product?    @relation(fields: [productId], references: [id])
-  material     Material?   @relation(fields: [materialId], references: [id])
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  product      Product?   @relation(fields: [productId], references: [id])
+  material     Material?  @relation(fields: [materialId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   processMapId String
-  processMap   ProcessMap  @relation(fields: [processMapId], references: [id])
+  processMap   ProcessMap @relation(fields: [processMapId], references: [id])
 
   @@index([productId], map: "Ingredient_productId_fkey")
   @@index([materialId], map: "Ingredient_materialId_fkey")
@@ -380,14 +383,14 @@ model Ingredient {
 }
 
 model ProcessParameter {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String
   value        String
   unit         String
   processMapId String
   processMap   ProcessMap @relation(fields: [processMapId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model StorageCondition {
@@ -396,8 +399,8 @@ model StorageCondition {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   batches   Batch[]
-  companyId String 
-  company   Company @relation(fields: [companyId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
 }
 
 enum OrderStatus {
@@ -411,139 +414,138 @@ enum OrderStatus {
 }
 
 model Order {
-  id              String       @id @default(cuid())
-  number     String       @unique
-  numberInt  Int
-  customerName    String
-  customerUserId  String?
-  customerEmail   String?
-  customerPhone   String?
-  orderDate       DateTime?
-  orderDateReady  DateTime?
-  status          OrderStatus  @default(DRAFT)
-  totalPrice      Float        @default(0)
-  deliveryFee     Float        @default(0)
-  isPaid          Boolean      @default(false)
-  paymentMethod   String?
-  deliveryAddress String?
+  id               String         @id @default(cuid())
+  number           String         @unique
+  numberInt        Int
+  customerName     String
+  customerUserId   String?
+  customerEmail    String?
+  customerPhone    String?
+  orderDate        DateTime?
+  orderDateReady   DateTime?
+  status           OrderStatus    @default(DRAFT)
+  totalPrice       Float          @default(0)
+  deliveryFee      Float          @default(0)
+  isPaid           Boolean        @default(false)
+  paymentMethod    String?
+  deliveryAddress  String?
   deliveryLocation Json?
-  shippingMethod  String?
-  trackingNumber  String?
-  managerId       String?
-  notes           String?      @db.Text
-  products        OrderProduct[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
+  shippingMethod   String?
+  trackingNumber   String?
+  managerId        String?
+  notes            String?        @db.Text
+  products         OrderProduct[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  locationId       String
+  location         Location       @relation(fields: [locationId], references: [id])
 }
 
-
 model OrderProduct {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Float
-  dateReady   DateTime?
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sortOrder Int
+  id           String    @id @default(cuid())
+  orderId      String
+  productId    String
+  quantity     Float
+  dateReady    DateTime?
+  order        Order     @relation(fields: [orderId], references: [id])
+  product      Product   @relation(fields: [productId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sortOrder    Int
   variantLabel String?
-  price Float
+  price        Float
 
   @@index([orderId], map: "OrderProduct_orderId_fkey")
   @@index([productId], map: "OrderProduct_productId_fkey")
 }
 
 model Sample {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   batchId   String
   number    Int
   numberStr String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  batch     Batch @relation(fields: [batchId], references: [id])
-  studyAt DateTime?
-  result String?
-  note String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  batch     Batch     @relation(fields: [batchId], references: [id])
+  studyAt   DateTime?
+  result    String?
+  note      String?
 
   @@index([batchId], map: "Sample_batchId_fkey")
 }
 
 model CostSettings {
-  id                         String   @id @default("singleton")
-  marginalCoefficient        Float    @default(1.0)
-  containerCost              Float    @default(0.0)
-  productVat                 Float    @default(20.0)
-  productWeight              Float    @default(100.0)
-  productContainerCosts      Json     @default("{}")
+  id                          String   @id @default("singleton")
+  marginalCoefficient         Float    @default(1.0)
+  containerCost               Float    @default(0.0)
+  productVat                  Float    @default(20.0)
+  productWeight               Float    @default(100.0)
+  productContainerCosts       Json     @default("{}")
   productMarginalCoefficients Json     @default("{}")
-  productWeights             Json     @default("{}")
-  productVats                Json     @default("{}")
-  productMainProcessMaps     Json     @default("{}")
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
+  productWeights              Json     @default("{}")
+  productVats                 Json     @default("{}")
+  productMainProcessMaps      Json     @default("{}")
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 }
 
 model Certificate {
-  id        String   @id @default(cuid())
-  numberYear Int
-  number    Int
-  numberStr String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  batch     Batch @relation(fields: [batchId], references: [id])
-  batchId   String @unique
-  extraCertificateData String @db.Text
+  id                   String   @id @default(cuid())
+  numberYear           Int
+  number               Int
+  numberStr            String   @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  batch                Batch    @relation(fields: [batchId], references: [id])
+  batchId              String   @unique
+  extraCertificateData String   @db.Text
 
   @@unique([numberYear, number], map: "Certificate_numberYear_number_key")
 }
 
 // 1. Добавим ENUM для видов движения
 enum MovementType {
-  PURCHASE     // Покупка/Поступление
-  PRODUCTION   // Изготовление
-  SALE         // Сбыт/Продажа
-  WRITE_OFF    // Списание
-  RETURN       // Возврат
-  MOVE_IN         // Перемещение
+  PURCHASE // Покупка/Поступление
+  PRODUCTION // Изготовление
+  SALE // Сбыт/Продажа
+  WRITE_OFF // Списание
+  RETURN // Возврат
+  MOVE_IN // Перемещение
   MOVE_OUT
 }
 
 // 2. Добавим модель Movement
 model Movement {
-  id           String       @id @default(cuid())
-  type         MovementType
-  productId    String
-  batchId      String?
-  quantity     Float
-  createdAt    DateTime     @default(now())
-  
-  product      Product      @relation(fields: [productId], references: [id])
+  id        String       @id @default(cuid())
+  type      MovementType
+  productId String
+  batchId   String?
+  quantity  Float
+  createdAt DateTime     @default(now())
+
+  product      Product        @relation(fields: [productId], references: [id])
   variantLabel String?
-  batch        Batch?       @relation(fields: [batchId], references: [id])
-  locationId String
-  location   Location @relation(fields: [locationId], references: [id])
+  batch        Batch?         @relation(fields: [batchId], references: [id])
+  locationId   String
+  location     Location       @relation(fields: [locationId], references: [id])
   // Опционально: ссылка на группу перемещения
-  groupId   String?      
-  group     MovementGroup? @relation(fields: [groupId], references: [id])
-  userId    String?
-  user      User? @relation(fields: [userId], references: [id]) 
+  groupId      String?
+  group        MovementGroup? @relation(fields: [groupId], references: [id])
+  userId       String?
+  user         User?          @relation(fields: [userId], references: [id])
 }
 
 model MovementGroup {
-  id           String      @id @default(cuid())
-  createdAt    DateTime    @default(now())
-  label       String?
-  
-  // Две записи движений: списание из одной и оприходование в другую
-  movements    Movement[]
-  userId    String
-  user      User @relation(fields: [userId], references: [id]) 
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  label     String?
 
-	@@map("MovementGroup")
+  // Две записи движений: списание из одной и оприходование в другую
+  movements Movement[]
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+
+  @@map("MovementGroup")
 }
 
 view StockFreeBalance {
@@ -552,23 +554,23 @@ view StockFreeBalance {
   locationId       String
   physical_balance Float
   reserved_balance Float
-  product          Product  @relation(fields: [productId], references: [id])
+  product          Product @relation(fields: [productId], references: [id])
 
   @@unique([productId, locationId, variantLabel]) // Нужно для Prisma, чтобы модель была валидной
   @@map("view_stock_free_balance") // Имя таблицы в БД
 }
 
 model ComboItem {
-  id            String   @id @default(uuid())
-  comboId       String   // ID родительского продукта (у которого type == COMBO)
-  
+  id      String @id @default(uuid())
+  comboId String // ID родительского продукта (у которого type == COMBO)
+
   // Мы можем привязать позицию к конкретному варианту ИЛИ к продукту целиком 
   // (чтобы пользователь сам выбрал вариант/вкус внутри комбо)
-  productId     String
-  variantId     String?  // Опционально: если зафиксирован конкретный размер/объем
-  
-  quantity      Int      @default(1) // Сколько штук этого товара идет в наборе
-  
+  productId String
+  variantId String? // Опционально: если зафиксирован конкретный размер/объем
+
+  quantity Int @default(1) // Сколько штук этого товара идет в наборе
+
   // Связи
   comboProduct  Product @relation("ComboToParent", fields: [comboId], references: [id], onDelete: Cascade)
   sourceProduct Product @relation("ComboToSource", fields: [productId], references: [id], onDelete: Cascade)

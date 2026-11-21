@@ -381,6 +381,12 @@ main {
   margin-top: 0.4rem;
 }
 
+.basket-checkout-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .address-suggestions-panel {
   margin-top: -0.45rem;
   padding: 0.65rem;
