@@ -6,6 +6,8 @@ import { PublicProductData } from '@betypes/product';
 import { ProductCard } from './ProductCard';
 import { IOrderProduct } from './Orders';
 import { Fragment } from 'react/jsx-runtime';
+import { Toggle } from '../toggle/toggle';
+import React from 'react';
 
 export const NESTED_PRODUCT_FIELDS = `
   # 1. Вариации товара (например: разные объемы или веса)
@@ -106,20 +108,27 @@ interface ProductsProps extends IProtoProps {
   products: PublicProductData[];
 }
 
-interface ProductsState extends IProtoState {}
+interface ProductsState extends IProtoState {
+  showOnlyInStock?: boolean;
+}
 
 class Products extends Proto<ProductsProps, ProductsState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
+  searchInputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
-  state: ProductsState = {};
+  state: ProductsState = {
+    showOnlyInStock: false,
+  };
 
   private handleAddClick = (product: IOrderProduct) => {
     this.props.onAddToBasket(product);
   };
 
   render() {
-    const chaptersOut = [... new Set(this.props.products.flatMap((val) => val.chapters))];
+    const chaptersOut = [
+      ...new Set(this.props.products.flatMap((val) => val.chapters)),
+    ];
     if (this.props.products.filter((el) => el.chapters?.length === 0))
       chaptersOut.push('');
 
@@ -170,8 +179,23 @@ class Products extends Proto<ProductsProps, ProductsState> {
             </button>
           )}
 
+          <div className="products-search-toolbar">
+            <Toggle
+              defaultChecked={this.state.showOnlyInStock ?? false}
+              onChange={(checked) =>
+                this.setState({ showOnlyInStock: checked })
+              }
+            />
+            <input
+              placeholder={this.ML('Search products...').toString()}
+              className="products-search-input"
+              ref={this.searchInputRef}
+              onChange={() => this.forceUpdate()}
+            />
+          </div>
+
           {chapters.map((chapter, chapterId) => {
-            const items =
+            let items =
               chapter.toString() === ''
                 ? products.filter((p) => p.chapters?.length === 0)
                 : products.filter((p) =>
@@ -179,6 +203,13 @@ class Products extends Proto<ProductsProps, ProductsState> {
                       ?.map((el) => new MLString(el).toString())
                       .includes(chapter.toString())
                   );
+            if (this.searchInputRef.current?.value) {
+              const searchTerm =
+                this.searchInputRef.current.value.toLowerCase();
+              items = items.filter((product) =>
+                JSON.stringify(product).toLowerCase().includes(searchTerm)
+              );
+            }
             return (
               <div key={chapterId} className="products-chapter">
                 <h3 className="products-chapter-title">
@@ -189,6 +220,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 {items.length > 0 ? (
                   <div className="products-grid">
                     {items.map((product) =>
+                      !this.state.showOnlyInStock ||
                       ProductCard.isAvailable(product) ? (
                         <ProductCard
                           user={this.props.user}
@@ -197,6 +229,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                           companyInfo={this.props.companyInfo} // Передаем пропсы для Proto
                           currentLocation={this.props.currentLocation}
                           onAddToBasket={this.handleAddClick}
+                          showOnlyInStock={this.state.showOnlyInStock ?? false}
                         />
                       ) : (
                         <Fragment key={product.id}></Fragment>

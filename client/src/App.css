@@ -1256,6 +1256,28 @@ main {
   color: var(--text-light);
   font-style: italic;
 }
+
+.products-search-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  justify-content: center;
+}
+
+.products-search-input {
+  flex: 1;
+  min-width: 220px;
+  max-width: 480px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+}
+
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1497,12 +1519,6 @@ main {
 .product-weight-error {
   font-size: 0.75rem;
   color: #b64747;
-}
-.product-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 0.5rem;
 }
 .product-price {
   font-size: 1.2rem;

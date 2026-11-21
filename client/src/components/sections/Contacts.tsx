@@ -94,19 +94,16 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
     this.setState({ loading: true, validationError: '' });
 
     try {
-      await this.gql(
-        SEND_CONTACT_MESSAGE_MUTATION,
-        {
-          input: {
-            type: this.state.requestType,
-            name,
-            email: email || undefined,
-            phone: phone || undefined,
-            subject,
-            message,
-          },
-        }
-      );
+      await this.gql(SEND_CONTACT_MESSAGE_MUTATION, {
+        input: {
+          type: this.state.requestType,
+          name,
+          email: email || undefined,
+          phone: phone || undefined,
+          subject,
+          message,
+        },
+      });
 
       this.setState({
         sent: true,

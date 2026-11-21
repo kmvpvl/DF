@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import { IProductVariant } from '@betypes/product';
 import MLStringEditor from '../mlstring/mlstring';
-import { ILocation } from "@betypes/company";
+import { ILocation } from '@betypes/company';
 
 interface IProductVariantEditorProps {
   variant: IProductVariant;

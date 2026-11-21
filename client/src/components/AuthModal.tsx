@@ -1,5 +1,5 @@
 import React from 'react';
-import {  } from '../App';
+import {} from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 import { User } from '../proto';
 
@@ -305,7 +305,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
             mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : null,
             account: signupEntityType === 'LEGAL_ENTITY' ? signupAccount : null,
             bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : null,
-            deliveryAddress: signupDeliveryAddress??null,
+            deliveryAddress: signupDeliveryAddress ?? null,
             pushSubscription: signupPushSubscription ?? null,
           },
         }

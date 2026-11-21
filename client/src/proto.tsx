@@ -113,10 +113,10 @@ export default class Proto<
         });
   }
 
-  protected async gql <T> (
+  protected async gql<T>(
     query: string,
     variables: Record<string, unknown> = {}
-  ) : Promise<T> {
+  ): Promise<T> {
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -138,5 +138,5 @@ export default class Proto<
     }
 
     return json.data as T;
-  };
+  }
 }

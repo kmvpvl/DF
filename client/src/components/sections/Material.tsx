@@ -179,7 +179,9 @@ class Material extends Proto<IProtoProps, MaterialState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql<{ materials: MaterialData[] }>(MATERIALS_QUERY);
+      const data = await this.gql<{ materials: MaterialData[] }>(
+        MATERIALS_QUERY
+      );
       this.setState({
         loading: false,
         materials: data.materials.sort((a, b) => a.name.localeCompare(b.name)),
@@ -193,7 +195,9 @@ class Material extends Proto<IProtoProps, MaterialState> {
     this.setState({ csvProcessing: true, error: null, csvResult: null });
 
     try {
-      const data = await this.gql<{ materialsCsv: string | null }>(MATERIALS_CSV_QUERY);
+      const data = await this.gql<{ materialsCsv: string | null }>(
+        MATERIALS_CSV_QUERY
+      );
       const csv = String(data.materialsCsv ?? '');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -232,7 +236,9 @@ class Material extends Proto<IProtoProps, MaterialState> {
 
     try {
       const csv = await file.text();
-      const data = await this.gql<{ importMaterialsCsv: ImportMaterialsCsvResult }>(IMPORT_MATERIALS_CSV_MUTATION, {
+      const data = await this.gql<{
+        importMaterialsCsv: ImportMaterialsCsvResult;
+      }>(IMPORT_MATERIALS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
@@ -370,10 +376,13 @@ class Material extends Proto<IProtoProps, MaterialState> {
 
     try {
       if (editingMaterial) {
-        const data = await this.gql<{ updateMaterial: MaterialData }>(UPDATE_MATERIAL_MUTATION, {
-          id: editingMaterial.id,
-          input,
-        });
+        const data = await this.gql<{ updateMaterial: MaterialData }>(
+          UPDATE_MATERIAL_MUTATION,
+          {
+            id: editingMaterial.id,
+            input,
+          }
+        );
         const updated = data.updateMaterial;
 
         this.setState((prevState) => ({
@@ -388,7 +397,10 @@ class Material extends Proto<IProtoProps, MaterialState> {
             .sort((a, b) => a.name.localeCompare(b.name)),
         }));
       } else {
-        const data = await this.gql<{ createMaterial: MaterialData }>(CREATE_MATERIAL_MUTATION, { input });
+        const data = await this.gql<{ createMaterial: MaterialData }>(
+          CREATE_MATERIAL_MUTATION,
+          { input }
+        );
         const created = data.createMaterial;
 
         this.setState((prevState) => ({

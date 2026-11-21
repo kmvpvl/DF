@@ -122,7 +122,10 @@ class Samples extends Proto<IProtoProps, SamplesState> {
         input.sampleNumber = Number.parseInt(searchForm.sampleNumber, 10);
       }
 
-      const data = await this.gql<{ searchSamples: SampleData[] }>(SEARCH_SAMPLES_QUERY, { input });
+      const data = await this.gql<{ searchSamples: SampleData[] }>(
+        SEARCH_SAMPLES_QUERY,
+        { input }
+      );
 
       this.setState({
         loading: false,

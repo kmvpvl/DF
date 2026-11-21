@@ -12,6 +12,7 @@ import { Fragment } from 'react/jsx-runtime';
 interface ProductCardProps extends IProtoProps {
   product: PublicProductData;
   onAddToBasket: (product: IOrderProduct) => void;
+  showOnlyInStock: boolean;
 }
 
 interface ProductCardState extends IProtoState {
@@ -121,9 +122,11 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                     : variant.label.default)
               );
 
-              return variantStocks &&
-                variantStocks.physical_balance -
-                  variantStocks.reserved_balance ? (
+              return !this.props.showOnlyInStock ||
+                (variantStocks &&
+                  variantStocks.physical_balance -
+                    variantStocks.reserved_balance >
+                    0) ? (
                 <li key={variant.id} className="product-price-variation-row">
                   <span
                     className={`product-price-variation-button ${variant.id === this.state.variantSelected ? 'is-active' : ''}`}
@@ -139,20 +142,29 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                         {`${variant.weight} ${variant.weightUnit}`}
                       </span>
                       <span className="product-available">
-                        {`(${this.ML('available')}: ${variantStocks.physical_balance - variantStocks.reserved_balance})`}
+                        {this.props.showOnlyInStock ||
+                        (variantStocks?.physical_balance ?? 0) -
+                          (variantStocks?.reserved_balance ?? 0) >
+                          0
+                          ? `(${this.ML('available')}: ${(variantStocks?.physical_balance ?? 0) - (variantStocks?.reserved_balance ?? 0)})`
+                          : null}
                       </span>
-                                          {this.getDiscounts(lPrice).length > 0 ? (
-                      <ul className="product-discounts">
-                        {this.getDiscounts(lPrice).map((dt) => (
-                          <li key={dt.threshold} className="product-discount-tier">
-                            <strong>{dt.threshold}+ → {dt.discount}%</strong>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <></>
-                    )}
-
+                      {this.getDiscounts(lPrice).length > 0 ? (
+                        <ul className="product-discounts">
+                          {this.getDiscounts(lPrice).map((dt) => (
+                            <li
+                              key={dt.threshold}
+                              className="product-discount-tier"
+                            >
+                              <strong>
+                                {dt.threshold}+ → {dt.discount}%
+                              </strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <></>
+                      )}
                     </span>
                     <strong className="product-price-variation-value">
                       {this.effectivePrice(lPrice)}
@@ -184,7 +196,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
             })}
           </ul>
         )}
-        <div className="product-footer"></div>
       </div>
     );
   }

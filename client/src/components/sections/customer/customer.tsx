@@ -139,7 +139,9 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
     });
 
     try {
-      const data = await this.gql<{ order: IOrder | null }>(ORDER_QUERY_BY_ID, { orderId });
+      const data = await this.gql<{ order: IOrder | null }>(ORDER_QUERY_BY_ID, {
+        orderId,
+      });
       if (requestId !== this.orderRequestId) return;
       this.setState({
         order: data.order ?? null,
@@ -151,7 +153,9 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
         order: null,
         isOrderLoading: false,
         orderError:
-          error instanceof Error ? error.message : this.ML('Failed to load order'),
+          error instanceof Error
+            ? error.message
+            : this.ML('Failed to load order'),
       });
     }
   };
@@ -185,9 +189,7 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
       >
         <header className="customer-order-header">
           <div>
-            <p className="customer-order-eyebrow">
-              {this.ML('Order details')}
-            </p>
+            <p className="customer-order-eyebrow">{this.ML('Order details')}</p>
             {order && (
               <h1 className="customer-order-title">
                 {this.ML('Order')} {orderNumber && `#${orderNumber}`}
@@ -217,7 +219,10 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
             {this.ML('Loading order...')}
           </p>
         ) : this.state.orderError ? (
-          <p className="customer-order-message customer-order-error" role="alert">
+          <p
+            className="customer-order-message customer-order-error"
+            role="alert"
+          >
             {this.state.orderError}
           </p>
         ) : !order ? (

@@ -660,9 +660,12 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       return cached;
     }
 
-    const data = await this.gql<{ processMaps: ProcessMapForCost[] }>(PRODUCT_PROCESS_MAPS_FOR_COST_QUERY, {
-      productId,
-    });
+    const data = await this.gql<{ processMaps: ProcessMapForCost[] }>(
+      PRODUCT_PROCESS_MAPS_FOR_COST_QUERY,
+      {
+        productId,
+      }
+    );
     const maps = data.processMaps ?? [];
     this.processMapsForCostCache.set(productId, maps);
     return maps;
@@ -1315,7 +1318,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql<{ products: StaffProductData[], materials: MaterialOption[] }>(PRODUCTS_QUERY);
+      const data = await this.gql<{
+        products: StaffProductData[];
+        materials: MaterialOption[];
+      }>(PRODUCTS_QUERY);
       const products = data.products.sort((a, b) =>
         new MLString(a.name)
           .toString()
@@ -1343,7 +1349,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       error: null,
     });
     try {
-      const data = await this.gql<{ processMaps: ProcessMapData[] }>(PROCESS_MAPS_QUERY, { productId });
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(
+        PROCESS_MAPS_QUERY,
+        { productId }
+      );
       const processMaps = data.processMaps;
       this.setState({
         processMaps,
@@ -1399,7 +1408,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
     try {
       const csv = await file.text();
-      const data = await this.gql<{ importProductsCsv: ImportProductsCsvResult }>(IMPORT_PRODUCTS_CSV_MUTATION, {
+      const data = await this.gql<{
+        importProductsCsv: ImportProductsCsvResult;
+      }>(IMPORT_PRODUCTS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
@@ -2048,10 +2059,13 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
     try {
       if (editingProduct) {
-        const data = await this.gql<{ updateProduct: StaffProductData }>(UPDATE_PRODUCT_MUTATION, {
-          id: editingProduct.id,
-          input,
-        });
+        const data = await this.gql<{ updateProduct: StaffProductData }>(
+          UPDATE_PRODUCT_MUTATION,
+          {
+            id: editingProduct.id,
+            input,
+          }
+        );
         const updated = data.updateProduct;
         this.setState(
           (prevState) => ({
@@ -2072,7 +2086,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
           }
         );
       } else {
-        const data = await this.gql<{ createProduct: StaffProductData }>(CREATE_PRODUCT_MUTATION, { input });
+        const data = await this.gql<{ createProduct: StaffProductData }>(
+          CREATE_PRODUCT_MUTATION,
+          { input }
+        );
         const created = data.createProduct;
 
         this.setState(

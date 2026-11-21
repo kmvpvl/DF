@@ -260,7 +260,12 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql<{ products: BatchProductOption[]; storageConditions: StorageConditionOption[]; batches: StaffBatchData[]; costSettings: { productMainProcessMaps?: string } }>(INITIAL_QUERY);
+      const data = await this.gql<{
+        products: BatchProductOption[];
+        storageConditions: StorageConditionOption[];
+        batches: StaffBatchData[];
+        costSettings: { productMainProcessMaps?: string };
+      }>(INITIAL_QUERY);
       this.setState({
         loading: false,
         products: (data.products as BatchProductOption[]).sort((a, b) =>
@@ -309,7 +314,10 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
       nextBatchPreview: null,
     });
     try {
-      const data = await this.gql<{ nextBatchPreview: BatchPreview }>(NEXT_BATCH_PREVIEW_QUERY, { productId });
+      const data = await this.gql<{ nextBatchPreview: BatchPreview }>(
+        NEXT_BATCH_PREVIEW_QUERY,
+        { productId }
+      );
       this.setState({
         previewLoading: false,
         nextBatchPreview: data.nextBatchPreview,
@@ -326,7 +334,10 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
     }
     this.setState({ processMapLoading: true });
     try {
-      const data = await this.gql<{ processMaps: ProcessMapData[] }>(PROCESS_MAPS_QUERY, { productId });
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(
+        PROCESS_MAPS_QUERY,
+        { productId }
+      );
       this.setState({
         processMaps: data.processMaps,
         processMapLoading: false,
@@ -566,19 +577,22 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
 
     try {
       if (adding) {
-        const data = await this.gql<{ createBatch: StaffBatchData }>(CREATE_BATCH_MUTATION, {
-          input: {
-            productId: form.productId,
-            variantLabel: form.variantLabel,
-            nettoWeight,
-            storageDurationDays,
-            storageConditionId: form.storageConditionId.trim() || null,
-            storageConditionName: form.storageConditionName.trim() || null,
-            processDeviations: form.processDeviations.trim() || null,
-            processMapId: form.processMapId.trim() || null,
-            sampleCount,
-          },
-        });
+        const data = await this.gql<{ createBatch: StaffBatchData }>(
+          CREATE_BATCH_MUTATION,
+          {
+            input: {
+              productId: form.productId,
+              variantLabel: form.variantLabel,
+              nettoWeight,
+              storageDurationDays,
+              storageConditionId: form.storageConditionId.trim() || null,
+              storageConditionName: form.storageConditionName.trim() || null,
+              processDeviations: form.processDeviations.trim() || null,
+              processMapId: form.processMapId.trim() || null,
+              sampleCount,
+            },
+          }
+        );
 
         const createdBatch = data.createBatch as {
           samples?: CreatedSampleInfo[];

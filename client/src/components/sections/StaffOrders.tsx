@@ -173,8 +173,7 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
       const data = await this.gql<{ orders: IOrder[] }>(ORDERS_QUERY);
       this.setState((previousState) => ({
         orders: data.orders,
-        expandedOrderId:
-          this.props.objectId ?? previousState.expandedOrderId,
+        expandedOrderId: this.props.objectId ?? previousState.expandedOrderId,
         loading: false,
       }));
     } catch (error: unknown) {
@@ -193,12 +192,16 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
       notice: null,
     });
     try {
-      const data = await this.gql<{ startOrderProduction: OrderNotificationResult }>(START_ORDER_PRODUCTION_MUTATION, {
+      const data = await this.gql<{
+        startOrderProduction: OrderNotificationResult;
+      }>(START_ORDER_PRODUCTION_MUTATION, {
         orderId: order.id,
       });
       const result = data.startOrderProduction;
       if (!result?.order?.id) {
-        throw new Error(this.ML('The server did not return the updated order.'));
+        throw new Error(
+          this.ML('The server did not return the updated order.')
+        );
       }
 
       const message = `${this.ML('Order moved to production.')} ${this.ML(
@@ -213,10 +216,8 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
             : existingOrder
         ),
         updatingOrderId: null,
-        notice:
-          result.emailSent && result.pushSent ? message : null,
-        error:
-          result.emailSent && result.pushSent ? null : message,
+        notice: result.emailSent && result.pushSent ? message : null,
+        error: result.emailSent && result.pushSent ? null : message,
       }));
     } catch (error: unknown) {
       this.setState({
@@ -228,7 +229,9 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
 
   private cancelOrder = async (order: IOrder) => {
     if (!order.id || order.status === OrderStatus.CANCELLED) return;
-    if (!window.confirm(this.ML('Are you sure you want to cancel this order?'))) {
+    if (
+      !window.confirm(this.ML('Are you sure you want to cancel this order?'))
+    ) {
       return;
     }
 
@@ -239,12 +242,17 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
       notice: null,
     });
     try {
-      const data = await this.gql<{ cancelOrder: OrderNotificationResult }>(CANCEL_ORDER_MUTATION, {
-        orderId: order.id,
-      });
+      const data = await this.gql<{ cancelOrder: OrderNotificationResult }>(
+        CANCEL_ORDER_MUTATION,
+        {
+          orderId: order.id,
+        }
+      );
       const result = data.cancelOrder;
       if (!result?.order?.id) {
-        throw new Error(this.ML('The server did not return the updated order.'));
+        throw new Error(
+          this.ML('The server did not return the updated order.')
+        );
       }
 
       const message = `${this.ML('Order cancelled.')} ${this.ML(
@@ -260,10 +268,8 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
         ),
         updatingOrderId: null,
         cancellingOrderId: null,
-        notice:
-          result.emailSent && result.pushSent ? message : null,
-        error:
-          result.emailSent && result.pushSent ? null : message,
+        notice: result.emailSent && result.pushSent ? message : null,
+        error: result.emailSent && result.pushSent ? null : message,
       }));
     } catch (error: unknown) {
       this.setState({
@@ -282,12 +288,17 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
       notice: null,
     });
     try {
-      const data = await this.gql<{ markOrderReady: OrderNotificationResult }>(MARK_ORDER_READY_MUTATION, {
-        orderId: order.id,
-      });
+      const data = await this.gql<{ markOrderReady: OrderNotificationResult }>(
+        MARK_ORDER_READY_MUTATION,
+        {
+          orderId: order.id,
+        }
+      );
       const result = data.markOrderReady;
       if (!result?.order?.id) {
-        throw new Error(this.ML('The server did not return the updated order.'));
+        throw new Error(
+          this.ML('The server did not return the updated order.')
+        );
       }
 
       const message = `${this.ML('Order marked ready.')} ${this.ML(
@@ -302,10 +313,8 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
             : existingOrder
         ),
         updatingOrderId: null,
-        notice:
-          result.emailSent && result.pushSent ? message : null,
-        error:
-          result.emailSent && result.pushSent ? null : message,
+        notice: result.emailSent && result.pushSent ? message : null,
+        error: result.emailSent && result.pushSent ? null : message,
       }));
     } catch (error: unknown) {
       this.setState({
@@ -326,9 +335,7 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
     } = this.state;
     const customerName = customerNameFilter.trim().toLocaleLowerCase();
     const customerPhone = customerPhoneFilter.trim().toLocaleLowerCase();
-    const fromDate = createdFrom
-      ? new Date(`${createdFrom}T00:00:00`)
-      : null;
+    const fromDate = createdFrom ? new Date(`${createdFrom}T00:00:00`) : null;
     const toDate = createdTo ? new Date(`${createdTo}T23:59:59.999`) : null;
 
     return orders.filter((order) => {
@@ -502,7 +509,11 @@ export default class StaffOrders extends Proto<IOrdersProps, IOrdersState> {
                     ? lineTotal / product.quantity
                     : undefined;
                 return (
-                  <tr key={product.id ?? `${product.productId}-${product.sortOrder}`}>
+                  <tr
+                    key={
+                      product.id ?? `${product.productId}-${product.sortOrder}`
+                    }
+                  >
                     <td>{new MLString(product.product?.name).toString()}</td>
                     <td>{product.variantLabel || '-'}</td>
                     <td>{product.quantity}</td>

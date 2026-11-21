@@ -1,7 +1,7 @@
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 import Proto, { IProtoProps, IProtoState } from '../proto';
 
-interface NavbarProps extends IProtoProps{
+interface NavbarProps extends IProtoProps {
   isToolPage: boolean;
   isStaffUser: boolean;
   basketCount: number;
@@ -13,9 +13,7 @@ interface NavbarProps extends IProtoProps{
   onToolChapterChange: (chapter: string) => void;
 }
 
-interface NavbarState extends IProtoState {
-
-}
+interface NavbarState extends IProtoState {}
 
 const LANGUAGE_FLAGS: Record<string, string> = {
   en: '🇬🇧',

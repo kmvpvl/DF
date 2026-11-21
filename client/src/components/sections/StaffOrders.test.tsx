@@ -1,7 +1,13 @@
 /// <reference types="vitest/globals" />
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StaffOrders from './StaffOrders';
 
@@ -43,7 +49,10 @@ describe('StaffOrders', () => {
         }),
       });
     vi.stubGlobal('fetch', fetchMock);
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    );
 
     render(<StaffOrders />);
 
@@ -194,7 +203,9 @@ describe('StaffOrders', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<StaffOrders />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Mark as ready' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Mark as ready' })
+    );
 
     await waitFor(() => {
       expect(screen.getByText('READY')).toBeInTheDocument();
@@ -267,9 +278,7 @@ describe('StaffOrders', () => {
       expect(screen.getByText('IN_PRODUCTION')).toBeInTheDocument();
     });
     expect(
-      screen.getByText(
-        'Order moved to production. Email: sent; Push: sent.'
-      )
+      screen.getByText('Order moved to production. Email: sent; Push: sent.')
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

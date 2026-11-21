@@ -207,7 +207,11 @@ class Certificates extends Proto<IProtoProps, CertificatesState> {
     this.setState({ loading: true, error: null, notice: null });
 
     try {
-      const data = await this.gql<{ certificateBatchOptions: CertificateBatchOption[]; products: ProductOption[]; certificates: CertificateData[] }>(INITIAL_QUERY);
+      const data = await this.gql<{
+        certificateBatchOptions: CertificateBatchOption[];
+        products: ProductOption[];
+        certificates: CertificateData[];
+      }>(INITIAL_QUERY);
 
       this.setState({
         loading: false,
@@ -262,12 +266,16 @@ class Certificates extends Proto<IProtoProps, CertificatesState> {
     this.setState({ saving: true, error: null, notice: null });
 
     try {
-      const data = await this.gql<{ createCertificate: CertificateData }>(CREATE_CERTIFICATE_MUTATION, {
-        input: {
-          batchId: createForm.batchId,
-          extraCertificateData: createForm.extraCertificateData.trim() || null,
-        },
-      });
+      const data = await this.gql<{ createCertificate: CertificateData }>(
+        CREATE_CERTIFICATE_MUTATION,
+        {
+          input: {
+            batchId: createForm.batchId,
+            extraCertificateData:
+              createForm.extraCertificateData.trim() || null,
+          },
+        }
+      );
 
       await this.fetchInitialData();
 
@@ -305,7 +313,10 @@ class Certificates extends Proto<IProtoProps, CertificatesState> {
         input.number = Number.parseInt(searchForm.number, 10);
       }
 
-      const data = await this.gql<{ searchCertificates: CertificateData[] }>(SEARCH_CERTIFICATES_QUERY, { input });
+      const data = await this.gql<{ searchCertificates: CertificateData[] }>(
+        SEARCH_CERTIFICATES_QUERY,
+        { input }
+      );
 
       this.setState({
         searching: false,

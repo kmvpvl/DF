@@ -3,10 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  I18nContext,
-  type I18nContextValue,
-} from '../../i18n/I18nContext';
+import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 import { dictionaries } from '../../i18n/dictionaries';
 import PushNotificationControl from '../PushNotificationControl';
 import Home from './Home';
