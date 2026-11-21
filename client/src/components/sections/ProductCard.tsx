@@ -1,4 +1,3 @@
-import { MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import Photos from '../photos/photos';
 import {
@@ -98,12 +97,12 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
           </>
         )}
         <div className="product-name">
-          {new MLString(product.name).toString()}
+          {this.toString(product.name)}
         </div>
         <div
           className="product-desc"
           dangerouslySetInnerHTML={{
-            __html: new MLString(product.description).toString(),
+            __html: this.toString(product.description),
           }}
         ></div>
 
@@ -136,7 +135,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                   >
                     <span className="product-price-variation-label-group">
                       <span className="product-price-variation-label">
-                        {new MLString(variant.label).toString()}
+                        {this.toString(variant.label)}
                       </span>
                       <span className="product-price-variation-weight">
                         {`${variant.weight} ${variant.weightUnit}`}

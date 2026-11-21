@@ -1,4 +1,3 @@
-import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
 import Proto, { type IProtoProps } from '../../proto';
 import PushNotificationControl from '../PushNotificationControl';
 
@@ -11,8 +10,6 @@ interface HomeProps extends IProtoProps {
 }
 
 class Home extends Proto<HomeProps, {}> {
-  static contextType = I18nContext;
-  declare context: I18nContextValue | null;
 
   scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });

@@ -1,5 +1,3 @@
-import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import { MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import { PublicProductData } from '@betypes/product';
@@ -116,8 +114,6 @@ interface ProductsState extends IProtoState {
 }
 
 class Products extends Proto<ProductsProps, ProductsState> {
-  static contextType = I18nContext;
-  declare context: I18nContextValue | null;
   searchInputRef: React.RefObject<HTMLInputElement> = React.createRef();
 
   state: ProductsState = {
@@ -142,7 +138,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
       string
     >;*/
     //const chapterOrder = dictionaries.en.products.chapterOrder as string[];
-    const chapters = chaptersOut.map((el) => new MLString(el));
+    const chapters = chaptersOut.map((el) => this.toString(el));
     const products = this.props.products;
 
     return (
@@ -170,17 +166,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 {this.ML('Call us to get an even bigger discount').toString()}
               </a>
             </div>
-          ) : (
-            <button
-              type="button"
-              className="btn-primary products-legal-cta"
-              onClick={this.props.onLegalEntityCtaClick}
-            >
-              {this.ML(
-                'Login as a legal entity to get great prices'
-              ).toString()}
-            </button>
-          )}
+          ) : (null)}
 
           <div className="products-search-toolbar">
             <Toggle
@@ -203,7 +189,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 ? products.filter((p) => p.chapters?.length === 0)
                 : products.filter((p) =>
                     p.chapters
-                      ?.map((el) => new MLString(el).toString())
+                      ?.map((el) => this.toString(el))
                       .includes(chapter.toString())
                   );
             if (this.searchInputRef.current?.value) {

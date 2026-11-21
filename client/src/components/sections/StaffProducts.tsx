@@ -3247,9 +3247,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                   products.map((product) => (
                     <tr key={product.id}>
                       <td>
-                        <strong>{new MLString(product.name).toString()}</strong>
+                        <strong>{this.toString(product.name)}</strong>
                         <div className="material-description">
-                          {new MLString(product.description).toString()}
+                          {this.toString(product.description)}
                         </div>
                       </td>
                       <td>

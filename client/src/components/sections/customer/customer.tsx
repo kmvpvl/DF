@@ -2,7 +2,6 @@ import Proto, { IProtoProps, IProtoState } from '../../../proto';
 import './customer.css';
 import { SLIM_PRODUCT_FIELDS } from '../Products';
 import { IOrder } from '../Orders';
-import { MLString } from '../../../mlstring';
 
 const CUSTOMER_CHAPTERS = ['Orders', 'Conversations', 'Settings'];
 const ORDER_QUERY_BY_ID = `
@@ -245,7 +244,7 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
                     : productVariant.label.default === item.variantLabel
                 );
                 const variantLabel = variant?.label
-                  ? new MLString(variant.label).toString()
+                  ? this.toString(variant.label)
                   : item.variantLabel;
                 const unitPrice =
                   item.price !== undefined && item.quantity > 0
@@ -260,12 +259,12 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
                     <div className="basket-item-main">
                       <div className="customer-order-product-name">
                         <strong>
-                          {new MLString(
+                          {this.toString(
                             item.product?.name ?? this.ML('Product unavailable')
-                          ).toString()}
+                          )}
                         </strong>
                         {variantLabel && (
-                          <span>{new MLString(variantLabel).toString()}</span>
+                          <span>{this.toString(variantLabel)}</span>
                         )}
                       </div>
                       <strong>{this.toCurrency(item.price)}</strong>

@@ -734,7 +734,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
                       <option value="">Select product</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {new MLString(product.name).toString()} (
+                          {this.toString(product.name)} (
                           {product.batchPrefix})
                         </option>
                       ))}
@@ -765,7 +765,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
                                 : v.label.default
                             }
                           >
-                            {`${new MLString(v.label).toString()} - ${v.weight}${v.weightUnit}`}
+                            {`${this.toString(v.label)} - ${v.weight}${v.weightUnit}`}
                           </option>
                         ))
                       ) : (
@@ -1008,7 +1008,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
                           </div>
                         ) : null}
                       </td>
-                      <td>{new MLString(batch.product.name).toString()}</td>
+                      <td>{this.toString(batch.product.name)}</td>
                       <td>{batch.nettoWeight}</td>
                       <td>{batch.storageDurationDays} d</td>
                       <td>{batch.storageCondition.name}</td>
