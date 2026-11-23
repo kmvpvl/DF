@@ -78,7 +78,7 @@ class Home extends Proto<HomeProps, HomeState> {
             className="btn-primary"
             onClick={() => this.setState({ showRules: !this.state.showRules })}
           >
-            {this.ML('Using Rules and Payment Terms').toString()}
+            {this.ML('Terms of use, payment methods, and refund procedures').toString()}
           </button>
           {this.props.isLoggedIn && (
             <PushNotificationControl

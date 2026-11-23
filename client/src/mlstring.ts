@@ -2179,14 +2179,14 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    `Using Rules and Payment Terms`,
+    `Terms of use, payment methods, and refund procedures`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Правила использования и условия оплаты'],
+      [`ru`, 'Условия использования, способы оплаты и процедуры возврата'],
       [`it`, undefined],
-      [`sr`, 'Uslovi korišćenja i načini plaćanja'],
+      [`sr`, 'Uslovi korišćenja, načini plaćanja i procedure povraćaja'],
     ]),
   ],
   [
