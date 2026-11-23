@@ -1,11 +1,12 @@
-import { dictionaries } from '../../i18n/dictionaries';
-import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import Proto from '../../proto';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
+import { DeliveryRules } from '../deliveryRules/deliveryRules';
 
-class Delivery extends Proto<{}, {}> {
-  static contextType = I18nContext;
-  declare context: I18nContextValue | null;
+interface DeliveryProps extends IProtoProps {}
+interface DeliveryState extends IProtoState {
+  showDeliveryRules?: boolean;
+}
 
+class Delivery extends Proto<DeliveryProps, DeliveryState> {
   render() {
     const i18n = this.context;
     if (!i18n) {
@@ -26,19 +27,58 @@ class Delivery extends Proto<{}, {}> {
           </p>
 
           <div className="delivery-cards">
-            {dictionaries.en.delivery.cards.map((card: any) => (
-              <div key={card.title} className="delivery-card">
-                <div className="delivery-icon">{card.icon}</div>
-                <div className="delivery-card-title">
-                  {this.ML(card.title).toString()}
-                </div>
-                <p className="delivery-card-text">
-                  {this.ML(card.text).toString()}
-                </p>
+            <div key={1} className="delivery-card">
+              <div className="delivery-icon">🚀</div>
+              <div className="delivery-card-title">
+                {this.ML(
+                  'We will deliver any order within 24 hours'
+                ).toString()}
               </div>
-            ))}
+              <p className="delivery-card-text">
+                {this.ML(
+                  'If only items that are in stock are ordered, the order will be delivered within 2 hours'
+                ).toString()}
+              </p>
+            </div>
+            <div key={2} className="delivery-card">
+              <div className="delivery-icon">🏠</div>
+              <div className="delivery-card-title">
+                {this.ML(
+                  'We automatically calculate the shipping cost'
+                ).toString()}
+              </div>
+              <p className="delivery-card-text">
+                {this.ML(
+                  'When placing an order, the delivery cost will be shown as a separate line item. The cost is calculated as 200 dinars plus 50 dinars for every kilometer.'
+                ).toString()}
+              </p>
+            </div>
+            <div
+              key={3}
+              className="delivery-card"
+              onClick={() => {
+                this.setState({ showDeliveryRules: true });
+              }}
+            >
+              <div className="delivery-icon">📃</div>
+              <div className="delivery-card-title">
+                {this.ML('Review the delivery terms and conditions').toString()}
+              </div>
+              <p className="delivery-card-text">
+                {this.ML(
+                  'Click to view the full delivery terms and conditions'
+                ).toString()}
+              </p>
+            </div>
           </div>
         </div>
+        {this.state.showDeliveryRules && (
+          <DeliveryRules
+            onClose={() => {
+              this.setState({ showDeliveryRules: false });
+            }}
+          />
+        )}
       </div>
     );
   }
