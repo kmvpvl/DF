@@ -1976,6 +1976,7 @@ textarea.form-input {
   }
   .navbar-right {
     gap: 0.5rem;
+    align-items: baseline;
   }
   .navbar-tool .nav-home-btn {
     display: none;

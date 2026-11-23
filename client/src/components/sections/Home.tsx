@@ -1,5 +1,6 @@
-import Proto, { type IProtoProps } from '../../proto';
+import Proto, { IProtoState, type IProtoProps } from '../../proto';
 import PushNotificationControl from '../PushNotificationControl';
+import { UsingRules } from '../usingRules/usingRules';
 
 interface HomeProps extends IProtoProps {
   onLegalEntityCtaClick: () => void;
@@ -9,7 +10,11 @@ interface HomeProps extends IProtoProps {
   onPushSubscribe: () => void;
 }
 
-class Home extends Proto<HomeProps, {}> {
+interface HomeState extends IProtoState {
+  showRules?: boolean;
+}
+
+class Home extends Proto<HomeProps, HomeState> {
   scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -69,6 +74,12 @@ class Home extends Proto<HomeProps, {}> {
           >
             {this.ML('Order a test batch for free').toString()}
           </button>
+          <button
+            className="btn-primary"
+            onClick={() => this.setState({ showRules: !this.state.showRules })}
+          >
+            {this.ML('Using Rules and Payment Terms').toString()}
+          </button>
           {this.props.isLoggedIn && (
             <PushNotificationControl
               isSubscribed={this.props.isPushSubscribed}
@@ -82,6 +93,9 @@ class Home extends Proto<HomeProps, {}> {
             {this.ML('Our Story').toString()}
           </button>*/}
         </div>
+        {this.state.showRules && (
+          <UsingRules onClose={() => this.setState({ showRules: false })} />
+        )}
       </div>
     );
   }
