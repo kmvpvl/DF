@@ -1663,6 +1663,17 @@ main {
   align-items: flex-start;
   padding: 0.5rem 0;
 }
+.contact-item-company {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+.contact-item-label {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
 .contact-item > div {
   display: grid;
   gap: 0.12rem;
