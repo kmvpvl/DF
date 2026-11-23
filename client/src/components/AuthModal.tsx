@@ -12,6 +12,7 @@ interface AuthModalProps {
   initialTab?: Tab;
   initialSignupEntityType?: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   editingUser?: User | null;
+  language: string;
 }
 
 type Tab = 'login' | 'signup';
@@ -52,8 +53,8 @@ async function gql<T>(
 }
 
 const LOGIN_MUTATION = `
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
+  mutation Login($email: String!, $password: String!, $lang: String) {
+    login(email: $email, password: $password, lang: $lang) {
       id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
@@ -172,6 +173,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       const data = await gql<{ login: User }>(LOGIN_MUTATION, {
         email: loginEmail,
         password: loginPassword,
+        lang: this.props.language,
       });
       onSuccess(data.login);
     } catch (err: unknown) {
@@ -236,6 +238,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
           bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : undefined,
           deliveryAddress: signupDeliveryAddress,
           password: signupPassword,
+          lang: this.props.language,
         },
       });
       onSuccess(data.createUser);

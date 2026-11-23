@@ -161,7 +161,7 @@ export class OrderService {
         let isLegalEntity = false;
         if (ctx.userId) {
             const user = await prisma.user.findFirst({
-                where: { id: ctx.userId, blocked: false  },
+                where: { id: ctx.userId, blocked: false },
                 select: { entityType: true },
             });
             if (user?.entityType === 'LEGAL_ENTITY') {

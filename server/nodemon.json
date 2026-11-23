@@ -1,5 +1,5 @@
 {
-  "watch": ["src"],
-  "ext": "ts,js,json",
-  "ignore": ["client/*"]
+    "watch": ["src"],
+    "ext": "ts,js,json",
+    "ignore": ["client/*"]
 }

@@ -96,9 +96,7 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
             ></div>
           </>
         )}
-        <div className="product-name">
-          {this.toString(product.name)}
-        </div>
+        <div className="product-name">{this.toString(product.name)}</div>
         <div
           className="product-desc"
           dangerouslySetInnerHTML={{

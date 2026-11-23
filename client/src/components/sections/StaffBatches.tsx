@@ -734,8 +734,7 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
                       <option value="">Select product</option>
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {this.toString(product.name)} (
-                          {product.batchPrefix})
+                          {this.toString(product.name)} ({product.batchPrefix})
                         </option>
                       ))}
                     </select>

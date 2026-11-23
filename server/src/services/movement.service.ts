@@ -37,7 +37,11 @@ export class MovementService {
             defaultTo.setHours(23, 59, 59, 999);
             dateFilter.lte = defaultTo;
         }
-        if (dateFilter.gte && dateFilter.lte && dateFilter.gte > dateFilter.lte) {
+        if (
+            dateFilter.gte &&
+            dateFilter.lte &&
+            dateFilter.gte > dateFilter.lte
+        ) {
             throw new Error('fromDate must be before or equal to toDate');
         }
 
@@ -72,7 +76,10 @@ export class MovementService {
             throw new Error('Unsupported movement type');
         }
 
-        if (data.type === MovementType.MOVE_IN || data.type === MovementType.MOVE_OUT) {
+        if (
+            data.type === MovementType.MOVE_IN ||
+            data.type === MovementType.MOVE_OUT
+        ) {
             if (!data.targetLocationId) {
                 throw new Error('Target location is required for a transfer');
             }

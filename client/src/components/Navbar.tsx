@@ -11,6 +11,7 @@ interface NavbarProps extends IProtoProps {
   onToolClick: () => void;
   onHomeClick: () => void;
   onToolChapterChange: (chapter: string) => void;
+  onLanguageChanged: (newLang: string) => void;
 }
 
 interface NavbarState extends IProtoState {}
@@ -47,6 +48,7 @@ class Navbar extends Proto<NavbarProps, NavbarState> {
       onToolClick,
       onHomeClick,
       onToolChapterChange,
+      onLanguageChanged,
     } = this.props;
 
     const sections = [
@@ -129,7 +131,10 @@ class Navbar extends Proto<NavbarProps, NavbarState> {
             <select
               className="language-select"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => {
+                onLanguageChanged(e.target.value);
+                return setLanguage(e.target.value);
+              }}
               aria-label={this.ML('Language').toString()}
             >
               {languages.map((code) => (

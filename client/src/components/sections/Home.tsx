@@ -10,7 +10,6 @@ interface HomeProps extends IProtoProps {
 }
 
 class Home extends Proto<HomeProps, {}> {
-
   scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };

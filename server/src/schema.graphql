@@ -941,7 +941,8 @@ type Query {
 type Mutation {
     createMovement(input: CreateMovementInput!): Movement!
     createUser(input: CreateUserInput!): User!
-    login(email: String!, password: String!): User!
+    setUserLanguage(lang: String!): User!
+    login(email: String!, password: String!, lang: String): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
     verifyDeliveryAddress(
         address: String!

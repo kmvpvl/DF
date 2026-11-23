@@ -810,6 +810,7 @@ class App extends Proto<AppProps, AppState> {
             initialTab={authInitialTab}
             initialSignupEntityType={authInitialSignupEntityType}
             editingUser={authEditingUser}
+            language={this.getLanguage()}
           />
         )}
       </>
@@ -826,6 +827,16 @@ class App extends Proto<AppProps, AppState> {
           onHomeClick={this.handleOpenHomePage}
           activeToolChapter={activeToolChapter}
           onToolChapterChange={this.handleToolChapterChange}
+          onLanguageChanged={(lang) =>
+            this.gql(
+              `mutation setUserLanguage($lang: String!){
+            setUserLanguage(lang: $lang) {
+              id
+            }
+          }`,
+              { lang }
+            )
+          }
         />
         <main>
           {isToolPage ? (
@@ -904,6 +915,7 @@ class App extends Proto<AppProps, AppState> {
             initialTab={authInitialTab}
             initialSignupEntityType={authInitialSignupEntityType}
             editingUser={authEditingUser}
+            language={this.getLanguage()}
           />
         )}
         <BasketDrawer

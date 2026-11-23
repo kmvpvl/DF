@@ -166,7 +166,7 @@ class Products extends Proto<ProductsProps, ProductsState> {
                 {this.ML('Call us to get an even bigger discount').toString()}
               </a>
             </div>
-          ) : (null)}
+          ) : null}
 
           <div className="products-search-toolbar">
             <Toggle

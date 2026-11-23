@@ -40,15 +40,12 @@ import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
 import { OrderService } from './services/order.service';
 import { PushService } from './services/push.service';
-import {
-    CreateProductInput,
-    IProductVariant,
-    UpdateProductInput,
-} from './types/product';
+import { CreateProductInput, UpdateProductInput } from './types/product';
 import { CreateOrderInput } from './types/order';
 import { CompanyService } from './services/company.service';
 import { IMLString, MLString } from './lib/mlstring';
 import { AddressService } from './services/address.service';
+import { authorize } from './utils/auth';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
 
@@ -163,7 +160,9 @@ const resolvers = {
             ctx: GraphQLContext
         ) => await MovementService.getAll(ctx, fromDate, toDate),
         userById: async (_: unknown, { id }: { id: string }) => {
-            return await prisma.user.findFirst({ where: { id, blocked: false} });
+            return await prisma.user.findFirst({
+                where: { id, blocked: false },
+            });
         },
         userInfo: async (
             _: unknown,
@@ -180,10 +179,14 @@ const resolvers = {
             }
 
             if (id) {
-                return await prisma.user.findUnique({ where: { id, blocked: false } });
+                return await prisma.user.findUnique({
+                    where: { id, blocked: false },
+                });
             }
 
-            return await prisma.user.findUnique({ where: { email: email!, blocked: false } });
+            return await prisma.user.findUnique({
+                where: { email: email!, blocked: false },
+            });
         },
         companyInfo: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
             CompanyService.info(ctx),
@@ -191,7 +194,10 @@ const resolvers = {
             EquipmentService.getAll(ctx),
         users: async (_: unknown, __: unknown, { req }: GraphQLContext) => {
             if (!req.session.userId) throw new Error('Not authenticated');
-            return await prisma.user.findMany({where: {blocked: false},  orderBy: { name: 'asc' } });
+            return await prisma.user.findMany({
+                where: { blocked: false },
+                orderBy: { name: 'asc' },
+            });
         },
         cleanActions: async (
             _: unknown,
@@ -418,7 +424,7 @@ const resolvers = {
             }
 
             const user = await prisma.user.findUnique({
-                where: { id: userId , blocked: false},
+                where: { id: userId, blocked: false },
             });
             if (!user) {
                 req.session.userId = undefined;
@@ -469,15 +475,27 @@ const resolvers = {
         ) => await MovementService.createMovement(input, ctx),
         login: async (
             _: unknown,
-            { email, password }: { email: string; password: string },
+            {
+                email,
+                password,
+                lang,
+            }: { email: string; password: string; lang: string | undefined },
             ctx: GraphQLContext
         ) => {
-            const user = await prisma.user.findUnique({ where: { email, blocked: false } });
+            const user = await prisma.user.findUnique({
+                where: { email, blocked: false },
+            });
             if (!user) throw new Error('Invalid email or password');
             const valid = await bcrypt.compare(password, user.passwordHash);
             if (!valid) throw new Error('Invalid email or password');
             ctx.req.session.userId = user.id;
             ctx.userId = user.id;
+            if (lang && lang !== user.lang) {
+                await prisma.user.update({
+                    where: { id: user.id, blocked: false },
+                    data: { lang },
+                });
+            }
             await new Promise<void>((resolve, reject) => {
                 ctx.req.session.save((error) => {
                     if (error) {
@@ -540,6 +558,18 @@ const resolvers = {
             });
 
             return user;
+        },
+        setUserLanguage: async (
+            _: unknown,
+            { lang }: { lang: string },
+            ctx: GraphQLContext
+        ) => {
+            await authorize(ctx);
+            if (!ctx.userId) throw Error('User id is empty');
+            return await prisma.user.update({
+                where: { id: ctx.userId, blocked: false },
+                data: { lang },
+            });
         },
         updateSessionUser: async (
             _: unknown,
@@ -948,7 +978,9 @@ const resolvers = {
 
             const sessionUserId = req.session.userId;
             const sessionUser = sessionUserId
-                ? await prisma.user.findUnique({ where: { id: sessionUserId , blocked: false} })
+                ? await prisma.user.findUnique({
+                      where: { id: sessionUserId, blocked: false },
+                  })
                 : null;
             if (!sessionUser)
                 throw new Error('Authenticated customer not found');
@@ -1024,8 +1056,8 @@ const resolvers = {
                 customerName,
                 customerEmail,
                 customerPhone,
-                deliveryAddress: customerDeliveryAddress
-                    ?? `Pickup at ${location.name}`,
+                deliveryAddress:
+                    customerDeliveryAddress ?? `Pickup at ${location.name}`,
                 paymentMethod,
                 shippingMethod,
                 distanceMeters: deliveryEstimate?.distanceMeters ?? null,

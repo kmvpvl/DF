@@ -151,14 +151,13 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
     } catch (error) {
       this.setState({
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load movements',
+        error:
+          error instanceof Error ? error.message : 'Failed to load movements',
       });
     }
   }
 
-  private getProductName(
-    product: { name: IMLString | string } | null
-  ): string {
+  private getProductName(product: { name: IMLString | string } | null): string {
     if (!product) return '-';
     if (typeof product.name !== 'string') {
       return this.toString(product.name);
@@ -171,17 +170,23 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
   }
 
   private getVariantLabel(productId: string): string[] {
-    return (this.state.products.find((product) => product.id === productId)?.variants || [])
-      .map((variant) => {
-        return typeof variant.label === 'string' ? variant.label : variant.label.default;
-      });
+    return (
+      this.state.products.find((product) => product.id === productId)
+        ?.variants || []
+    ).map((variant) => {
+      return typeof variant.label === 'string'
+        ? variant.label
+        : variant.label.default;
+    });
   }
 
   private handleCreate = async (event: FormEvent) => {
     event.preventDefault();
     const quantity = Number(this.state.quantity);
     if (!this.state.productId || !Number.isFinite(quantity) || quantity <= 0) {
-      this.setState({ error: 'Выберите товар и укажите положительное количество.' });
+      this.setState({
+        error: 'Выберите товар и укажите положительное количество.',
+      });
       return;
     }
     if (
@@ -216,7 +221,8 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
     } catch (error) {
       this.setState({
         saving: false,
-        error: error instanceof Error ? error.message : 'Failed to create movement',
+        error:
+          error instanceof Error ? error.message : 'Failed to create movement',
       });
     }
   };
@@ -248,7 +254,9 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
       <div className="section-inner tool-page-inner">
         <p className="section-label">Staff</p>
         <h1 className="section-title">Движения</h1>
-        <p className="section-desc">Учёт поступлений, списаний, продаж, производства и перемещений.</p>
+        <p className="section-desc">
+          Учёт поступлений, списаний, продаж, производства и перемещений.
+        </p>
 
         {error && <div className="notice error">{error}</div>}
         {notice && <div className="notice success">{notice}</div>}
@@ -256,50 +264,104 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
         <form className="movement-create-form" onSubmit={this.handleCreate}>
           <label>
             <span>Вид движения</span>
-            <select value={this.state.type} onChange={(event: ChangeEvent<HTMLSelectElement>) => this.setState({ type: event.target.value })}>
+            <select
+              value={this.state.type}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                this.setState({ type: event.target.value })
+              }
+            >
               {MOVEMENT_TYPES.map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value}>
+                  {label}
+                </option>
               ))}
             </select>
           </label>
           <label>
             <span>Товар</span>
-            <select value={this.state.productId} onChange={(event: ChangeEvent<HTMLSelectElement>) => this.setState({ productId: event.target.value, variantLabel: '' })}>
+            <select
+              value={this.state.productId}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                this.setState({
+                  productId: event.target.value,
+                  variantLabel: '',
+                })
+              }
+            >
               <option value="">Выберите товар</option>
-              {products.sort((a, b) => this.getProductName(a).localeCompare(this.getProductName(b))).map((product) => (
-                <option key={product.id} value={product.id}>{this.getProductName(product)}</option>
-              ))}
+              {products
+                .sort((a, b) =>
+                  this.getProductName(a).localeCompare(this.getProductName(b))
+                )
+                .map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {this.getProductName(product)}
+                  </option>
+                ))}
             </select>
           </label>
           {variantLabels.length > 0 && (
             <label>
               <span>Вариант</span>
-              <select value={this.state.variantLabel} onChange={(event: ChangeEvent<HTMLSelectElement>) => this.setState({ variantLabel: event.target.value })}>
+              <select
+                value={this.state.variantLabel}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                  this.setState({ variantLabel: event.target.value })
+                }
+              >
                 <option value="">Без варианта</option>
                 {variantLabels.map((label) => (
-                  <option key={label} value={label}>{label}</option>
+                  <option key={label} value={label}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
           )}
-          {(this.state.type === 'MOVE_IN' || this.state.type === 'MOVE_OUT') && (
+          {(this.state.type === 'MOVE_IN' ||
+            this.state.type === 'MOVE_OUT') && (
             <label>
               <span>Склад назначения / источник</span>
-              <select value={this.state.targetLocationId} onChange={(event: ChangeEvent<HTMLSelectElement>) => this.setState({ targetLocationId: event.target.value })}>
+              <select
+                value={this.state.targetLocationId}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                  this.setState({ targetLocationId: event.target.value })
+                }
+              >
                 <option value="">Выберите склад</option>
-                {locations.filter((location) => location.id !== this.props.currentLocation).map((location) => (
-                  <option key={location.id} value={location.id}>{location.name}</option>
-                ))}
+                {locations
+                  .filter(
+                    (location) => location.id !== this.props.currentLocation
+                  )
+                  .map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
               </select>
             </label>
           )}
           <label>
             <span>Количество</span>
-            <input type="number" min="0.001" step="0.001" value={this.state.quantity} onChange={(event: ChangeEvent<HTMLInputElement>) => this.setState({ quantity: event.target.value })} />
+            <input
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={this.state.quantity}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                this.setState({ quantity: event.target.value })
+              }
+            />
           </label>
           <label>
             <span>Комментарий</span>
-            <input type="text" value={this.state.label} onChange={(event: ChangeEvent<HTMLInputElement>) => this.setState({ label: event.target.value })} />
+            <input
+              type="text"
+              value={this.state.label}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                this.setState({ label: event.target.value })
+              }
+            />
           </label>
           <button className="primary-button" type="submit" disabled={saving}>
             {saving ? 'Сохранение...' : 'Создать движение'}
@@ -331,10 +393,17 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
           </label>
           <label>
             <span>Фильтр по виду</span>
-            <select value={typeFilter} onChange={(event: ChangeEvent<HTMLSelectElement>) => this.setState({ typeFilter: event.target.value })}>
+            <select
+              value={typeFilter}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                this.setState({ typeFilter: event.target.value })
+              }
+            >
               <option value="ALL">Все виды</option>
               {MOVEMENT_TYPES.map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value}>
+                  {label}
+                </option>
               ))}
             </select>
           </label>
@@ -375,12 +444,16 @@ class StaffMovements extends Proto<IProtoProps, StaffMovementsState> {
                     <td>{movement.batch?.numberStr || '-'}</td>
                     <td>{this.toFixed(movement.quantity)}</td>
                     <td>{movement.location?.name || movement.locationId}</td>
-                    <td>{movement.user?.fullName || movement.user?.name || '-'}</td>
+                    <td>
+                      {movement.user?.fullName || movement.user?.name || '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!loading && visibleMovements.length === 0 && <p>Движений не найдено.</p>}
+            {!loading && visibleMovements.length === 0 && (
+              <p>Движений не найдено.</p>
+            )}
           </div>
         )}
       </div>

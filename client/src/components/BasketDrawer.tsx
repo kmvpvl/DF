@@ -123,8 +123,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   };
 
   private getPlannedReadyLabel = () => {
-    const plannedReady =
-      this.props.order?.orderDate;
+    const plannedReady = this.props.order?.orderDate;
     if (!plannedReady) return null;
     const date = new Date(plannedReady);
     if (Number.isNaN(date.getTime())) return null;

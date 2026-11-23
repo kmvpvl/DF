@@ -251,7 +251,7 @@ export class AddressService {
         if (!userId) return null;
 
         const user = await prisma.user.findUnique({
-            where: { id: userId , blocked: false },
+            where: { id: userId, blocked: false },
             select: { deliveryAddress: true, location: true },
         });
         const storedLocation = user?.location;
