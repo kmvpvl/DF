@@ -22,6 +22,9 @@ import {
 import { ICompany } from '@betypes/company.ts';
 import { PublicProductData } from '@betypes/product.ts';
 import Customer from './components/sections/customer/customer.tsx';
+import { DeliveryRules } from './components/deliveryRules/deliveryRules.tsx';
+import { UsingRules } from './components/usingRules/usingRules.tsx';
+import { PrivacyRules } from './components/privacyRules/privacyRules.tsx';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 //console.log('Using API URL:', API_URL);
@@ -119,6 +122,9 @@ interface AppState extends IProtoState {
   pendingProduct: IOrderProduct | null;
   products: PublicProductData[];
   objectId?: string;
+  showDeliveryRules?: boolean;
+  showPrivacyPolicy?: boolean;
+  showTermsOfUse?: boolean;
 }
 
 interface SessionUserQueryData {
@@ -906,6 +912,23 @@ class App extends Proto<AppProps, AppState> {
           {this.ML(
             'Production of Italian and Russian desserts, cheese and cottage cheese'
           ).toString()}
+          <div>
+            <span
+              onClick={() => this.setState({ showTermsOfUse: !this.state.showTermsOfUse })}
+            >
+              {this.ML('Terms of use, payment methods, and refund procedures').toString()}
+            </span>
+            <span
+              onClick={() => this.setState({ showPrivacyPolicy: !this.state.showPrivacyPolicy })}
+            >
+              {this.ML('Privacy Policy').toString()}
+            </span>
+            <span
+              onClick={() => this.setState({ showDeliveryRules: !this.state.showDeliveryRules })}
+            >
+              {this.ML('Review the delivery terms and conditions').toString()}
+            </span>
+          </div>
         </footer>
         {authOpen && (
           <AuthModal
@@ -932,6 +955,21 @@ class App extends Proto<AppProps, AppState> {
           onPushSubscribe={this.subscribeUserToPush.bind(this)}
           disableConrols={this.state.isLoadingBasket}
         />
+        {this.state.showDeliveryRules && (
+          <DeliveryRules
+            onClose={() => this.setState({ showDeliveryRules: false })}
+          />
+        )}
+        {this.state.showPrivacyPolicy && (
+          <PrivacyRules
+            onClose={() => this.setState({ showPrivacyPolicy: false })}
+          />
+        )}
+        {this.state.showTermsOfUse && (
+          <UsingRules
+            onClose={() => this.setState({ showTermsOfUse: false })}
+          />
+        )}
       </div>
     );
   }

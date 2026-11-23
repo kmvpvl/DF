@@ -16,7 +16,7 @@ export class UsingRules extends React.Component<
         <h2>Uslovi korišćenja, načini plaćanja i procedure povraćaja</h2>
         <p>
           Sve cene proizvoda prikazane na web aplikaciji DOLCEFORTE.RS izražene
-          su u srpskim dinarima (RSD). PAVEL KOMOV PR PROIZVODNJA KOLAČA PANČEVO
+          su u srpskim dinarima (RSD). PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO
           nije u sistemu PDV-a. Plaćanje poručenih proizvoda moguće je izvršiti
           na sledeće načine:
         </p>

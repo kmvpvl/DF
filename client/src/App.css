@@ -1825,6 +1825,18 @@ textarea.form-input {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.footer div {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.footer div span {
+  cursor: pointer;
+  text-decoration: underline;}
+
 /* ── Auth Modal ─────────────────────────────────── */
 .modal-overlay {
   position: fixed;

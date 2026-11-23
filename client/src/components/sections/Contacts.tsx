@@ -145,7 +145,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
           <div className="contacts-grid">
             <div className="contact-info">
               <div className="contact-item contact-item-company">
-                PAVEL KOMOV PR PROIZVODNJA KOLAČA PANČEVO
+                PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO
               </div>
               <div className="contact-item contact-item-label">
                 Glavna šifra delatnosti <strong>1079</strong>

@@ -2257,14 +2257,14 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    ``,
+    `Privacy Policy`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Политика конфиденциальности'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Politika privatnosti'],
     ]),
   ],
   [
