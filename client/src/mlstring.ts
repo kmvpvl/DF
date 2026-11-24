@@ -2301,14 +2301,14 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    ``,
+    `To receive push notifications on iOS, please install the app to your home screen and open it from there.`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'Для включения уведомлений на iOS сначала добавьте приложение на экран "Домой" через меню "Поделиться"!'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'Да бисте добили push обавештења на iOS, инсталирајте апликацију на екрану "Почетна" и отворите је од тамо.'],
     ]),
   ],
   [

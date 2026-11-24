@@ -689,7 +689,7 @@ class App extends Proto<AppProps, AppState> {
     // Android Chrome supports subscriptions in both installed PWA and browser mode.
     if (isIOS && !isStandalone) {
       alert(
-        "Для включения уведомлений на iOS сначала добавьте приложение на экран 'Домой' через меню 'Поделиться'!"
+        this.ML("To receive push notifications on iOS, please install the app to your home screen and open it from there.")
       );
       return;
     }
