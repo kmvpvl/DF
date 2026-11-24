@@ -3,7 +3,7 @@ import './customer.css';
 import { SLIM_PRODUCT_FIELDS } from '../Products';
 import { IOrder } from '../Orders';
 
-const CUSTOMER_CHAPTERS = ['Orders', 'Conversations', 'Settings'];
+const CUSTOMER_CHAPTERS = ['Orders'/*, 'Conversations', 'Settings'*/];
 const ORDER_QUERY_BY_ID = `
   query order ($orderId: String!) {
     order (orderId: $orderId) {
@@ -51,6 +51,7 @@ export interface ICustomerProps extends IProtoProps {
   objectId?: string;
   onLoginRequired: () => void;
   onCloseAuth: () => void;
+  onHome: () => void;
 }
 
 export interface ICustomerState extends IProtoState {
@@ -343,6 +344,13 @@ export default class Customer extends Proto<ICustomerProps, ICustomerState> {
               {this.ML(chapter)}
             </span>
           ))}
+          <button
+            type="button"
+            className="nav-link nav-home-btn"
+            onClick={this.props.onHome}
+          >
+            {this.ML('Home')}
+          </button>
           <span>{this.props.user?.name}</span>
         </div>
         <main className="customer-content-container">

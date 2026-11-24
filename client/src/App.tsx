@@ -835,6 +835,7 @@ class App extends Proto<AppProps, AppState> {
           currentLocation={this.state.currentLocation}
           chapter={this.state.activeChapter}
           objectId={this.state.objectId}
+          onHome={this.handleOpenHomePage}
           onLoginRequired={this.handleOpenLogin}
           onCloseAuth={this.handleCloseAuth}
         />
