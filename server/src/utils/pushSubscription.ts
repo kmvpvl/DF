@@ -1,11 +1,25 @@
 import webpush from 'web-push';
 import { vapidKeys } from './common';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
-webpush.setVapidDetails(
-    'mailto:admin@dolceforte.rs',
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-);
+if (vapidKeys.publicKey && vapidKeys.privateKey) {
+    const configuredSubject =
+        process.env.PUSH_VAPID_SUBJECT ||
+        process.env.SMTP_USER ||
+        'mailto:admin@dolceforte.rs';
+    const vapidSubject = /^mailto:/i.test(configuredSubject)
+        ? configuredSubject
+        : /^https?:\/\//i.test(configuredSubject)
+          ? configuredSubject
+          : /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(configuredSubject)
+            ? `mailto:${configuredSubject}`
+            : 'mailto:admin@dolceforte.rs';
+
+    webpush.setVapidDetails(
+        vapidSubject,
+        vapidKeys.publicKey,
+        vapidKeys.privateKey
+    );
+}
 /*
 // Эндпоинт сохранения подписки с фронтенда
 app.post('/api/subscribe', (req, res) => {

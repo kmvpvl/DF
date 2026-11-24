@@ -715,6 +715,22 @@ class App extends Proto<AppProps, AppState> {
         }
 
         let subscription = await registration.pushManager.getSubscription();
+        const currentApplicationServerKey =
+          subscription?.options.applicationServerKey;
+        const expectedApplicationServerKey =
+          urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        let subscriptionMatchesVapidKey = false;
+        if (currentApplicationServerKey) {
+          const currentKey = new Uint8Array(currentApplicationServerKey);
+          const expectedKey = new Uint8Array(expectedApplicationServerKey);
+          subscriptionMatchesVapidKey =
+            currentKey.length === expectedKey.length &&
+            currentKey.every((byte, index) => byte === expectedKey[index]);
+        }
+        if (subscription && !subscriptionMatchesVapidKey) {
+          await subscription.unsubscribe();
+          subscription = null;
+        }
         if (!subscription) {
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,

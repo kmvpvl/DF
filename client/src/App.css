@@ -1032,6 +1032,10 @@ main {
   background: var(--primary-dark);
   transform: translateY(-1px);
 }
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
 .btn-secondary {
   background: #fff;
   color: var(--text);

@@ -654,7 +654,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         error: '',
         sent: true,
         note: '',
-      });
+      }, () => setTimeout(() => this.props.onClose(), 3000));
     } catch (error: unknown) {
       this.setState({
         loading: false,

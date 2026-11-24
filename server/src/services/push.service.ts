@@ -8,16 +8,49 @@ import { GraphQLContext } from '../types/types';
 import { IPushMessage } from '../types/pushes';
 import { CompanyService } from './company.service';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
-const vapidSubject =
+function normalizeVapidSubject(subject?: string): string {
+    const normalized = subject?.trim();
+    if (!normalized) return 'mailto:admin@dolceforte.rs';
+    if (/^mailto:/i.test(normalized)) return normalized;
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) {
+        return `mailto:${normalized}`;
+    }
+    return 'mailto:admin@dolceforte.rs';
+}
+
+const vapidSubject = normalizeVapidSubject(
     process.env.PUSH_VAPID_SUBJECT ||
-    process.env.SMTP_USER ||
-    'mailto:admin@dolceforte.rs';
+        process.env.SMTP_USER ||
+        'mailto:admin@dolceforte.rs'
+);
 
 if (vapidKeys.publicKey && vapidKeys.privateKey) {
     webpush.setVapidDetails(
         vapidSubject,
         vapidKeys.publicKey,
         vapidKeys.privateKey
+    );
+}
+
+function configureVapidDetails(): void {
+    const publicVapidKey =
+        process.env.PUBLIC_VAPID_KEY || vapidKeys.publicKey;
+    const privateVapidKey =
+        process.env.PRIVATE_VAPID_KEY || vapidKeys.privateKey;
+    if (!publicVapidKey || !privateVapidKey) {
+        throw new Error(
+            'VAPID keys are not configured. Set PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY.'
+        );
+    }
+    webpush.setVapidDetails(
+        normalizeVapidSubject(
+            process.env.PUSH_VAPID_SUBJECT ||
+                process.env.SMTP_USER ||
+                'mailto:admin@dolceforte.rs'
+        ),
+        publicVapidKey,
+        privateVapidKey
     );
 }
 
@@ -186,8 +219,8 @@ export class PushService {
             : null;
         const customerEmail =
             order.customerEmail?.trim() || customer?.email?.trim();
-        const email = this.getOrderStatusEmail(order.number, status);
-        const orderUrl = `/customer/Orders/${encodeURIComponent(order.id)}`;
+        const email = this.getOrderStatusEmail(order, status);
+        const orderUrl = `${process.env.ORIGIN_CLIENT_URL}/customer/Orders/${encodeURIComponent(order.id)}`;
 
         const emailNotification = Promise.resolve().then(async () => {
             if (!customerEmail) {
@@ -312,31 +345,37 @@ export class PushService {
     }
 
     private static getOrderStatusEmail(
-        orderNumber: string,
+        order: {
+            id: string;
+            number: string;
+            customerUserId: string | null;
+            customerEmail: string | null;
+        },
         status: 'accepted' | 'cancelled' | 'ready'
     ): { subject: IMLString; text: IMLString } {
+        const orderLink = `${process.env.ORIGIN_CLIENT_URL}/customer/Orders/${encodeURIComponent(order.id)}`;
         if (status === 'accepted') {
             return {
                 subject: {
-                    default: `Order #${orderNumber} accepted`,
+                    default: `Order #${order.number} accepted\n ${orderLink}`,
                     ts: {
-                        de: `Bestellung Nr. ${orderNumber} angenommen`,
-                        fr: `Commande n° ${orderNumber} acceptée`,
-                        es: `Pedido n.º ${orderNumber} aceptado`,
-                        ru: `Заказ №${orderNumber} принят`,
-                        it: `Ordine n. ${orderNumber} accettato`,
-                        sr: `Porudžbina br. ${orderNumber} je prihvaćena`,
+                        de: `Bestellung Nr. ${order.number} angenommen\n ${orderLink}`,
+                        fr: `Commande n° ${order.number} acceptée\n ${orderLink}`,
+                        es: `Pedido n.º ${order.number} aceptado\n ${orderLink}`,
+                        ru: `Заказ №${order.number} принят\n ${orderLink}`,
+                        it: `Ordine n. ${order.number} accettato\n ${orderLink}`,
+                        sr: `Porudžbina br. ${order.number} je prihvaćena\n ${orderLink}`,
                     },
                 },
                 text: {
-                    default: `Your order #${orderNumber} has been accepted and is being prepared.`,
+                    default: `Your order #${order.number} has been accepted and is being prepared.\n ${orderLink}`,
                     ts: {
-                        de: `Ihre Bestellung Nr. ${orderNumber} wurde angenommen und wird vorbereitet.`,
-                        fr: `Votre commande n° ${orderNumber} a été acceptée et est en préparation.`,
-                        es: `Tu pedido n.º ${orderNumber} ha sido aceptado y está en preparación.`,
-                        ru: `Ваш заказ №${orderNumber} принят и передан в приготовление.`,
-                        it: `Il tuo ordine n. ${orderNumber} è stato accettato ed è in preparazione.`,
-                        sr: `Vaša porudžbina br. ${orderNumber} je prihvaćena i u pripremi.`,
+                        de: `Ihre Bestellung Nr. ${order.number} wurde angenommen und wird vorbereitet.\n ${orderLink}`,
+                        fr: `Votre commande n° ${order.number} a été acceptée et est en préparation.\n ${orderLink}`,
+                        es: `Tu pedido n.º ${order.number} ha sido aceptado y está en preparación.\n ${orderLink}`,
+                        ru: `Ваш заказ №${order.number} принят и передан в приготовление.\n ${orderLink}`,
+                        it: `Il tuo ordine n. ${order.number} è stato accettato ed è in preparazione.\n ${orderLink}`,
+                        sr: `Vaša porudžbina br. ${order.number} je prihvaćena i u pripremi.\n ${orderLink}`,
                     },
                 },
             };
@@ -344,50 +383,50 @@ export class PushService {
         if (status === 'ready') {
             return {
                 subject: {
-                    default: `Order #${orderNumber} is ready`,
+                    default: `Order #${order.number} is ready\n ${orderLink}`,
                     ts: {
-                        de: `Bestellung Nr. ${orderNumber} ist fertig`,
-                        fr: `Commande n° ${orderNumber} prête`,
-                        es: `Pedido n.º ${orderNumber} listo`,
-                        ru: `Заказ №${orderNumber} готов`,
-                        it: `Ordine n. ${orderNumber} pronto`,
-                        sr: `Porudžbina br. ${orderNumber} je spremna`,
+                        de: `Bestellung Nr. ${order.number} ist fertig\n ${orderLink}`,
+                        fr: `Commande n° ${order.number} prête\n ${orderLink}`,
+                        es: `Pedido n.º ${order.number} listo\n ${orderLink}`,
+                        ru: `Заказ №${order.number} готов\n ${orderLink}`,
+                        it: `Ordine n. ${order.number} pronto\n ${orderLink}`,
+                        sr: `Porudžbina br. ${order.number} je spremna\n ${orderLink}`,
                     },
                 },
                 text: {
-                    default: `Your order #${orderNumber} is ready.`,
+                    default: `Your order #${order.number} is ready.\n ${orderLink}`,
                     ts: {
-                        de: `Ihre Bestellung Nr. ${orderNumber} ist fertig.`,
-                        fr: `Votre commande n° ${orderNumber} est prête.`,
-                        es: `Tu pedido n.º ${orderNumber} está listo.`,
-                        ru: `Ваш заказ №${orderNumber} готов.`,
-                        it: `Il tuo ordine n. ${orderNumber} è pronto.`,
-                        sr: `Vaša porudžbina br. ${orderNumber} je spremna.`,
+                        de: `Ihre Bestellung Nr. ${order.number} ist fertig.\n ${orderLink}`,
+                        fr: `Votre commande n° ${order.number} est prête.\n ${orderLink}`,
+                        es: `Tu pedido n.º ${order.number} está listo.\n ${orderLink}`,
+                        ru: `Ваш заказ №${order.number} готов.\n ${orderLink}`,
+                        it: `Il tuo ordine n. ${order.number} è pronto.\n ${orderLink}`,
+                        sr: `Vaša porudžbina br. ${order.number} je spremna.\n ${orderLink}`,
                     },
                 },
             };
         }
         return {
             subject: {
-                default: `Order #${orderNumber} cancelled`,
+                default: `Order #${order.number} cancelled\n ${orderLink}`,
                 ts: {
-                    de: `Bestellung Nr. ${orderNumber} storniert`,
-                    fr: `Commande n° ${orderNumber} annulée`,
-                    es: `Pedido n.º ${orderNumber} cancelado`,
-                    ru: `Заказ №${orderNumber} отменён`,
-                    it: `Ordine n. ${orderNumber} annullato`,
-                    sr: `Porudžbina br. ${orderNumber} je otkazana`,
+                    de: `Bestellung Nr. ${order.number} storniert\n ${orderLink}`,
+                    fr: `Commande n° ${order.number} annulée\n ${orderLink}`,
+                    es: `Pedido n.º ${order.number} cancelado\n ${orderLink}`,
+                    ru: `Заказ №${order.number} отменён\n ${orderLink}`,
+                    it: `Ordine n. ${order.number} annullato\n ${orderLink}`,
+                    sr: `Porudžbina br. ${order.number} je otkazana\n ${orderLink}`,
                 },
             },
             text: {
-                default: `Your order #${orderNumber} has been cancelled.`,
+                default: `Your order #${order.number} has been cancelled.\n ${orderLink}`,
                 ts: {
-                    de: `Ihre Bestellung Nr. ${orderNumber} wurde storniert.`,
-                    fr: `Votre commande n° ${orderNumber} a été annulée.`,
-                    es: `Tu pedido n.º ${orderNumber} ha sido cancelado.`,
-                    ru: `Ваш заказ №${orderNumber} отменён.`,
-                    it: `Il tuo ordine n. ${orderNumber} è stato annullato.`,
-                    sr: `Vaša porudžbina br. ${orderNumber} je otkazana.`,
+                    de: `Ihre Bestellung Nr. ${order.number} wurde storniert.\n ${orderLink}`,
+                    fr: `Votre commande n° ${order.number} a été annulée.\n ${orderLink}`,
+                    es: `Tu pedido n.º ${order.number} ha sido cancelado.\n ${orderLink}`,
+                    ru: `Ваш заказ №${order.number} отменён.\n ${orderLink}`,
+                    it: `Il tuo ordine n. ${order.number} è stato annullato.\n ${orderLink}`,
+                    sr: `Vaša porudžbina br. ${order.number} je otkazana.\n ${orderLink}`,
                 },
             },
         };
@@ -399,15 +438,7 @@ export class PushService {
         url: string,
         lang?: string
     ) {
-        const publicVapidKey =
-            process.env.PUBLIC_VAPID_KEY || vapidKeys.publicKey;
-        const privateVapidKey =
-            process.env.PRIVATE_VAPID_KEY || vapidKeys.privateKey;
-        if (!publicVapidKey || !privateVapidKey) {
-            throw new Error(
-                'VAPID keys are not configured. Set PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY.'
-            );
-        }
+        configureVapidDetails();
         const user = await prisma.user.findFirst({
             where: { id: toUserId, blocked: false },
             select: {
