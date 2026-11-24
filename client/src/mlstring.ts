@@ -514,6 +514,39 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `I agree to the`,
+    new Map([
+      [`de`, 'Ich stimme zu:'],
+      [`fr`, "J'accepte"],
+      [`es`, 'Acepto'],
+      [`ru`, 'Я согласен с'],
+      [`it`, 'Accetto'],
+      [`sr`, 'Saglasan/saglasna sam sa'],
+    ]),
+  ],
+  [
+    `and`,
+    new Map([
+      [`de`, 'und'],
+      [`fr`, 'et'],
+      [`es`, 'y'],
+      [`ru`, 'и'],
+      [`it`, 'e'],
+      [`sr`, 'i'],
+    ]),
+  ],
+  [
+    `You must agree to the terms of use and delivery rules.`,
+    new Map([
+      [`de`, 'Sie müssen den Nutzungs- und Lieferbedingungen zustimmen.'],
+      [`fr`, "Vous devez accepter les conditions d'utilisation et de livraison."],
+      [`es`, 'Debe aceptar los términos de uso y las reglas de entrega.'],
+      [`ru`, 'Необходимо согласиться с правилами пользования и доставки.'],
+      [`it`, 'Devi accettare le condizioni di utilizzo e consegna.'],
+      [`sr`, 'Morate prihvatiti uslove korišćenja i pravila dostave.'],
+    ]),
+  ],
+  [
     `Ready by`,
     new Map([
       [`de`, 'Fertig bis'],

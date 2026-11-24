@@ -37,3 +37,21 @@
   background-color: #e5e7eb;
   cursor: pointer;
 }
+.using-rules-payment-logos {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+.using-rules-payment-logos img {
+  max-width: 130px;
+  max-height: 80px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}

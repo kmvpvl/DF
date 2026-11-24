@@ -44,6 +44,31 @@ export class UsingRules extends React.Component<
           biti poznat. Kao rezultat ove konverzije postoji mogućnost neznatne
           razlike od originalne cene navedene na našem sajtu.
         </p>
+        <div
+          className="using-rules-payment-logos"
+          aria-label="Podržane kartice i banke"
+        >
+          <img src="/assets/brand/payments/dinacard.png" alt="DinaCard" />
+          <img src="/assets/brand/payments/visa.svg" alt="Visa" />
+          <img src="/assets/brand/payments/ma_symbol.svg" alt="Mastercard" />
+          <img
+            src="/assets/brand/payments/verified-by-visa_mastercard_securecode-copy.png"
+            alt="Verified by Mastercard, Visa Secure, Dinacard Secure"
+          />
+          <img
+            src="/assets/brand/payments/postanska-stedionica.svg"
+            alt="Banka Poštanska štedionica"
+            style={{ backgroundColor: 'navy' }}
+          />
+          <img
+            src="/assets/brand/payments/narodna-banka-srbije.svg"
+            alt="Narodna banka Srbije"
+          />
+          <img
+            src="/assets/brand/payments/ips_logo.svg"
+            alt="IPS"
+          />
+        </div>
 
         <p>Izuzetak od prava na odustanak od ugovora (kvarljiva roba)</p>
         <p>

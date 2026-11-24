@@ -338,6 +338,7 @@ describe.sequential('BasketDrawer address lookup', () => {
     fireEvent.change(view.getByPlaceholderText('Phone'), {
       target: { value: '+381601234567' },
     });
+    fireEvent.click(view.getByRole('checkbox'));
 
     await act(async () => {
       fireEvent.submit(container.querySelector('#basket-order-form')!);

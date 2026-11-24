@@ -233,7 +233,7 @@ main {
 
 @media (max-width: 1024px) {
   .language-select-wrap {
-    display: none;
+    --display: none;
   }
 
   .navbar-brand-text {
@@ -292,6 +292,33 @@ main {
 
 .basket-order-top-action .btn-primary {
   width: 100%;
+}
+.basket-rules-agreement {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 0.55rem;
+  align-items: start;
+  margin-top: 0.65rem;
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.basket-rules-agreement input {
+  width: 18px;
+  height: 18px;
+  margin: 0.1rem 0 0;
+  accent-color: var(--primary);
+}
+.basket-rules-agreement button {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary-dark);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .basket-empty {

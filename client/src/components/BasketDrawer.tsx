@@ -52,6 +52,8 @@ interface BasketDrawerProps extends IProtoProps {
   onRemoveItem: (id: string, variantLabel?: string) => void;
   onSubmitOrder: (payload: OrderPayload) => Promise<void>;
   onPushSubscribe: () => void;
+  onOpenUsingRules?: () => void;
+  onOpenDeliveryRules?: () => void;
   disableConrols: boolean;
 }
 
@@ -75,6 +77,7 @@ interface BasketDrawerState extends IProtoState {
   loading: boolean;
   error: string;
   sent: boolean;
+  agreedToRules: boolean;
 }
 
 class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
@@ -157,6 +160,7 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
     loading: false,
     error: '',
     sent: false,
+    agreedToRules: false,
   };
 
   componentDidMount() {
@@ -556,6 +560,14 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
   private handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!this.state.agreedToRules) {
+      this.setState({
+        error: this.ML('You must agree to the terms of use and delivery rules.'),
+        sent: false,
+      });
+      return;
+    }
+
     const order = this.props.order;
     if (!order?.products.length) {
       this.setState({ error: this.ML('Basket is empty.'), sent: false });
@@ -710,7 +722,8 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                   this.state.loading ||
                   this.props.disableConrols ||
                   !this.props.order?.id ||
-                  deliveryTariffUnavailable
+                  deliveryTariffUnavailable ||
+                  !this.state.agreedToRules
                 }
               >
                 {this.state.loading
@@ -719,6 +732,27 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                     ? `${this.ML('Place order')} — ${plannedReadyLabel}`
                     : this.ML('Place order')}
               </button>
+              <label className="basket-rules-agreement">
+                <input
+                  type="checkbox"
+                  checked={this.state.agreedToRules}
+                  onChange={(event) =>
+                    this.setState({ agreedToRules: event.target.checked })
+                  }
+                />
+                <span>
+                  {this.ML('I agree to the')}
+                  {' '}
+                  <button type="button" onClick={this.props.onOpenUsingRules}>
+                    {this.ML('Terms of use, payment methods, and refund procedures')}
+                  </button>
+                  {' '}{this.ML('and')}
+                  {' '}
+                  <button type="button" onClick={this.props.onOpenDeliveryRules}>
+                    {this.ML('Review the delivery terms and conditions')}
+                  </button>
+                </span>
+              </label>
             </div>
           )}
 
