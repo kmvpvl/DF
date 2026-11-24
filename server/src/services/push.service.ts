@@ -2,16 +2,24 @@ import { IMLString, MLString } from '../lib/mlstring';
 import { prisma } from '../lib/prisma';
 import nodemailer, { Transporter } from 'nodemailer';
 import webpush from 'web-push';
+import { Prisma } from '@prisma/client';
 import { vapidKeys } from '../utils/common';
 import { GraphQLContext } from '../types/types';
 import { IPushMessage } from '../types/pushes';
 import { CompanyService } from './company.service';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
-webpush.setVapidDetails(
-    'mailto:admin@dolceforte.rs',
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-);
+const vapidSubject =
+    process.env.PUSH_VAPID_SUBJECT ||
+    process.env.SMTP_USER ||
+    'mailto:admin@dolceforte.rs';
+
+if (vapidKeys.publicKey && vapidKeys.privateKey) {
+    webpush.setVapidDetails(
+        vapidSubject,
+        vapidKeys.publicKey,
+        vapidKeys.privateKey
+    );
+}
 
 export class PushService {
     private static smtpTransporter: Transporter | null = null;
@@ -391,9 +399,19 @@ export class PushService {
         url: string,
         lang?: string
     ) {
+        const publicVapidKey =
+            process.env.PUBLIC_VAPID_KEY || vapidKeys.publicKey;
+        const privateVapidKey =
+            process.env.PRIVATE_VAPID_KEY || vapidKeys.privateKey;
+        if (!publicVapidKey || !privateVapidKey) {
+            throw new Error(
+                'VAPID keys are not configured. Set PUBLIC_VAPID_KEY and PRIVATE_VAPID_KEY.'
+            );
+        }
         const user = await prisma.user.findFirst({
             where: { id: toUserId, blocked: false },
             select: {
+                id: true,
                 pushSubscription: true,
                 lang: true,
             },
@@ -410,10 +428,31 @@ export class PushService {
             url: url, // Кастомное поле для роутинга
         });
 
-        await webpush.sendNotification(
-            user.pushSubscription as unknown as webpush.PushSubscription,
-            notificationPayload
-        );
+        try {
+            await webpush.sendNotification(
+                user.pushSubscription as unknown as webpush.PushSubscription,
+                notificationPayload,
+                {
+                    TTL: 24 * 60 * 60,
+                    urgency: 'normal',
+                }
+            );
+        } catch (error: unknown) {
+            const statusCode =
+                typeof error === 'object' &&
+                error !== null &&
+                'statusCode' in error
+                    ? Number((error as { statusCode?: unknown }).statusCode)
+                    : undefined;
+
+            if (statusCode === 404 || statusCode === 410) {
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { pushSubscription: Prisma.JsonNull },
+                });
+            }
+            throw error;
+        }
     }
     static async sendLocationManagers(
         ctx: GraphQLContext,

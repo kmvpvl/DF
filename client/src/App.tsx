@@ -675,38 +675,52 @@ class App extends Proto<AppProps, AppState> {
       return outputArray.buffer as ArrayBuffer;
     }
 
-    // Проверяем, запущено ли как PWA (standalone)
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' &&
+        typeof navigator.maxTouchPoints === 'number' &&
+        navigator.maxTouchPoints > 1);
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone;
+      (window.navigator as typeof window.navigator & { standalone?: boolean })
+        .standalone === true;
 
-    if (!isStandalone) {
+    // iOS exposes Web Push only while the PWA is launched in standalone mode.
+    // Android Chrome supports subscriptions in both installed PWA and browser mode.
+    if (isIOS && !isStandalone) {
       alert(
         "Для включения уведомлений на iOS сначала добавьте приложение на экран 'Домой' через меню 'Поделиться'!"
       );
       return;
     }
 
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
+    if (
+      'serviceWorker' in navigator &&
+      'PushManager' in window &&
+      'Notification' in window
+    ) {
       try {
-        // 1. Регистрируем SW
         const registration = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
 
-        // 2. Запрашиваем права (строго по клику!)
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           console.error('Права на уведомления не получены');
           return;
         }
 
-        // 3. Получаем публичный VAPID-ключ от вашего Node.js бэкенда
         const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY;
+        if (!VAPID_PUBLIC_KEY) {
+          throw new Error('VITE_PUBLIC_VAPID_KEY is not configured');
+        }
 
-        // 4. Подписываемся в Apple Push Service (APNs) через браузерный API
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        }
         console.log(subscription);
 
         const MUTATION_ADD_PUSH_SUBSCRIPTION = `

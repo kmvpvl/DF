@@ -8,6 +8,11 @@ const mocks = vi.hoisted(() => ({
     findFirst: vi.fn(),
 }));
 
+process.env.PUBLIC_VAPID_KEY =
+    'BLQ3s8vSmQmVAPID_TEST_PUBLIC_KEY_abcdefghijklmnop';
+process.env.PRIVATE_VAPID_KEY =
+    'test-private-vapid-key';
+
 vi.mock('nodemailer', () => ({
     default: { createTransport: mocks.createTransport },
 }));
@@ -133,7 +138,11 @@ describe('PushService notifications', () => {
         );
         expect(mocks.sendNotification).toHaveBeenCalledWith(
             expect.anything(),
-            expect.stringContaining('/customer/Orders/order-1')
+            expect.stringContaining('/customer/Orders/order-1'),
+            expect.objectContaining({
+                TTL: 24 * 60 * 60,
+                urgency: 'normal',
+            })
         );
     });
 
@@ -157,7 +166,11 @@ describe('PushService notifications', () => {
         );
         expect(mocks.sendNotification).toHaveBeenCalledWith(
             expect.anything(),
-            expect.stringContaining('Заказ №1002 готов.')
+            expect.stringContaining('Заказ №1002 готов.'),
+            expect.objectContaining({
+                TTL: 24 * 60 * 60,
+                urgency: 'normal',
+            })
         );
     });
 });
