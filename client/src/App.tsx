@@ -66,24 +66,7 @@ const SESSION_USER_QUERY = `
       deliveryAddress
       pushSubscription
     }
-    companyInfo {
-        id
-        name
-        locations {
-          id
-          name
-          timezone
-          currencyCode
-          currencySymbol
-          availablePaymentMethods
-          availableShippingMethods
-          createdAt
-          updatedAt
-        }
-        createdAt
-        updatedAt
-      }
-    }
+  }
 `;
 
 const SEND_ORDER_BY_EMAIL_MUTATION = `
@@ -94,6 +77,23 @@ const SEND_ORDER_BY_EMAIL_MUTATION = `
 
 const QUERY_PUBLIC_STOCKS = `
 query {
+  companyInfo {
+    id
+    name
+    locations {
+      id
+      name
+      timezone
+      currencyCode
+      currencySymbol
+      availablePaymentMethods
+      availableShippingMethods
+      createdAt
+      updatedAt
+    }
+    createdAt
+    updatedAt
+  }
   getPublicProductsWithStock {
     ${PUBLIC_PRODUCT_FIELDS}
     stockBalances {
@@ -166,13 +166,16 @@ class App extends Proto<AppProps, AppState> {
   async fetchProducts() {
     try {
       const data = await this.gql<{
+        companyInfo: ICompany | null;
         getPublicProductsWithStock: PublicProductData[];
       }>(QUERY_PUBLIC_STOCKS);
-      const products = data.getPublicProductsWithStock;
+      const { companyInfo, getPublicProductsWithStock } = data;
       this.setState(
         {
           ...this.state,
-          products,
+          companyInfo,    
+          currentLocation: companyInfo?.locations[0].id,
+          products: getPublicProductsWithStock,
         },
         () => {}
       );
@@ -257,8 +260,6 @@ class App extends Proto<AppProps, AppState> {
         this.setState(
           {
             user: data.sessionUser,
-            companyInfo: data.companyInfo,
-            currentLocation: data.companyInfo?.locations[0].id,
           },
           () => {
             this.getReserves();
@@ -739,7 +740,7 @@ class App extends Proto<AppProps, AppState> {
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
           });
         }
-        console.log(subscription);
+        //console.log(subscription);
 
         const MUTATION_ADD_PUSH_SUBSCRIPTION = `
           mutation UpdateSessionUser($input: UpdateSessionUserInput!) {

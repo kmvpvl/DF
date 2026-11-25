@@ -417,6 +417,15 @@ export class ProductService {
             where: {
                 isPublic: true,
                 companyId: companyId,
+                variants: {
+                    some: {
+                        locationPrices: {
+                            some: {
+                                locationId: locationId ? locationId : ctx.locationId,
+                            },
+                        },
+                    },
+                },
             },
             include: {
                 stockBalances: true,

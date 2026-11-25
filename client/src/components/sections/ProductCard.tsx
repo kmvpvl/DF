@@ -15,23 +15,19 @@ interface ProductCardProps extends IProtoProps {
 }
 
 interface ProductCardState extends IProtoState {
-  availableProduct: PublicProductData;
   variantSelected?: string;
 }
 
 export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
   state: ProductCardState = {
-    availableProduct: {
-      ...this.props.product,
-      variants: this.props.product.variants.filter((v) =>
+    variantSelected: this.props.product.variants.filter((v) =>
         this.props.product.stockBalances.some(
           (s) =>
             s.variantLabel ===
               (typeof v.label === 'string' ? v.label : v.label.default) &&
             s.physical_balance - s.reserved_balance > 0
         )
-      ),
-    },
+      )[0]?.id ?? this.props.product.variants[0]?.id,
   };
   static isAvailable(product: PublicProductData) {
     return product.variants.some((variant) =>
@@ -44,14 +40,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
           stock.physical_balance - stock.reserved_balance > 0
       )
     );
-  }
-  componentDidMount(): void {
-    if (this.state.variantSelected === undefined) {
-      this.setState((prevState) => ({
-        ...prevState,
-        variantSelected: prevState.availableProduct.variants[0]?.id,
-      }));
-    }
   }
 
   protected effectivePrice(p?: IPriceDetail) {
@@ -80,7 +68,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
 
   render() {
     const { product, onAddToBasket } = this.props;
-    let lDPrice: IPriceDetail;
     return (
       <div className="product-card">
         {product.photos && product.photos.length > 0 && (
@@ -110,7 +97,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
               const lPrice = variant.locationPrices.find(
                 (l) => l.locationId === this.props.currentLocation
               );
-              lDPrice = lDPrice;
               const variantStocks = product.stockBalances.find(
                 (s) =>
                   s.variantLabel ===
@@ -118,7 +104,6 @@ export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
                     ? variant.label
                     : variant.label.default)
               );
-
               return !this.props.showOnlyInStock ||
                 (variantStocks &&
                   variantStocks.physical_balance -
