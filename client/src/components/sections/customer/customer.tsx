@@ -3,7 +3,7 @@ import './customer.css';
 import { SLIM_PRODUCT_FIELDS } from '../Products';
 import { IOrder } from '../Orders';
 
-const CUSTOMER_CHAPTERS = ['Orders'/*, 'Conversations', 'Settings'*/];
+const CUSTOMER_CHAPTERS = ['Orders' /*, 'Conversations', 'Settings'*/];
 const ORDER_QUERY_BY_ID = `
   query order ($orderId: String!) {
     order (orderId: $orderId) {

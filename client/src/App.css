@@ -893,6 +893,14 @@ main {
   display: -webkit-box;
   -webkit-box-orient: vertical;
 }
+.published-product::before {
+  content: '✔️';
+  margin-right: 0.35rem;
+  display: inline-block;
+  color: #1b7f4a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
 .batch-select {
   width: 100%;
 }
@@ -1866,7 +1874,8 @@ textarea.form-input {
 
 .footer div span {
   cursor: pointer;
-  text-decoration: underline;}
+  text-decoration: underline;
+}
 
 /* ── Auth Modal ─────────────────────────────────── */
 .modal-overlay {

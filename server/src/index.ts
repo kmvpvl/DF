@@ -669,6 +669,20 @@ const resolvers = {
 
             return true;
         },
+        publishProduct: async (
+            _: unknown,
+            { productId }: { productId: string },
+            ctx: GraphQLContext
+        ) => {
+            return await ProductService.publish(ctx, productId, true);
+        },
+        hideProduct: async (
+            _: unknown,
+            { productId }: { productId: string },
+            ctx: GraphQLContext
+        ) => {
+            return await ProductService.publish(ctx, productId, false);
+        },
         createEquipment: async (
             _: unknown,
             { input }: { input: CreateEquipmentInput },

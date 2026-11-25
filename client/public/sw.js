@@ -29,13 +29,13 @@ self.addEventListener('notificationclick', (event) => {
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
         if (clientList.length > 0) {
-          const matchingClient = clientList.find((client) =>
-            new URL(client.url).origin === self.location.origin
+          const matchingClient = clientList.find(
+            (client) => new URL(client.url).origin === self.location.origin
           );
           if (matchingClient) {
-            return matchingClient.navigate(target).then((client) =>
-              client ? client.focus() : undefined
-            );
+            return matchingClient
+              .navigate(target)
+              .then((client) => (client ? client.focus() : undefined));
           }
           return clientList[0].focus();
         }

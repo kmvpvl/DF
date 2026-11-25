@@ -531,4 +531,22 @@ export class ProductService {
             return productConfig;
         });
     }
+    static async publish(ctx: GraphQLContext, productId: string, publishOrHide?: boolean) {
+        await authorize(ctx, Role.MANAGER);
+        return await prisma.product.update ({
+            where: {id: productId},
+            data: {
+                isPublic: publishOrHide??true
+            },
+            include: {
+                variants: {
+                    include: {
+                        locationPrices: true,
+                    },
+                },
+                modifierGroups: true,
+                comboItems: true,
+            }
+        })
+    }
 }

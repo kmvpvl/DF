@@ -562,7 +562,9 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
 
     if (!this.state.agreedToRules) {
       this.setState({
-        error: this.ML('You must agree to the terms of use and delivery rules.'),
+        error: this.ML(
+          'You must agree to the terms of use and delivery rules.'
+        ),
         sent: false,
       });
       return;
@@ -649,12 +651,15 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
         note: note || undefined,
       });
 
-      this.setState({
-        loading: false,
-        error: '',
-        sent: true,
-        note: '',
-      }, () => setTimeout(() => this.props.onClose(), 3000));
+      this.setState(
+        {
+          loading: false,
+          error: '',
+          sent: true,
+          note: '',
+        },
+        () => setTimeout(() => this.props.onClose(), 3000)
+      );
     } catch (error: unknown) {
       this.setState({
         loading: false,
@@ -741,14 +746,17 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
                   }
                 />
                 <span>
-                  {this.ML('I agree to the')}
-                  {' '}
+                  {this.ML('I agree to the')}{' '}
                   <button type="button" onClick={this.props.onOpenUsingRules}>
-                    {this.ML('Terms of use, payment methods, and refund procedures')}
-                  </button>
-                  {' '}{this.ML('and')}
-                  {' '}
-                  <button type="button" onClick={this.props.onOpenDeliveryRules}>
+                    {this.ML(
+                      'Terms of use, payment methods, and refund procedures'
+                    )}
+                  </button>{' '}
+                  {this.ML('and')}{' '}
+                  <button
+                    type="button"
+                    onClick={this.props.onOpenDeliveryRules}
+                  >
                     {this.ML('Review the delivery terms and conditions')}
                   </button>
                 </span>

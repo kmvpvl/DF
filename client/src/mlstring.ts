@@ -539,7 +539,10 @@ export const mlStrings = new Map([
     `You must agree to the terms of use and delivery rules.`,
     new Map([
       [`de`, 'Sie müssen den Nutzungs- und Lieferbedingungen zustimmen.'],
-      [`fr`, "Vous devez accepter les conditions d'utilisation et de livraison."],
+      [
+        `fr`,
+        "Vous devez accepter les conditions d'utilisation et de livraison.",
+      ],
       [`es`, 'Debe aceptar los términos de uso y las reglas de entrega.'],
       [`ru`, 'Необходимо согласиться с правилами пользования и доставки.'],
       [`it`, 'Devi accettare le condizioni di utilizzo e consegna.'],
@@ -2306,9 +2309,15 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Для включения уведомлений на iOS сначала добавьте приложение на экран "Домой" через меню "Поделиться"!'],
+      [
+        `ru`,
+        'Для включения уведомлений на iOS сначала добавьте приложение на экран "Домой" через меню "Поделиться"!',
+      ],
       [`it`, undefined],
-      [`sr`, 'Да бисте добили push обавештења на iOS, инсталирајте апликацију на екрану "Почетна" и отворите је од тамо.'],
+      [
+        `sr`,
+        'Да бисте добили push обавештења на iOS, инсталирајте апликацију на екрану "Почетна" и отворите је од тамо.',
+      ],
     ]),
   ],
   [

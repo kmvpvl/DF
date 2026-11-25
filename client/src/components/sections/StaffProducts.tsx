@@ -2159,6 +2159,41 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     }));
   };
 
+  private publishProduct = async (productId: string, publish: boolean) => {
+    this.setState({ saving: true, error: null });
+    try {
+      const data = await this.gql<{
+        publishProduct: StaffProductData;
+        hideProduct: StaffProductData;
+      }>(
+        `mutation PublishProduct($productId: ID!) {
+          ${publish ? 'publishProduct' : 'hideProduct'}(productId: $productId) {
+            ${ALL_PRODUCT_FIELDS}
+          }
+        }`,
+        { productId }
+      );
+      const updated = data.publishProduct ?? data.hideProduct;
+      this.setState(
+        (prevState) => ({
+          saving: false,
+          products: prevState.products
+            .map((product) => (product.id === updated.id ? updated : product))
+            .sort((a, b) =>
+              new MLString(a.name)
+                .toString()
+                .localeCompare(new MLString(b.name).toString())
+            ),
+        }),
+        () => {
+          //this.triggerProductTableAutoCostCalculation();
+        }
+      );
+    } catch (error) {
+      this.setState({ saving: false, error: String(error) });
+    }
+  };
+
   render() {
     const {
       products,
@@ -3247,7 +3282,13 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                   products.map((product) => (
                     <tr key={product.id}>
                       <td>
-                        <strong>{this.toString(product.name)}</strong>
+                        <strong
+                          className={
+                            product.isPublic ? 'published-product' : ''
+                          }
+                        >
+                          {this.toString(product.name)}
+                        </strong>
                         <div className="material-description">
                           {this.toString(product.description)}
                         </div>
@@ -3276,6 +3317,14 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                           onClick={() => this.openEditForm(product)}
                         >
                           Edit
+                        </button>
+                        <button
+                          className="cj-btn-sm"
+                          onClick={() =>
+                            this.publishProduct(product.id, !product.isPublic)
+                          }
+                        >
+                          {product.isPublic ? 'Hide' : 'Publish'}
                         </button>
                       </td>
                     </tr>

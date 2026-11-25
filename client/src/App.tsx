@@ -689,7 +689,9 @@ class App extends Proto<AppProps, AppState> {
     // Android Chrome supports subscriptions in both installed PWA and browser mode.
     if (isIOS && !isStandalone) {
       alert(
-        this.ML("To receive push notifications on iOS, please install the app to your home screen and open it from there.")
+        this.ML(
+          'To receive push notifications on iOS, please install the app to your home screen and open it from there.'
+        )
       );
       return;
     }
@@ -945,47 +947,55 @@ class App extends Proto<AppProps, AppState> {
           ).toString()}
           <div>
             <span
-              onClick={() => this.setState({ showTermsOfUse: !this.state.showTermsOfUse })}
+              onClick={() =>
+                this.setState({ showTermsOfUse: !this.state.showTermsOfUse })
+              }
             >
-              {this.ML('Terms of use, payment methods, and refund procedures').toString()}
+              {this.ML(
+                'Terms of use, payment methods, and refund procedures'
+              ).toString()}
             </span>
             <span
-              onClick={() => this.setState({ showPrivacyPolicy: !this.state.showPrivacyPolicy })}
+              onClick={() =>
+                this.setState({
+                  showPrivacyPolicy: !this.state.showPrivacyPolicy,
+                })
+              }
             >
               {this.ML('Privacy Policy').toString()}
             </span>
             <span
-              onClick={() => this.setState({ showDeliveryRules: !this.state.showDeliveryRules })}
+              onClick={() =>
+                this.setState({
+                  showDeliveryRules: !this.state.showDeliveryRules,
+                })
+              }
             >
               {this.ML('Review the delivery terms and conditions').toString()}
             </span>
           </div>
-                  <div
-          className="using-rules-payment-logos"
-          aria-label="Podržane kartice i banke"
-        >
-          <img src="/assets/brand/payments/dinacard.png" alt="DinaCard" />
-          <img src="/assets/brand/payments/visa.svg" alt="Visa" />
-          <img src="/assets/brand/payments/ma_symbol.svg" alt="Mastercard" />
-          <img
-            src="/assets/brand/payments/verified-by-visa_mastercard_securecode-copy.png"
-            alt="Verified by Mastercard, Visa Secure, Dinacard Secure"
-          />
-          <img
-            src="/assets/brand/payments/postanska-stedionica.svg"
-            alt="Banka Poštanska štedionica"
-            style={{ backgroundColor: 'navy' }}
-          />
-          <img
-            src="/assets/brand/payments/narodna-banka-srbije.svg"
-            alt="Narodna banka Srbije"
-          />
-          <img
-            src="/assets/brand/payments/ips_logo.svg"
-            alt="IPS"
-          />
-        </div>
-
+          <div
+            className="using-rules-payment-logos"
+            aria-label="Podržane kartice i banke"
+          >
+            <img src="/assets/brand/payments/dinacard.png" alt="DinaCard" />
+            <img src="/assets/brand/payments/visa.svg" alt="Visa" />
+            <img src="/assets/brand/payments/ma_symbol.svg" alt="Mastercard" />
+            <img
+              src="/assets/brand/payments/verified-by-visa_mastercard_securecode-copy.png"
+              alt="Verified by Mastercard, Visa Secure, Dinacard Secure"
+            />
+            <img
+              src="/assets/brand/payments/postanska-stedionica.svg"
+              alt="Banka Poštanska štedionica"
+              style={{ backgroundColor: 'navy' }}
+            />
+            <img
+              src="/assets/brand/payments/narodna-banka-srbije.svg"
+              alt="Narodna banka Srbije"
+            />
+            <img src="/assets/brand/payments/ips_logo.svg" alt="IPS" />
+          </div>
         </footer>
         {authOpen && (
           <AuthModal
@@ -1011,9 +1021,7 @@ class App extends Proto<AppProps, AppState> {
           onSubmitOrder={this.handleSubmitOrder}
           onPushSubscribe={this.subscribeUserToPush.bind(this)}
           onOpenUsingRules={() => this.setState({ showTermsOfUse: true })}
-          onOpenDeliveryRules={() =>
-            this.setState({ showDeliveryRules: true })
-          }
+          onOpenDeliveryRules={() => this.setState({ showDeliveryRules: true })}
           disableConrols={this.state.isLoadingBasket}
         />
         {this.state.showDeliveryRules && (

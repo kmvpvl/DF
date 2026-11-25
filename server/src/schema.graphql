@@ -988,4 +988,6 @@ type Mutation {
     createOrder(input: CreateOrderInput!): Order!
     updateOrder(input: UpdateOrderInput!): Order!
     draft(input: CreateOrderInput!): Order!
+    hideProduct(productId: ID!): Product!
+    publishProduct(productId: ID!): Product!
 }
