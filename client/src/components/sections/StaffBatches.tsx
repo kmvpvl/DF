@@ -1,6 +1,7 @@
 import { IMLString, MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
+import './StaffBatches.css';
 
 const INITIAL_QUERY = `
   query {
@@ -117,7 +118,7 @@ const UPDATE_BATCH_MUTATION = `
 
 interface BatchProductOption {
   id: string;
-  name: string;
+  name: IMLString;
   batchPrefix: string;
   variants: {
     id: string;
@@ -713,248 +714,287 @@ class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
 
           {(adding || editingBatch) && (
             <form
-              className="material-form"
+              className="material-form batch-edit-form"
               onSubmit={(event) => {
                 event.preventDefault();
                 void this.saveBatch();
               }}
             >
               {adding ? (
-                <div className="material-grid">
-                  <label className="cj-label">
-                    Product
-                    <select
-                      className="cj-select batch-select"
-                      value={form.productId}
-                      onChange={(event) => {
-                        void this.handleCreateProductChange(event.target.value);
-                      }}
-                      required
-                    >
-                      <option value="">Select product</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {this.toString(product.name)} ({product.batchPrefix})
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="cj-label">
-                    Variant
-                    <select
-                      className="cj-select"
-                      onClick={(event) =>
-                        this.setState({
-                          ...this.state,
-                          form: {
-                            ...this.state.form,
-                            variantLabel: event.currentTarget.value,
-                          },
-                        })
-                      }
-                    >
-                      <option>Select variant</option>
-                      {product ? (
-                        product.variants.map((v) => (
-                          <option
-                            key={v.id}
-                            value={
-                              typeof v.label === 'string'
-                                ? v.label
-                                : v.label.default
-                            }
-                          >
-                            {`${this.toString(v.label)} - ${v.weight}${v.weightUnit}`}
-                          </option>
-                        ))
-                      ) : (
-                        <></>
-                      )}
-                    </select>
-                  </label>
-                </div>
-              ) : (
-                <div className="batch-preview-box">
-                  <strong>Product:</strong> {editingBatch?.product.name} (
-                  {editingBatch?.product.batchPrefix})
-                  <br />
-                  <strong>Batch number:</strong> {editingBatch?.numberStr}
-                </div>
-              )}
-
-              <div className="material-grid-3">
-                {adding && this.renderBatchPreview()}
-
-                {form.productId && (
-                  <div className="cj-label">
-                    <span>Process map</span>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '8px',
-                        alignItems: 'center',
-                        marginTop: '4px',
-                      }}
-                    >
+                <section className="batch-form-section">
+                  <div className="batch-section-heading">
+                    <h3>Product and variant</h3>
+                    <p>
+                      Select the product and, if needed, a specific variant.
+                    </p>
+                  </div>
+                  <div className="batch-product-grid">
+                    <label className="cj-label">
+                      Product
                       <select
                         className="cj-select batch-select"
-                        value={form.processMapId}
-                        disabled={processMapLoading}
-                        onChange={(event) =>
-                          this.setState({
-                            form: { ...form, processMapId: event.target.value },
-                            calculatedIngredients: [],
-                            calculatedProcessMapName: '',
-                            calculatedInputWeight: null,
-                            calculatedRateOfLoss: null,
-                          })
-                        }
+                        value={form.productId}
+                        onChange={(event) => {
+                          void this.handleCreateProductChange(
+                            event.target.value
+                          );
+                        }}
+                        required
                       >
-                        <option value="">None</option>
-                        {processMaps.map((pm) => (
-                          <option key={pm.id} value={pm.id}>
-                            {pm.name}
+                        <option value="">Select product</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {this.toString(product.name)} ({product.batchPrefix}
+                            )
                           </option>
                         ))}
                       </select>
+                    </label>
+                    <label className="cj-label">
+                      Variant
+                      <select
+                        className="cj-select batch-select"
+                        onClick={(event) =>
+                          this.setState({
+                            ...this.state,
+                            form: {
+                              ...this.state.form,
+                              variantLabel: event.currentTarget.value,
+                            },
+                          })
+                        }
+                      >
+                        <option>Select variant</option>
+                        {product ? (
+                          product.variants.map((v) => (
+                            <option
+                              key={v.id}
+                              value={
+                                typeof v.label === 'string'
+                                  ? v.label
+                                  : v.label.default
+                              }
+                            >
+                              {`${this.toString(v.label)} - ${v.weight}${v.weightUnit}`}
+                            </option>
+                          ))
+                        ) : (
+                          <></>
+                        )}
+                      </select>
+                    </label>
+                  </div>
+                  {this.renderBatchPreview()}
+                </section>
+              ) : (
+                <section className="batch-form-section">
+                  <div className="batch-section-heading">
+                    <h3>Batch details</h3>
+                    <p>The product and batch number cannot be changed here.</p>
+                  </div>
+                  <div className="batch-preview-box batch-edit-identity">
+                    <div>
+                      <span>Product</span>
+                      <strong>
+                        {`${this.toString(editingBatch?.product.name)} (${editingBatch?.product.batchPrefix})`}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Batch number</span>
+                      <strong>{editingBatch?.numberStr}</strong>
                     </div>
                   </div>
-                )}
-                {adding && calculatedIngredients.length > 0 ? (
-                  this.renderCalculatedIngredients()
-                ) : (
-                  <div></div>
-                )}
-                <label className="cj-label">
-                  Netto weight
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.nettoWeight}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, nettoWeight: event.target.value },
-                        calculatedIngredients: [],
-                        calculatedProcessMapName: '',
-                        calculatedInputWeight: null,
-                        calculatedRateOfLoss: null,
-                      })
-                    }
-                    required
-                  />
-                  {adding && (
-                    <button
-                      type="button"
-                      className="btn-outline"
-                      style={{ marginTop: '8px' }}
-                      onClick={this.calculateIngredientsForBatch}
-                    >
-                      Calculate ingredients
-                    </button>
+                </section>
+              )}
+
+              <section className="batch-form-section">
+                <div className="batch-section-heading">
+                  <h3>Production details</h3>
+                  <p>Process map, finished weight and storage duration.</p>
+                </div>
+                <div className="batch-production-grid">
+                  {form.productId && (
+                    <div className="cj-label">
+                      <span>Process map</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          marginTop: '4px',
+                        }}
+                      >
+                        <select
+                          className="cj-select batch-select"
+                          value={form.processMapId}
+                          disabled={processMapLoading}
+                          onChange={(event) =>
+                            this.setState({
+                              form: {
+                                ...form,
+                                processMapId: event.target.value,
+                              },
+                              calculatedIngredients: [],
+                              calculatedProcessMapName: '',
+                              calculatedInputWeight: null,
+                              calculatedRateOfLoss: null,
+                            })
+                          }
+                        >
+                          <option value="">None</option>
+                          {processMaps.map((pm) => (
+                            <option key={pm.id} value={pm.id}>
+                              {pm.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   )}
-                </label>
-
-                <label className="cj-label">
-                  Storage duration (days)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    min="0"
-                    value={form.storageDurationDays}
-                    onChange={(event) =>
-                      this.setState({
-                        form: {
-                          ...form,
-                          storageDurationDays: event.target.value,
-                        },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                {adding && (
                   <label className="cj-label">
-                    New samples count
+                    Netto weight
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.nettoWeight}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, nettoWeight: event.target.value },
+                          calculatedIngredients: [],
+                          calculatedProcessMapName: '',
+                          calculatedInputWeight: null,
+                          calculatedRateOfLoss: null,
+                        })
+                      }
+                      required
+                    />
+                    {adding && (
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        style={{ marginTop: '8px' }}
+                        onClick={this.calculateIngredientsForBatch}
+                      >
+                        Calculate ingredients
+                      </button>
+                    )}
+                  </label>
+
+                  <label className="cj-label">
+                    Storage duration (days)
                     <input
                       className="cj-input material-input"
                       type="number"
                       step="1"
                       min="0"
-                      value={form.sampleCount}
+                      value={form.storageDurationDays}
                       onChange={(event) =>
                         this.setState({
-                          form: { ...form, sampleCount: event.target.value },
+                          form: {
+                            ...form,
+                            storageDurationDays: event.target.value,
+                          },
                         })
                       }
                       required
                     />
                   </label>
-                )}
-              </div>
 
-              <label className="cj-label">
-                Storage condition
-                <select
-                  className="cj-select batch-select"
-                  value={form.storageConditionId}
-                  onChange={(event) =>
-                    this.setState({
-                      form: {
-                        ...form,
-                        storageConditionId: event.target.value,
-                        storageConditionName: event.target.value
-                          ? ''
-                          : form.storageConditionName,
-                      },
-                    })
-                  }
-                >
-                  <option value="">Enter manually</option>
-                  {storageConditions.map((condition) => (
-                    <option key={condition.id} value={condition.id}>
-                      {condition.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {adding && (
+                    <label className="cj-label">
+                      New samples count
+                      <input
+                        className="cj-input material-input"
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={form.sampleCount}
+                        onChange={(event) =>
+                          this.setState({
+                            form: { ...form, sampleCount: event.target.value },
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                  )}
+                </div>
+                {adding && calculatedIngredients.length > 0
+                  ? this.renderCalculatedIngredients()
+                  : null}
+              </section>
 
-              {!form.storageConditionId && (
-                <label className="cj-label">
-                  New storage condition
-                  <input
-                    className="cj-input batch-input-wide"
-                    type="text"
-                    value={form.storageConditionName}
-                    onChange={(event) =>
-                      this.setState({
-                        form: {
-                          ...form,
-                          storageConditionName: event.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Enter storage condition name"
-                  />
-                </label>
-              )}
+              <section className="batch-form-section">
+                <div className="batch-section-heading">
+                  <h3>Storage and notes</h3>
+                  <p>Choose the storage condition and record deviations.</p>
+                </div>
+                <div className="batch-storage-grid">
+                  <label className="cj-label">
+                    Storage condition
+                    <select
+                      className="cj-select batch-select"
+                      value={form.storageConditionId}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            storageConditionId: event.target.value,
+                            storageConditionName: event.target.value
+                              ? ''
+                              : form.storageConditionName,
+                          },
+                        })
+                      }
+                    >
+                      <option value="">Enter manually</option>
+                      {storageConditions.map((condition) => (
+                        <option key={condition.id} value={condition.id}>
+                          {condition.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="cj-label">
-                Process deviations
-                <textarea
-                  className="cj-input material-textarea"
-                  value={form.processDeviations}
-                  onChange={(event) =>
-                    this.setState({
-                      form: { ...form, processDeviations: event.target.value },
-                    })
-                  }
-                />
-              </label>
+                  {!form.storageConditionId && (
+                    <label className="cj-label">
+                      New storage condition
+                      <input
+                        className="cj-input batch-input-wide"
+                        type="text"
+                        value={form.storageConditionName}
+                        onChange={(event) =>
+                          this.setState({
+                            form: {
+                              ...form,
+                              storageConditionName: event.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Enter storage condition name"
+                      />
+                    </label>
+                  )}
+                  <label className="cj-label batch-deviations-field">
+                    Process deviations
+                    <textarea
+                      className="cj-input material-textarea"
+                      value={form.processDeviations}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            processDeviations: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </section>
 
-              <div className="material-actions">
+              <div className="material-actions batch-form-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
                   {saving
                     ? 'Saving...'
