@@ -8,6 +8,7 @@ import { MLSTRING_FIELDS } from '../../types/gql';
 import { ALL_PRODUCT_FIELDS } from './Products';
 import { IProductVariant, ProductBaseData } from '@betypes/product';
 import ProductVariantEditor from '../productVariantEditor/ProductVariantEditor';
+import './StaffProducts.css';
 
 const PRODUCTS_QUERY = `
   query {
@@ -2275,222 +2276,241 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
           {(adding || editingProduct) && (
             <form
-              className="material-form"
+              className="material-form product-edit-form"
               onSubmit={(event) => {
                 event.preventDefault();
                 void this.saveProduct();
               }}
             >
-              <div className="material-grid">
-                <label className="cj-label">
-                  <MLStringEditor
-                    caption="Name"
-                    className="cj-input material-input"
-                    //type="text"
-                    defaultValue={form.name}
-                    onChange={(val) =>
-                      this.setState({ form: { ...form, name: val } })
-                    }
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Batch prefix
-                  <input
-                    className="cj-input material-input"
-                    type="text"
-                    value={form.batchPrefix}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, batchPrefix: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-              </div>
-              <label className="cj-label">
-                <MLStringEditor
-                  className="cj-input material-textarea"
-                  caption="Description"
-                  defaultValue={form.description}
-                  onChange={(val) =>
-                    this.setState({ form: { ...form, description: val } })
-                  }
-                  lines={3}
-                />
-              </label>
-
-              {editingProduct && (
-                <div style={{ marginBottom: '8px' }}>
-                  <button
-                    type="button"
-                    className="btn-outline"
-                    disabled={processMaps.length === 0 || processMapLoading}
-                    onClick={this.calculateNutritionsFromComposition}
-                  >
-                    Calculate nutritions by composition
-                  </button>
-                </div>
-              )}
-
-              <div className="material-grid-3">
-                <label className="cj-label">
-                  Calories (kcal)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.caloriesKcal}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, caloriesKcal: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Fat (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.fatGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, fatGrams: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Protein (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.proteinGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, proteinGrams: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Carbohydrates (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.carbohydratesGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: {
-                          ...form,
-                          carbohydratesGrams: event.target.value,
-                        },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Sugars (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.sugarsGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, sugarsGrams: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Fiber (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.fiberGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, fiberGrams: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Salt (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.saltGrams}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, saltGrams: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-                <label className="cj-label">
-                  Standard Dose, g
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.standardDose}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, standardDose: event.target.value },
-                      })
-                    }
-                    required
-                  />
-                </label>
-                <label className="cj-label">
-                  Production duration, hours
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={form.productionHours}
-                    onChange={(event) =>
-                      this.setState({
-                        form: {
-                          ...form,
-                          productionHours: event.target.value,
-                        },
-                      })
-                    }
-                    required
-                  />
-                </label>
-              </div>
-              <div>
-                <div>Customer information</div>
-                <div className="material-grid-3">
+              <section className="product-form-section">
+                <div className="product-form-section-header">
                   <div>
+                    <h3>Product details</h3>
+                    <p>Name, batch prefix and customer-facing description.</p>
+                  </div>
+                </div>
+                <div className="product-details-grid">
+                  <label className="cj-label">
+                    <MLStringEditor
+                      caption="Name"
+                      className="cj-input material-input"
+                      //type="text"
+                      defaultValue={form.name}
+                      onChange={(val) =>
+                        this.setState({ form: { ...form, name: val } })
+                      }
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Batch prefix
+                    <input
+                      className="cj-input material-input"
+                      type="text"
+                      value={form.batchPrefix}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, batchPrefix: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label product-description-field">
+                    <MLStringEditor
+                      className="cj-input material-textarea"
+                      caption="Description"
+                      defaultValue={form.description}
+                      onChange={(val) =>
+                        this.setState({ form: { ...form, description: val } })
+                      }
+                      lines={3}
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Nutrition &amp; production</h3>
+                    <p>Product composition values and production settings.</p>
+                  </div>
+                  {editingProduct && (
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      disabled={processMaps.length === 0 || processMapLoading}
+                      onClick={this.calculateNutritionsFromComposition}
+                    >
+                      Calculate from composition
+                    </button>
+                  )}
+                </div>
+                <div className="product-nutrition-grid">
+                  <label className="cj-label">
+                    Calories (kcal)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.caloriesKcal}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, caloriesKcal: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Fat (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.fatGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, fatGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Protein (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.proteinGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, proteinGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Carbohydrates (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.carbohydratesGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            carbohydratesGrams: event.target.value,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Sugars (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.sugarsGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, sugarsGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Fiber (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.fiberGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, fiberGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Salt (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.saltGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, saltGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label">
+                    Standard Dose, g
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.standardDose}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, standardDose: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label">
+                    Production duration, hours
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={form.productionHours}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            productionHours: event.target.value,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Customer information</h3>
+                    <p>Product photos, tags and catalog chapters.</p>
+                  </div>
+                </div>
+                <div className="product-customer-grid">
+                  <div className="product-customer-photos">
                     <Photos defaultValue={form.photos} editMode={true} />
                   </div>
-                  <div>
+                  <div className="product-customer-tags">
                     <Tags
                       editMode={true}
                       defaultValue={form.tags}
@@ -2498,23 +2518,6 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                         this.setState({ form: { ...form, tags: val } });
                       }}
                     />
-                  </div>
-                  <label className="cj-label">
-                    isPublic
-                    <input
-                      type="checkbox"
-                      defaultChecked={form.isPublic}
-                      onChange={(event) => {
-                        this.setState({
-                          form: {
-                            ...form,
-                            isPublic: event.currentTarget.checked,
-                          },
-                        });
-                      }}
-                    ></input>
-                  </label>
-                  <label className="cj-label">
                     <Tags
                       caption={'Chapters'}
                       editMode={true}
@@ -2523,26 +2526,25 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                         this.setState({ form: { ...form, chapters: val } });
                       }}
                     />
-                  </label>
-                </div>
-                <div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginTop: '15px',
-                    }}
-                  >
-                    <strong>Variants</strong>
-                    <button
-                      type="button"
-                      className="cj-btn-sm"
-                      onClick={this.addVariant}
-                    >
-                      + Add variant
-                    </button>
                   </div>
+                </div>
+              </section>
+
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Variants &amp; pricing</h3>
+                    <p>Set weights, location prices and discount tiers.</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="cj-btn-sm"
+                    onClick={this.addVariant}
+                  >
+                    + Add variant
+                  </button>
+                </div>
+                <div className="product-variants-list">
                   {this.props.companyInfo ? (
                     form.variants?.map((variant, idx) => (
                       <ProductVariantEditor
@@ -2557,17 +2559,14 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                     <></>
                   )}
                 </div>
-              </div>
+              </section>
               {editingProduct && (
-                <div className="cj-label">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <span>Process maps</span>
+                <section className="product-form-section product-process-section">
+                  <div className="product-form-section-header">
+                    <div>
+                      <h3>Process maps</h3>
+                      <p>Manage production recipes and their ingredients.</p>
+                    </div>
                     <button
                       type="button"
                       className="cj-btn-sm"
@@ -3233,10 +3232,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                       </div>
                     </div>
                   )}
-                </div>
+                </section>
               )}
 
-              <div className="material-actions">
+              <div className="material-actions product-form-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
                   {saving
                     ? 'Saving...'
