@@ -24,3 +24,132 @@
 .tags-container > span > span {
   --font-size: 50%;
 }
+
+.tags-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.tags-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tags-editor-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tags-editor-caption {
+  color: var(--text, #222);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tags-editor-hint {
+  color: var(--text-light, #666);
+  font-size: 0.78rem;
+}
+
+.tags-editor-add {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--primary, #795548);
+  border-radius: 7px;
+  background: var(--primary, #795548);
+  color: #fff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tags-editor-add:hover {
+  filter: brightness(0.94);
+}
+
+.tags-editor-add:focus-visible,
+.tags-editor-remove:focus-visible {
+  outline: 3px solid rgb(121 85 72 / 28%);
+  outline-offset: 2px;
+}
+
+.tags-editor-list {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.tags-editor-item {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 1px solid var(--border, #dedede);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.tags-editor-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.tags-editor-item-title {
+  color: var(--text, #222);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.tags-editor-remove {
+  padding: 0.28rem 0.55rem;
+  border: 1px solid #e6b9b4;
+  border-radius: 6px;
+  background: #fff;
+  color: #a52c22;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.tags-editor-remove:hover {
+  background: #fff4f2;
+}
+
+.tags-editor-item .mlstring-editor-compact {
+  width: 100%;
+  min-width: 0;
+}
+
+.tags-editor-item .mlstring-editor-compact > textarea {
+  box-sizing: border-box;
+  min-height: 2.5rem;
+  resize: vertical;
+}
+
+.tags-editor-empty {
+  padding: 1rem;
+  border: 1px dashed var(--border, #dedede);
+  border-radius: 8px;
+  background: #fafafa;
+  color: var(--text-light, #666);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .tags-editor-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
