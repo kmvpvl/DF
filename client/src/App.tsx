@@ -136,6 +136,7 @@ class App extends Proto<AppProps, AppState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
   private sessionSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private sessionRestoreRequestId = 0;
 
   state: AppState = {
     user: null,
@@ -170,16 +171,17 @@ class App extends Proto<AppProps, AppState> {
         getPublicProductsWithStock: PublicProductData[];
       }>(QUERY_PUBLIC_STOCKS);
       const { companyInfo, getPublicProductsWithStock } = data;
-      this.setState(
-        {
-          ...this.state,
-          companyInfo,    
-          currentLocation: companyInfo?.locations[0].id,
-          products: getPublicProductsWithStock,
-        },
-        () => {}
-      );
-    } catch (error) {}
+      if (!Array.isArray(getPublicProductsWithStock)) {
+        throw new Error('Products response does not contain a product list.');
+      }
+      this.setState({
+        companyInfo,
+        currentLocation: companyInfo?.locations[0]?.id ?? null,
+        products: getPublicProductsWithStock,
+      });
+    } catch (error) {
+      console.error('Failed to load public products:', error);
+    }
   }
 
   componentDidMount() {
@@ -242,6 +244,7 @@ class App extends Proto<AppProps, AppState> {
   };
 
   private restoreSessionFromServer = async () => {
+    const requestId = ++this.sessionRestoreRequestId;
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -250,26 +253,42 @@ class App extends Proto<AppProps, AppState> {
         body: JSON.stringify({ query: SESSION_USER_QUERY, variables: {} }),
       });
 
-      const json = await response.json();
+      if (response.ok === false) {
+        throw new Error(
+          `Session request failed with HTTP ${response.status}`
+        );
+      }
+
+      const json = (await response.json()) as {
+        data?: SessionUserQueryData;
+        errors?: { message: string }[];
+      };
+      if (requestId !== this.sessionRestoreRequestId) return;
       if (json.errors?.length) {
+        console.error(
+          'Failed to restore session:',
+          json.errors.map(({ message }) => message).join('; ')
+        );
         return;
       }
 
-      const data = json.data as SessionUserQueryData | undefined;
-      if (data) {
-        this.setState(
-          {
-            user: data.sessionUser,
-          },
-          () => {
-            this.getReserves();
-          }
-        );
-      } else {
-        this.setState({ user: null });
+      if (!json.data || !('sessionUser' in json.data)) {
+        console.error('Session response does not contain sessionUser.');
+        return;
       }
-    } catch {
-      // Keep anonymous state when session restoration fails.
+
+      const user = json.data?.sessionUser;
+      if (user && (!user.id || !user.email)) {
+        console.error('Session response contains an invalid user object.');
+        return;
+      }
+
+      this.setState({ user: user ?? null }, () => {
+        if (user) void this.getReserves();
+      });
+    } catch (error) {
+      if (requestId !== this.sessionRestoreRequestId) return;
+      console.error('Failed to restore session:', error);
     }
   };
 
@@ -324,7 +343,7 @@ class App extends Proto<AppProps, AppState> {
         basket: order,
       }),
       () => {
-        this.setState({ ...this.state, isLoadingBasket: false });
+        this.setState({ isLoadingBasket: false });
       }
     );
   }
@@ -392,10 +411,7 @@ class App extends Proto<AppProps, AppState> {
           })),
         },
       });
-      this.setState({
-        ...this.state,
-        isLoadingBasket: true,
-      });
+      this.setState({ isLoadingBasket: true });
       dataPromise
         .finally(() => {
           //this.setState({ ...this.state, isLoadingBasket: false });
@@ -404,15 +420,12 @@ class App extends Proto<AppProps, AppState> {
         .then((data) => {
           const order: IOrder = (data as any).draft;
           this.setState(
-            (prevState) => ({
-              ...prevState,
+            {
               basket: order,
-            }),
+              isLoadingBasket: true,
+            },
             () => {
-              this.setState({
-                ...this.state,
-                isLoadingBasket: false,
-              });
+              this.setState({ isLoadingBasket: false });
             }
           );
         })
@@ -423,7 +436,7 @@ class App extends Proto<AppProps, AppState> {
     } catch (error) {
       console.error('Ошибка при резервировании корзины:', error);
       debugger;
-      this.setState({ ...this.state, isLoadingBasket: false });
+      this.setState({ isLoadingBasket: false });
     }
   }
 
@@ -464,10 +477,7 @@ class App extends Proto<AppProps, AppState> {
       });
     }
 
-    this.setState({
-      ...this.state,
-      basket: updatedBasket,
-    });
+    this.setState({ basket: updatedBasket });
   };
 
   handleAddToBasket = (product: IOrderProduct) => {
@@ -517,6 +527,7 @@ class App extends Proto<AppProps, AppState> {
   };
 
   handleAuthSuccess = (loggedInUser: User) => {
+    this.sessionRestoreRequestId += 1;
     this.setState(
       () => ({
         user: loggedInUser,
@@ -796,10 +807,8 @@ class App extends Proto<AppProps, AppState> {
           }
         );
 
-        this.setState({
-          ...this.state,
-          user: newData.updateSessionUser as any,
-        });
+        this.sessionRestoreRequestId += 1;
+        this.setState({ user: newData.updateSessionUser });
       } catch (error) {
         console.error('Ошибка подписки:', error);
       }

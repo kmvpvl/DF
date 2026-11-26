@@ -1,5 +1,8 @@
 /// <reference types="vitest/globals" />
-import { fireEvent, render, screen } from '@testing-library/react';
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { I18nProvider } from './i18n/I18nContext';
 
@@ -9,6 +12,10 @@ describe('App', () => {
   beforeEach(() => {
     mockFetch.mockReset();
     vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -48,6 +55,57 @@ describe('App', () => {
         <App />
       </I18nProvider>
     );
+
+    expect(await screen.findByText('Hi, Marco')).toBeInTheDocument();
+  });
+
+  it('keeps restored user when a concurrent products response arrives', async () => {
+    let resolveSessionResponse!: (value: {
+      data: { sessionUser: object };
+    }) => void;
+    let resolveProductsResponse!: (value: {
+      data: { companyInfo: null; getPublicProductsWithStock: [] };
+    }) => void;
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const request = JSON.parse(String(init.body)) as { query: string };
+      return {
+        json: () =>
+          new Promise((resolve) => {
+            if (request.query.includes('SessionUser')) {
+              resolveSessionResponse = resolve;
+            } else {
+              resolveProductsResponse = resolve;
+            }
+          }),
+      };
+    });
+
+    render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    );
+
+    const restoredUser = {
+      id: '1',
+      name: 'Marco',
+      fullName: 'Marco Rossi',
+      entityType: 'INDIVIDUAL',
+      email: 'marco@example.com',
+      phone: null,
+    };
+
+    await waitFor(() => {
+      expect(resolveSessionResponse).toBeTypeOf('function');
+      expect(resolveProductsResponse).toBeTypeOf('function');
+    });
+
+    await act(async () => {
+      resolveSessionResponse({ data: { sessionUser: restoredUser } });
+      resolveProductsResponse({
+        data: { companyInfo: null, getPublicProductsWithStock: [] },
+      });
+    });
 
     expect(await screen.findByText('Hi, Marco')).toBeInTheDocument();
   });
