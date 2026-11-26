@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import './photos.css';
 import React from 'react';
+import { createPortal } from 'react-dom';
 //import QRCode from "react-qr-code";
 import { IMLString } from '../../mlstring';
 import { ITags } from '../tags/tags';
@@ -22,6 +23,7 @@ export interface IPhotosState {
   value: IPhoto[];
   currentPhotoIndex?: number;
   qr?: string;
+  isZoomed?: boolean;
 }
 
 export default class Photos extends React.Component<
@@ -29,6 +31,8 @@ export default class Photos extends React.Component<
   IPhotosState
 > {
   private touchesCoords?: { clientX: number; clientY: number };
+  private zoomButtonRef = React.createRef<HTMLButtonElement>();
+  private lightboxCloseButtonRef = React.createRef<HTMLButtonElement>();
   state: IPhotosState = {
     value: this.props.defaultValue !== undefined ? this.props.defaultValue : [],
     currentPhotoIndex:
@@ -120,9 +124,16 @@ export default class Photos extends React.Component<
   }
   componentDidUpdate(
     _: Readonly<IPhotosProps>,
-    __: Readonly<IPhotosState>,
+    prevState: Readonly<IPhotosState>,
     ___?: any
   ): void {
+    if (this.state.isZoomed !== prevState.isZoomed) {
+      const focusTarget = this.state.isZoomed
+        ? this.lightboxCloseButtonRef
+        : this.zoomButtonRef;
+      focusTarget.current?.focus();
+    }
+
     if (!this.props.editMode && this.props.defaultValue !== undefined) {
       const nState = this.state;
       if (nState.value === this.props.defaultValue) return;
@@ -141,10 +152,19 @@ export default class Photos extends React.Component<
       <div
         className={`photos-admin-edit-container has-caption ${this.props.className !== undefined ? this.props.className : ''}`}
       >
-        <span className="caption">Photos</span>
-        <div className="toolbar">
-          <label>
-            +
+        <div className="photos-admin-header">
+          <div className="photos-admin-heading">
+            <span className="caption">Photos</span>
+            <span className="photos-admin-count">
+              {this.state.value.length}{' '}
+              {this.state.value.length === 1 ? 'photo' : 'photos'}
+            </span>
+          </div>
+          <label className="photos-admin-upload">
+            <span className="photos-admin-upload-icon" aria-hidden="true">
+              +
+            </span>
+            <span>Add photos</span>
             <input
               type="file"
               id="inputImages"
@@ -169,55 +189,60 @@ export default class Photos extends React.Component<
               console.log('Enter');
             }}
             onDragLeave={(event) => {
-              console.log('leave');
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
+              console.log('leave');
             }}
             onDragEnd={(event) => {
-              console.log('end');
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
+              console.log('end');
             }}
             onDragOver={(event) => {
-              console.log('Over');
               event.preventDefault();
               event.dataTransfer.dropEffect = 'copy';
+              console.log('Over');
             }}
             onDrop={(event) => {
-              console.log('Drop');
               const dt = event.dataTransfer;
               const files = dt.files;
               this.editModeLoadImages(files);
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
+              console.log('Drop');
             }}
           >
-            Drop image here
+            <span className="photos-admin-drop-icon" aria-hidden="true">
+              ⇧
+            </span>
+            <span className="photos-admin-drop-title">Drop images here</span>
+            <span className="photos-admin-drop-hint">or use “Add photos”</span>
           </div>
           {this.state.value.map((photo, idx) => (
-            <span
+            <div
               className="photo-admin-container has-context-toolbar"
               key={idx}
             >
-              <span className="context-toolbar">
-                <span
-                  onClick={(_) => {
-                    const nState = this.state;
-                    nState.value.splice(idx, 1);
-                    this.setState(nState);
-                    if (this.props.onChange !== undefined)
-                      this.props.onChange(this.state.value);
-                  }}
-                >
-                  <span
-                    style={{ transform: 'rotate(45deg)', display: 'block' }}
-                  >
-                    +
-                  </span>
-                </span>
-              </span>
-              <img src={`${import.meta.env.VITE_API_BASE_URL}${photo.url}`} />
-            </span>
+              <img
+                src={`${import.meta.env.VITE_API_BASE_URL}${photo.url}`}
+                alt={`Product photo ${idx + 1}`}
+              />
+              <button
+                type="button"
+                className="photos-admin-remove"
+                aria-label={`Remove photo ${idx + 1}`}
+                onClick={() => {
+                  const nState = this.state;
+                  nState.value.splice(idx, 1);
+                  this.setState(nState);
+                  if (this.props.onChange !== undefined)
+                    this.props.onChange(this.state.value);
+                }}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+              <span className="photos-admin-photo-index">Photo {idx + 1}</span>
+            </div>
           ))}
         </div>
       </div>
@@ -269,6 +294,7 @@ export default class Photos extends React.Component<
               {this.state.currentPhotoIndex !== undefined ? (
                 <img
                   src={`${import.meta.env.VITE_API_BASE_URL}${this.state.value[this.state.currentPhotoIndex].url}`}
+                  alt={`Product photo ${this.state.currentPhotoIndex + 1}`}
                 ></img>
               ) : (
                 //							) : this.state.qr !== undefined ? (
@@ -276,6 +302,77 @@ export default class Photos extends React.Component<
                 <img src={emptyDish} />
               )}
             </div>
+            {this.state.currentPhotoIndex !== undefined && (
+              <>
+                <button
+                  type="button"
+                  className="photos-zoom-button"
+                  aria-label="View full-size image"
+                  title="View full-size image"
+                  ref={this.zoomButtonRef}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    this.setState({ isZoomed: true });
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle
+                      cx="10.8"
+                      cy="10.8"
+                      r="6.3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="m15.5 15.5 5 5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </button>
+                {this.state.isZoomed &&
+                  createPortal(
+                    <div
+                      className="photos-lightbox"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Full-size product image"
+                      onClick={() => this.setState({ isZoomed: false })}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          this.setState({ isZoomed: false });
+                        } else if (event.key === 'Tab') {
+                          event.preventDefault();
+                          this.lightboxCloseButtonRef.current?.focus();
+                        }
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="photos-lightbox-close"
+                        aria-label="Close image view"
+                        ref={this.lightboxCloseButtonRef}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          this.setState({ isZoomed: false });
+                        }}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                      <img
+                        className="photos-lightbox-image"
+                        src={`${import.meta.env.VITE_API_BASE_URL}${this.state.value[this.state.currentPhotoIndex].url}`}
+                        alt={`Product photo ${this.state.currentPhotoIndex + 1}`}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    </div>,
+                    document.body
+                  )}
+              </>
+            )}
             {this.state.value.length !== 1 ? (
               <div className="photos-scroll">
                 {this.state.value.map((_, idx) => (
