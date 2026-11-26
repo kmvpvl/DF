@@ -7,7 +7,7 @@ import Photos, { IPhoto } from '../photos/photos';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import { ALL_PRODUCT_FIELDS } from './Products';
 import { IProductVariant, ProductBaseData } from '@betypes/product';
-import ProductVariantEditor from './ProductVariantEditor';
+import ProductVariantEditor from '../productVariantEditor/ProductVariantEditor';
 
 const PRODUCTS_QUERY = `
   query {
