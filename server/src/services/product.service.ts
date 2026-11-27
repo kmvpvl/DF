@@ -421,7 +421,9 @@ export class ProductService {
                     some: {
                         locationPrices: {
                             some: {
-                                locationId: locationId ? locationId : ctx.locationId,
+                                locationId: locationId
+                                    ? locationId
+                                    : ctx.locationId,
                             },
                         },
                     },
@@ -540,12 +542,16 @@ export class ProductService {
             return productConfig;
         });
     }
-    static async publish(ctx: GraphQLContext, productId: string, publishOrHide?: boolean) {
+    static async publish(
+        ctx: GraphQLContext,
+        productId: string,
+        publishOrHide?: boolean
+    ) {
         await authorize(ctx, Role.MANAGER);
-        return await prisma.product.update ({
-            where: {id: productId},
+        return await prisma.product.update({
+            where: { id: productId },
             data: {
-                isPublic: publishOrHide??true
+                isPublic: publishOrHide ?? true,
             },
             include: {
                 variants: {
@@ -555,7 +561,7 @@ export class ProductService {
                 },
                 modifierGroups: true,
                 comboItems: true,
-            }
-        })
+            },
+        });
     }
 }

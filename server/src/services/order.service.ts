@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Order, OrderStatus, Prisma, Role, User } from '@prisma/client';
+import { Order, OrderStatus, Prisma, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { GraphQLContext } from '../types/types';
 import { authorize } from '../utils/auth';
@@ -9,10 +9,7 @@ import { PushService } from './push.service';
 import {
     CreateOrderInput,
     CreateOrderProductInput,
-    IOrder,
-    IOrderProduct,
 } from '../types/order';
-import { MLString } from '../lib/mlstring';
 import { IPushMessage } from '../types/pushes';
 
 const ORDER_NUMBER_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -22,7 +19,7 @@ function generateOrderNumber(year: number, numberInt: number): string {
     const token = Array.from(randomBytes(8), (byte) =>
         ORDER_NUMBER_ALPHABET.charAt(byte & 31)
     ).join('');
-    return `${year.toString().slice(-2)}-${token.slice(0, 4)}-${numberInt.toString().padStart(4, '0')}`;//-${token.slice(4)}`;
+    return `${year.toString().slice(-2)}-${token.slice(0, 4)}-${numberInt.toString().padStart(4, '0')}`; //-${token.slice(4)}`;
 }
 
 function isOrderNumberUniqueConflict(error: unknown): boolean {
@@ -443,7 +440,10 @@ export class OrderService {
                     return await prisma.order.create({
                         data: {
                             ...orderData,
-                            number: generateOrderNumber(now.getFullYear(), orderData.numberInt),
+                            number: generateOrderNumber(
+                                now.getFullYear(),
+                                orderData.numberInt
+                            ),
                         },
                         include: {
                             products: {

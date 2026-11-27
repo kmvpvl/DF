@@ -34,8 +34,7 @@ if (vapidKeys.publicKey && vapidKeys.privateKey) {
 }
 
 function configureVapidDetails(): void {
-    const publicVapidKey =
-        process.env.PUBLIC_VAPID_KEY || vapidKeys.publicKey;
+    const publicVapidKey = process.env.PUBLIC_VAPID_KEY || vapidKeys.publicKey;
     const privateVapidKey =
         process.env.PRIVATE_VAPID_KEY || vapidKeys.privateKey;
     if (!publicVapidKey || !privateVapidKey) {

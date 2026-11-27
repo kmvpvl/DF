@@ -103,34 +103,91 @@ export class UsingRules extends React.Component<
           U slučaju opravdane reklamacije, otkazivanja porudžbine pre pripreme
           ili nemogućnosti isporuke od strane trgovca, a kada je kupac prethodno
           izvršio plaćanje platnom karticom ili putem IPS instant plaćanja,
-          PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO je u obavezi da povraćaj sredstava vrši
-          isključivo preko VISA, EC/MC, DinaCard i IPS metoda plaćanja, što
-          znači da će banka na zahtev prodavca obaviti povraćaj sredstava na
-          račun korisnika kartice / platnog računa.
+          PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO je u obavezi da
+          povraćaj sredstava vrši isključivo preko VISA, EC/MC, DinaCard i IPS
+          metoda plaćanja, što znači da će banka na zahtev prodavca obaviti
+          povraćaj sredstava na račun korisnika kartice / platnog računa.
         </p>
-        <p><strong>OBAVEŠTENJE O NAČINU I MESTU PRIJEMA REKLAMACIJA I USLOVIMA POVRAĆAJA</strong></p>
+        <p>
+          <strong>
+            OBAVEŠTENJE O NAČINU I MESTU PRIJEMA REKLAMACIJA I USLOVIMA
+            POVRAĆAJA
+          </strong>
+        </p>
 
-<p>U skladu sa Zakonom o zaštiti potrošača („Službeni glasnik RS“, br. 35/2026), privredno društvo / preduzetnik PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO, PIB: 115274132, matični broj: 68236371, sa sedištem na adresi Pančevo Braće Jovanovića 99, obaveštava potrošače o sledećem:</p>
+        <p>
+          U skladu sa Zakonom o zaštiti potrošača („Službeni glasnik RS“, br.
+          35/2026), privredno društvo / preduzetnik PAVEL KOMOV PR PROIZVODNJA
+          KOLAČA DOLCEFORTE PANČEVO, PIB: 115274132, matični broj: 68236371, sa
+          sedištem na adresi Pančevo Braće Jovanovića 99, obaveštava potrošače o
+          sledećem:
+        </p>
 
-<p>1. ISKLJUČENJE PRAVA NA ODUSTANAK OD UGOVORA (POVRAT ISPRAVNE ROBE)</p>
-<p>Na osnovu Zakona o zaštiti potrošača (član o izuzecima od prava na odustanak od ugovora zaključenog na daljinu), potrošač NEMA PRAVO na jednostrani raskid ugovora i povraćaj novca u roku od 14 dana za:</p>
-<p>- robu koja je podložna pogoršanju kvaliteta ili ima kratak rok trajanja (sveži kolači, torte, peciva i ostali prehrambeni proizvodi);</p>
-<p>- robu proizvedenu prema posebnim zahtevima potrošača ili jasno personalizovanu (torte i poslastice po porudžbini);</p>
-<p>- zapečaćenu robu koja se ne može vratiti zbog zaštite zdravlja ili higijenskih razloga, a koja je otpečaćena nakon isporuke.</p>
+        <p>
+          1. ISKLJUČENJE PRAVA NA ODUSTANAK OD UGOVORA (POVRAT ISPRAVNE ROBE)
+        </p>
+        <p>
+          Na osnovu Zakona o zaštiti potrošača (član o izuzecima od prava na
+          odustanak od ugovora zaključenog na daljinu), potrošač NEMA PRAVO na
+          jednostrani raskid ugovora i povraćaj novca u roku od 14 dana za:
+        </p>
+        <p>
+          - robu koja je podložna pogoršanju kvaliteta ili ima kratak rok
+          trajanja (sveži kolači, torte, peciva i ostali prehrambeni proizvodi);
+        </p>
+        <p>
+          - robu proizvedenu prema posebnim zahtevima potrošača ili jasno
+          personalizovanu (torte i poslastice po porudžbini);
+        </p>
+        <p>
+          - zapečaćenu robu koja se ne može vratiti zbog zaštite zdravlja ili
+          higijenskih razloga, a koja je otpečaćena nakon isporuke.
+        </p>
 
-<p>2. NAČIN I MESTO PRIJEMA REKLAMACIJA (U SLUČAJU NESAOBRAZNOSTI PROIZVODA)</p>
-<p>Ukoliko isporučeni proizvod ima nedostatak (oštećenje nastalo pre preuzimanja, pogrešno isporučen artikal, odstupanje od porudžbine ili problem sa kvalitetom/ispravnošću), potrošač ima pravo da izjavi reklamaciju:</p>
-<p>- elektronskim putem na e-mail adresu: sales@dolceforte.rs</p>
-<p>- pisanim putem na adresu: Pančevo Braće Jovanovića 99</p>
-<p>- usmeno / lično u prodajnom objektu na adresi: Pančevo Braće Jovanovića 99</p>
-<p>- telefonom na broj: 062 1478 438</p>
+        <p>
+          2. NAČIN I MESTO PRIJEMA REKLAMACIJA (U SLUČAJU NESAOBRAZNOSTI
+          PROIZVODA)
+        </p>
+        <p>
+          Ukoliko isporučeni proizvod ima nedostatak (oštećenje nastalo pre
+          preuzimanja, pogrešno isporučen artikal, odstupanje od porudžbine ili
+          problem sa kvalitetom/ispravnošću), potrošač ima pravo da izjavi
+          reklamaciju:
+        </p>
+        <p>- elektronskim putem na e-mail adresu: sales@dolceforte.rs</p>
+        <p>- pisanim putem na adresu: Pančevo Braće Jovanovića 99</p>
+        <p>
+          - usmeno / lično u prodajnom objektu na adresi: Pančevo Braće
+          Jovanovića 99
+        </p>
+        <p>- telefonom na broj: 062 1478 438</p>
 
-<p>Prilikom izjavljivanja reklamacije, potrošač je dužan da dostavi fiskalni račun ili drugi dokaz o kupovini (potvrdu porudžbine, izvod iz banke) i po mogućstvu fotografiju proizvoda u slučaju oštećenja ili greške.</p>
+        <p>
+          Prilikom izjavljivanja reklamacije, potrošač je dužan da dostavi
+          fiskalni račun ili drugi dokaz o kupovini (potvrdu porudžbine, izvod
+          iz banke) i po mogućstvu fotografiju proizvoda u slučaju oštećenja ili
+          greške.
+        </p>
 
-<p>3. ROKOVI ZA REŠAVANJE REKLAMACIJE</p>
-<p>Prodavac je dužan da bez odlaganja, a najkasnije u roku od 8 dana od dana prijema reklamacije, pisanim ili elektronskim putem odgovori potrošaču na izjavljenu reklamaciju. Rok za rešavanje prihvaćene reklamacije ne može biti duži od 15 dana od dana podnošenja reklamacije.</p>
+        <p>3. ROKOVI ZA REŠAVANJE REKLAMACIJE</p>
+        <p>
+          Prodavac je dužan da bez odlaganja, a najkasnije u roku od 8 dana od
+          dana prijema reklamacije, pisanim ili elektronskim putem odgovori
+          potrošaču na izjavljenu reklamaciju. Rok za rešavanje prihvaćene
+          reklamacije ne može biti duži od 15 dana od dana podnošenja
+          reklamacije.
+        </p>
 
-<p>Obrazac za reklamaciju možete preuzeti <a href="https://www.dolceforte.rs/reklamacija.pdf" target="_blank" rel="noopener noreferrer">ovde</a></p>
+        <p>
+          Obrazac za reklamaciju možete preuzeti{' '}
+          <a
+            href="https://www.dolceforte.rs/reklamacija.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ovde
+          </a>
+        </p>
 
         <button
           className="using-rules-close-button"

@@ -1172,15 +1172,9 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [
-        `ru`,
-        'Все делается небольшими партиями из лучших ингредиентов',
-      ],
+      [`ru`, 'Все делается небольшими партиями из лучших ингредиентов'],
       [`it`, undefined],
-      [
-        `sr`,
-        'Sve se pravi u malim serijama od najboljih sastojaka',
-      ],
+      [`sr`, 'Sve se pravi u malim serijama od najboljih sastojaka'],
     ]),
   ],
   [

@@ -254,9 +254,7 @@ class App extends Proto<AppProps, AppState> {
       });
 
       if (response.ok === false) {
-        throw new Error(
-          `Session request failed with HTTP ${response.status}`
-        );
+        throw new Error(`Session request failed with HTTP ${response.status}`);
       }
 
       const json = (await response.json()) as {

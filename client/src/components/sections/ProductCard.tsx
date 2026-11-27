@@ -20,7 +20,8 @@ interface ProductCardState extends IProtoState {
 
 export class ProductCard extends Proto<ProductCardProps, ProductCardState> {
   state: ProductCardState = {
-    variantSelected: this.props.product.variants.filter((v) =>
+    variantSelected:
+      this.props.product.variants.filter((v) =>
         this.props.product.stockBalances.some(
           (s) =>
             s.variantLabel ===

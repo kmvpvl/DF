@@ -152,7 +152,6 @@ class Products extends Proto<ProductsProps, ProductsState> {
             {this.ML(
               'Everything is made in small batches from the finest ingredients'
             ).toString()}
-
           </p>
           <p className="section-desc">
             {this.ML(

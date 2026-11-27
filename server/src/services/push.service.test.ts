@@ -10,8 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 process.env.PUBLIC_VAPID_KEY =
     'BLQ3s8vSmQmVAPID_TEST_PUBLIC_KEY_abcdefghijklmnop';
-process.env.PRIVATE_VAPID_KEY =
-    'test-private-vapid-key';
+process.env.PRIVATE_VAPID_KEY = 'test-private-vapid-key';
 
 vi.mock('nodemailer', () => ({
     default: { createTransport: mocks.createTransport },

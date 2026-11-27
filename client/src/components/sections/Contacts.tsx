@@ -258,7 +258,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                       className="form-input"
                       type="text"
                       name="name"
-                      autoComplete='name'
+                      autoComplete="name"
                       placeholder={dictionary.contacts.yourName}
                       required
                     />
@@ -266,7 +266,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                       className="form-input"
                       type="email"
                       name="email"
-                      autoComplete='email'
+                      autoComplete="email"
                       placeholder={dictionary.contacts.email}
                     />
                   </div>
@@ -274,7 +274,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                     className="form-input"
                     type="tel"
                     name="phone"
-                    autoComplete='tel'
+                    autoComplete="tel"
                     placeholder={dictionary.contacts.phoneLabel}
                   />
                   <input
@@ -282,7 +282,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                     type="text"
                     value={subject}
                     name="subject"
-                    autoComplete='subject'
+                    autoComplete="subject"
                     onChange={(event) =>
                       this.setState({ subject: event.target.value })
                     }
@@ -292,7 +292,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                   <textarea
                     className="form-input"
                     name="message"
-                    autoComplete='message'
+                    autoComplete="message"
                     rows={5}
                     cols={40}
                     style={{ resize: 'vertical' }}
