@@ -20,7 +20,19 @@ describe('Photos client view', () => {
   it('opens the original image in a screen-fitted viewer and closes with Escape', () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
     render(
-      <Photos defaultValue={[{ url: '/uploads/product-original.jpg' }]} />
+      <Photos
+        defaultValue={[
+          {
+            url: '/uploads/product-original.jpg',
+            thumbnailUrl: '/uploads/thumb-product-original.webp',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('img', { name: 'Product photo 1' })).toHaveAttribute(
+      'src',
+      'https://api.example.test/uploads/thumb-product-original.webp'
     );
 
     const zoomButton = screen.getByRole('button', {

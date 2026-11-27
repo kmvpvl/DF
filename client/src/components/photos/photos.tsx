@@ -38,7 +38,9 @@ export default class Photos extends React.Component<
   get value() {
     return this.state.value;
   }
-  private async uploadFileToServer(file: File): Promise<string> {
+  private async uploadFileToServer(
+    file: File
+  ): Promise<{ url: string; thumbnailUrl: string }> {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -53,7 +55,10 @@ export default class Photos extends React.Component<
     if (!response.ok) throw new Error('Ошибка загрузки');
 
     const data = await response.json();
-    return data.url; // Возвращает путь типа "/uploads/my-photo.jpg"
+    return {
+      url: data.url,
+      thumbnailUrl: data.thumbnailUrl,
+    };
   }
   protected async editModeLoadImages(files: FileList) {
     for (let i = 0; i < files.length; i++) {
@@ -63,12 +68,13 @@ export default class Photos extends React.Component<
 
       try {
         // Загружаем на сервер и получаем URL
-        const url = await this.uploadFileToServer(file);
+        const uploadedImage = await this.uploadFileToServer(file);
 
         // Обновляем состояние
         const nState = { ...this.state }; // Создаем копию стейта
         nState.value.push({
-          url: url,
+          url: uploadedImage.url,
+          thumbnailUrl: uploadedImage.thumbnailUrl,
           caption: undefined, // или пустой объект, в зависимости от IMLString
         });
 
@@ -218,7 +224,7 @@ export default class Photos extends React.Component<
               key={idx}
             >
               <img
-                src={`${import.meta.env.VITE_API_BASE_URL}${photo.url}`}
+                src={`${import.meta.env.VITE_API_BASE_URL}${photo.thumbnailUrl ?? photo.url}`}
                 alt={`Product photo ${idx + 1}`}
               />
               <button
@@ -287,7 +293,7 @@ export default class Photos extends React.Component<
             >
               {this.state.currentPhotoIndex !== undefined ? (
                 <img
-                  src={`${import.meta.env.VITE_API_BASE_URL}${this.state.value[this.state.currentPhotoIndex].url}`}
+                  src={`${import.meta.env.VITE_API_BASE_URL}${this.state.value[this.state.currentPhotoIndex].thumbnailUrl ?? this.state.value[this.state.currentPhotoIndex].url}`}
                   alt={`Product photo ${this.state.currentPhotoIndex + 1}`}
                 ></img>
               ) : (

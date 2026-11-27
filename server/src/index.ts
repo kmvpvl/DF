@@ -10,6 +10,7 @@ import 'dotenv/config';
 import { prisma } from './lib/prisma.js';
 import { ICoords, ILocation } from '@df/types/company';
 import multer from 'multer';
+import sharp from 'sharp';
 import { BatchService } from './services/batch.service.js';
 import { gql } from 'graphql-tag';
 import { EquipmentService } from './services/equipment.service.js';
@@ -1386,11 +1387,36 @@ app.get('/certificates/:id/document', async (req, res) => {
 
 const upload = multer({ dest: 'public/uploads/' });
 
-app.post('/api/upload-image', upload.single('image'), (req, res) => {
-    // req.file содержит информацию о загруженном файле
-    if (req) {
-        const fileUrl = `/uploads/${req.file?.filename}`;
-        res.json({ url: fileUrl });
+app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+    if (!req.file) {
+        res.status(400).json({ error: 'Изображение не передано' });
+        return;
+    }
+
+    const originalPath = req.file.path;
+    const originalUrl = `/uploads/${req.file.filename}`;
+    const thumbnailFilename = `thumb-${req.file.filename}.webp`;
+    const thumbnailPath = path.join('public', 'uploads', thumbnailFilename);
+
+    try {
+        await sharp(originalPath)
+            .rotate()
+            .resize({
+                width: 640,
+                height: 640,
+                fit: 'inside',
+                withoutEnlargement: true,
+            })
+            .webp({ quality: 82 })
+            .toFile(thumbnailPath);
+
+        res.json({
+            url: originalUrl,
+            thumbnailUrl: `/uploads/${thumbnailFilename}`,
+        });
+    } catch (error) {
+        console.error('Не удалось создать миниатюру:', error);
+        res.status(500).json({ error: 'Не удалось обработать изображение' });
     }
 });
 

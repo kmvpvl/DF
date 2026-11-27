@@ -23,12 +23,12 @@
     "dependencies": {
         "@apollo/server": "^5.4.0",
         "@as-integrations/express4": "^1.1.2",
+        "@df/types": "*",
         "@prisma/adapter-mariadb": "^7.5.0",
         "@prisma/client": "^7.7.0",
         "@types/bcrypt": "^6.0.0",
         "@types/express-session": "^1.18.2",
         "@xmldom/xmldom": "^0.9.9",
-        "@df/types": "*",
         "bcrypt": "^6.0.0",
         "cors": "^2.8.6",
         "docxtemplater": "^3.67.3",
@@ -40,6 +40,7 @@
         "multer": "^2.5.0",
         "nodemailer": "^10.1.7",
         "pizzip": "^3.3.0",
+        "sharp": "^0.35.5",
         "web-push": "^3.6.7"
     },
     "devDependencies": {
