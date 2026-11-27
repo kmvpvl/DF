@@ -5,7 +5,7 @@
     "type": "module",
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && node -e \"fs.copyFileSync('src/schema.graphql', 'dist/schema.graphql')\"",
         "start:prod": "npx prisma migrate deploy && npm run start",
         "start": "node dist/index.js",
         "dev": "nodemon --exec tsx src/index.ts",
