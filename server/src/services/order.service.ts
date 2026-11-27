@@ -353,7 +353,7 @@ export class OrderService {
 
     static async Draft(data: CreateOrderInput, ctx: GraphQLContext) {
         let newData: Order | null;
-        await authorize(ctx, Role.CUSTOMER);
+        await authorize(ctx);
         const normalizedOrder = await this.normalizeOrder(ctx, data);
         const oldDraft = await prisma.order.findFirst({
             where: {
@@ -597,7 +597,7 @@ export class OrderService {
             note?: string;
         }
     ) {
-        await authorize(ctx, Role.CUSTOMER);
+        await authorize(ctx);
         const userId = ctx.userId;
         const locationId = ctx.locationId;
         if (!userId || !locationId) {
@@ -830,7 +830,7 @@ export class OrderService {
     }
 
     static async getDraft(ctx: GraphQLContext): Promise<Order | null> {
-        await authorize(ctx, Role.CUSTOMER);
+        await authorize(ctx);
         const data = await prisma.order.findFirst({
             where: {
                 status: OrderStatus.DRAFT,
