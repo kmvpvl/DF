@@ -1,0 +1,119 @@
+.product-edit-form {
+  gap: 1rem;
+}
+
+.product-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid var(--border, #dedede);
+  border-radius: 12px;
+  background: var(--bg-alt, #faf9f7);
+}
+
+.product-form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.product-form-section-header h3 {
+  margin: 0;
+  color: var(--dark, #292321);
+  font-size: 1rem;
+}
+
+.product-form-section-header p {
+  margin: 0.25rem 0 0;
+  color: var(--text-light, #666);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.product-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.product-description-field {
+  grid-column: 1 / -1;
+}
+
+.product-nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.product-nutrition-grid > .cj-label,
+.product-details-grid > .cj-label {
+  min-width: 0;
+}
+
+.product-customer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.product-customer-photos,
+.product-customer-tags {
+  min-width: 0;
+}
+
+.product-customer-tags {
+  display: grid;
+  gap: 1rem;
+}
+
+.product-variants-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.product-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--border, #dedede);
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 -5px 12px rgb(0 0 0 / 4%);
+}
+
+@media (max-width: 900px) {
+  .product-nutrition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-customer-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .product-form-section {
+    padding: 0.8rem;
+  }
+
+  .product-form-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .product-details-grid,
+  .product-nutrition-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .product-description-field {
+    grid-column: auto;
+  }
+}

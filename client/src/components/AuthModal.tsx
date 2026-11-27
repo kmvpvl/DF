@@ -1,6 +1,7 @@
 import React from 'react';
-import { User } from '../App';
+import {} from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
+import { User } from '../proto';
 
 const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 
@@ -11,6 +12,7 @@ interface AuthModalProps {
   initialTab?: Tab;
   initialSignupEntityType?: 'INDIVIDUAL' | 'LEGAL_ENTITY';
   editingUser?: User | null;
+  language: string;
 }
 
 type Tab = 'login' | 'signup';
@@ -31,6 +33,8 @@ interface AuthModalState {
   signupEmail: string;
   signupPhone: string;
   signupPassword: string;
+  signupDeliveryAddress?: string | null;
+  signupPushSubscription?: object | null;
 }
 
 async function gql<T>(
@@ -49,9 +53,9 @@ async function gql<T>(
 }
 
 const LOGIN_MUTATION = `
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      id name fullName entityType email phone pib mbr account bank
+  mutation Login($email: String!, $password: String!, $lang: String) {
+    login(email: $email, password: $password, lang: $lang) {
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -59,7 +63,7 @@ const LOGIN_MUTATION = `
 const SIGNUP_MUTATION = `
   mutation CreateUser($input: CreateUserInput!) {
     createUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -67,7 +71,7 @@ const SIGNUP_MUTATION = `
 const UPDATE_SESSION_USER_MUTATION = `
   mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
     updateSessionUser(input: $input) {
-      id name fullName entityType email phone pib mbr account bank
+      id name fullName entityType email phone pib mbr account bank deliveryAddress pushSubscription
     }
   }
 `;
@@ -108,6 +112,8 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
         signupEmail: editingUser.email,
         signupPhone: editingUser.phone ?? '',
         signupPassword: '',
+        signupPushSubscription: editingUser.pushSubscription,
+        signupDeliveryAddress: editingUser.deliveryAddress,
       });
       return;
     }
@@ -128,6 +134,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupEmail: '',
       signupPhone: '',
       signupPassword: '',
+      signupDeliveryAddress: '',
     });
   };
 
@@ -147,6 +154,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
     signupEmail: '',
     signupPhone: '',
     signupPassword: '',
+    signupDeliveryAddress: '',
   };
 
   handleLogin = async (e: React.FormEvent) => {
@@ -165,6 +173,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       const data = await gql<{ login: User }>(LOGIN_MUTATION, {
         email: loginEmail,
         password: loginPassword,
+        lang: this.props.language,
       });
       onSuccess(data.login);
     } catch (err: unknown) {
@@ -196,6 +205,7 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupEmail,
       signupPhone,
       signupPassword,
+      signupDeliveryAddress,
     } = this.state;
 
     if (
@@ -226,7 +236,9 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
           account:
             signupEntityType === 'LEGAL_ENTITY' ? signupAccount : undefined,
           bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : undefined,
+          deliveryAddress: signupDeliveryAddress,
           password: signupPassword,
+          lang: this.props.language,
         },
       });
       onSuccess(data.createUser);
@@ -263,6 +275,8 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
       signupBank,
       signupEmail,
       signupPhone,
+      signupDeliveryAddress,
+      signupPushSubscription,
     } = this.state;
 
     if (
@@ -294,6 +308,8 @@ class AuthModal extends React.Component<AuthModalProps, AuthModalState> {
             mbr: signupEntityType === 'LEGAL_ENTITY' ? signupMbr : null,
             account: signupEntityType === 'LEGAL_ENTITY' ? signupAccount : null,
             bank: signupEntityType === 'LEGAL_ENTITY' ? signupBank : null,
+            deliveryAddress: signupDeliveryAddress ?? null,
+            pushSubscription: signupPushSubscription ?? null,
           },
         }
       );

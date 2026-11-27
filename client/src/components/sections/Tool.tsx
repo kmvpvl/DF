@@ -1,5 +1,4 @@
-import Proto from '../../proto';
-import { type User } from '../../App';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 import CleaningJournal from './CleaningJournal';
 import Material from './Material';
 import StaffBatches from './StaffBatches';
@@ -7,15 +6,19 @@ import StaffProducts from './StaffProducts';
 import Samples from './Samples';
 import Certificates from './Certificates';
 import Orders from './StaffOrders';
+import StaffMovements from './StaffMovements';
 
-interface ToolProps {
+interface ToolProps extends IProtoProps {
   activeChapter: string;
-  user: User | null;
+  objectId?: string;
 }
 
-class Tool extends Proto<ToolProps, Record<string, never>> {
+interface ToolState extends IProtoState {}
+
+class Tool extends Proto<ToolProps, ToolState> {
   render() {
-    const { activeChapter, user } = this.props;
+    const { activeChapter, objectId, user, companyInfo, currentLocation } =
+      this.props;
 
     return (
       <section className="tool-page" id="tool">
@@ -26,13 +29,24 @@ class Tool extends Proto<ToolProps, Record<string, never>> {
         ) : activeChapter === 'Batches' ? (
           <StaffBatches />
         ) : activeChapter === 'Products' ? (
-          <StaffProducts userId={user?.id} />
+          <StaffProducts user={user} companyInfo={companyInfo} />
         ) : activeChapter === 'Samples' ? (
           <Samples />
         ) : activeChapter === 'Certificates' ? (
           <Certificates />
+        ) : activeChapter === 'Movements' ? (
+          <StaffMovements
+            user={user}
+            companyInfo={companyInfo}
+            currentLocation={currentLocation}
+          />
         ) : activeChapter === 'Orders' ? (
-          <Orders user={user}/>
+          <Orders
+            objectId={objectId}
+            user={user}
+            companyInfo={companyInfo}
+            currentLocation={currentLocation}
+          />
         ) : (
           <div className="section-inner tool-page-inner">
             <p className="section-label">Staff</p>

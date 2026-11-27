@@ -1,26 +1,19 @@
 import { type ChangeEvent, createRef } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
-
-const PRODUCT_FIELDS = `
-  id
-  name
-  batchPrefix
-  description
-  caloriesKcal
-  fatGrams
-  proteinGrams
-  carbohydratesGrams
-  sugarsGrams
-  fiberGrams
-  saltGrams
-  createdAt
-  updatedAt
-`;
+import { IMLString, MLString } from '../../mlstring';
+import MLStringEditor from '../mlstring/mlstring';
+import Tags, { ITags } from '../tags/tags';
+import Photos, { IPhoto } from '../photos/photos';
+import { MLSTRING_FIELDS } from '../../types/gql';
+import { ALL_PRODUCT_FIELDS } from './Products';
+import { IProductVariant, ProductBaseData } from '@betypes/product';
+import ProductVariantEditor from '../productVariantEditor/ProductVariantEditor';
+import './StaffProducts.css';
 
 const PRODUCTS_QUERY = `
   query {
     products {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
     materials {
       id
@@ -55,7 +48,7 @@ const PROCESS_MAPS_QUERY = `
       }
       ingredients {
         id
-        product { id name caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
+        product { id name ${MLSTRING_FIELDS} caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio caloriesKcal fatGrams proteinGrams carbohydratesGrams sugarsGrams fiberGrams saltGrams }
         amount
         unit
@@ -84,7 +77,7 @@ const CREATE_PROCESS_MAP_MUTATION = `
       }
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
@@ -113,7 +106,7 @@ const UPDATE_PROCESS_MAP_MUTATION = `
       }
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
         unit
@@ -135,7 +128,7 @@ const PRODUCT_PROCESS_MAPS_FOR_COST_QUERY = `
       marginalCoefficient
       ingredients {
         id
-        product { id name }
+        product { id name ${MLSTRING_FIELDS}}
         material { id name consumptionUnit VAT Price purchaseUnitAmount rateOfLoss ratio }
         amount
       }
@@ -151,7 +144,7 @@ const DEFAULT_PRODUCT_WEIGHT = 100;
 const CREATE_PRODUCT_MUTATION = `
   mutation($input: CreateProductInput!) {
     createProduct(input: $input) {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
   }
 `;
@@ -159,7 +152,7 @@ const CREATE_PRODUCT_MUTATION = `
 const UPDATE_PRODUCT_MUTATION = `
   mutation($id: ID!, $input: UpdateProductInput!) {
     updateProduct(id: $id, input: $input) {
-      ${PRODUCT_FIELDS}
+      ${ALL_PRODUCT_FIELDS}
     }
   }
 `;
@@ -205,11 +198,12 @@ const UPDATE_COST_SETTINGS_MUTATION = `
   }
 `;
 
-interface StaffProductData {
+interface StaffProductData extends ProductBaseData {
   id: string;
-  name: string;
+  productionHours: number;
+  name: IMLString;
   batchPrefix: string;
-  description: string | null;
+  description: IMLString;
   caloriesKcal: number;
   fatGrams: number;
   proteinGrams: number;
@@ -217,6 +211,12 @@ interface StaffProductData {
   sugarsGrams: number;
   fiberGrams: number;
   saltGrams: number;
+  standardDose: number;
+  tags: ITags;
+  photos: IPhoto[];
+  isPublic: boolean;
+  chapters: IMLString[];
+  priority: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -252,16 +252,18 @@ interface NutritionFields {
 interface IngredientData {
   id: string;
   product: ({ id: string; name: string } & NutritionFields) | null;
-  material: ({
-    id: string;
-    name: string;
-    consumptionUnit: string;
-    VAT: number;
-    Price: number;
-    purchaseUnitAmount: number;
-    rateOfLoss: number;
-    ratio: number;
-  } & NutritionFields) | null;
+  material:
+    | ({
+        id: string;
+        name: string;
+        consumptionUnit: string;
+        VAT: number;
+        Price: number;
+        purchaseUnitAmount: number;
+        rateOfLoss: number;
+        ratio: number;
+      } & NutritionFields)
+    | null;
   amount: number;
   unit: string;
 }
@@ -289,7 +291,12 @@ interface ProcessMapPanelForm {
   productVat: string;
   productWeight: string;
   parameters: { name: string; value: string; unit: string }[];
-  ingredients: { type: 'product' | 'material'; productId: string; materialId: string; amount: string }[];
+  ingredients: {
+    type: 'product' | 'material';
+    productId: string;
+    materialId: string;
+    amount: string;
+  }[];
   outcomeUnit: string;
 }
 
@@ -347,16 +354,24 @@ interface CostSettingsStorage {
 }
 
 interface StaffProductForm {
-  name: string;
+  name: IMLString;
   batchPrefix: string;
-  description: string;
+  description: IMLString;
+  productionHours: string;
   caloriesKcal: string;
   fatGrams: string;
   proteinGrams: string;
   carbohydratesGrams: string;
   sugarsGrams: string;
+  standardDose: string;
   fiberGrams: string;
   saltGrams: string;
+  tags: ITags;
+  photos: IPhoto[];
+  isPublic: boolean;
+  priority: number;
+  chapters: IMLString[];
+  variants: IProductVariant[];
 }
 
 interface ImportProductsCsvResult {
@@ -365,7 +380,7 @@ interface ImportProductsCsvResult {
   errors: string[];
 }
 
-interface IStaffProductsState extends IProtoState{
+interface IStaffProductsState extends IProtoState {
   products: StaffProductData[];
   materials: MaterialOption[];
   productAutoCostLoading: boolean;
@@ -397,9 +412,10 @@ interface IStaffProductsState extends IProtoState{
 }
 
 const INITIAL_FORM: StaffProductForm = {
-  name: '',
+  name: { default: '', ts: {} },
   batchPrefix: '',
-  description: '',
+  description: { default: '', ts: {} },
+  productionHours: '24',
   caloriesKcal: '0',
   fatGrams: '0',
   proteinGrams: '0',
@@ -407,6 +423,24 @@ const INITIAL_FORM: StaffProductForm = {
   sugarsGrams: '0',
   fiberGrams: '0',
   saltGrams: '0',
+  standardDose: '100.0',
+  tags: [],
+  photos: [],
+  chapters: [],
+  priority: 0,
+  isPublic: false,
+  variants: [
+    {
+      label: {
+        default: 'default',
+        ts: {},
+      },
+      locationPrices: [],
+      isWeightBased: false,
+      weight: 0,
+      weightUnit: 'g',
+    },
+  ],
 };
 
 const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
@@ -422,14 +456,15 @@ const INITIAL_PROCESS_MAP_PANEL_FORM: ProcessMapPanelForm = {
   outcomeUnit: 'g',
 };
 
-interface IStaffProductsProps extends IProtoProps {
-  userId?: string;
-}
+interface IStaffProductsProps extends IProtoProps {}
 
 class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
   private readonly productUnitPriceCache = new Map<string, number>();
-  private readonly processMapsForCostCache = new Map<string, ProcessMapForCost[]>();
+  private readonly processMapsForCostCache = new Map<
+    string,
+    ProcessMapForCost[]
+  >();
   private productContainerCostById: Record<string, number> = {};
   private productMarginalCoefficientById: Record<string, number> = {};
   private productWeightById: Record<string, number> = {};
@@ -473,7 +508,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
   private hydrateCostSettings = async () => {
     try {
-      const data = await this.gql(COST_SETTINGS_QUERY);
+      const data = await this.gql<{ costSettings: any }>(COST_SETTINGS_QUERY);
       const settings = data.costSettings as {
         marginalCoefficient: number;
         containerCost: number;
@@ -486,11 +521,22 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
         productMainProcessMaps: string;
       };
 
-      const productContainerCosts = JSON.parse(settings.productContainerCosts || '{}') as Record<string, number>;
-      const productMarginalCoefficients = JSON.parse(settings.productMarginalCoefficients || '{}') as Record<string, number>;
-      const productWeights = JSON.parse(settings.productWeights || '{}') as Record<string, number>;
-      const productVats = JSON.parse(settings.productVats || '{}') as Record<string, number>;
-      const productMainProcessMaps = JSON.parse(settings.productMainProcessMaps || '{}') as Record<string, string>;
+      const productContainerCosts = JSON.parse(
+        settings.productContainerCosts || '{}'
+      ) as Record<string, number>;
+      const productMarginalCoefficients = JSON.parse(
+        settings.productMarginalCoefficients || '{}'
+      ) as Record<string, number>;
+      const productWeights = JSON.parse(
+        settings.productWeights || '{}'
+      ) as Record<string, number>;
+      const productVats = JSON.parse(settings.productVats || '{}') as Record<
+        string,
+        number
+      >;
+      const productMainProcessMaps = JSON.parse(
+        settings.productMainProcessMaps || '{}'
+      ) as Record<string, string>;
 
       this.productContainerCostById = Object.fromEntries(
         Object.entries(productContainerCosts)
@@ -514,7 +560,10 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       );
       this.productMainProcessMapById = Object.fromEntries(
         Object.entries(productMainProcessMaps)
-          .map(([productId, processMapId]) => [productId, String(processMapId)] as const)
+          .map(
+            ([productId, processMapId]) =>
+              [productId, String(processMapId)] as const
+          )
           .filter((entry) => entry[1].trim().length > 0)
       );
 
@@ -541,7 +590,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     }
 
     const specific = this.productContainerCostById[productId];
-    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackContainerCost;
+    return Number.isFinite(specific) && specific >= 0
+      ? specific
+      : fallbackContainerCost;
   };
 
   private getMarginalCoefficientForProduct = (
@@ -567,7 +618,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     }
 
     const specific = this.productWeightById[productId];
-    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackProductWeight;
+    return Number.isFinite(specific) && specific >= 0
+      ? specific
+      : fallbackProductWeight;
   };
 
   private getProductVatForProduct = (
@@ -579,12 +632,17 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     }
 
     const specific = this.productVatById[productId];
-    return Number.isFinite(specific) && specific >= 0 ? specific : fallbackProductVat;
+    return Number.isFinite(specific) && specific >= 0
+      ? specific
+      : fallbackProductVat;
   };
 
-  private getMaterialUnitPriceWithoutVat = (material: MaterialOption): number => {
+  private getMaterialUnitPriceWithoutVat = (
+    material: MaterialOption
+  ): number => {
     const vatFactor = 1 + material.VAT / 100;
-    const priceWithoutVat = vatFactor > 0 ? material.Price / vatFactor : material.Price;
+    const priceWithoutVat =
+      vatFactor > 0 ? material.Price / vatFactor : material.Price;
     let result = priceWithoutVat;
     if (material.ratio > 0) {
       result /= material.ratio;
@@ -593,19 +651,26 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       result /= material.purchaseUnitAmount;
     }
     if (material.rateOfLoss > 0) {
-      result /= (1 - material.rateOfLoss/100);
+      result /= 1 - material.rateOfLoss / 100;
     }
     return result;
   };
 
-  private loadProcessMapsForCost = async (productId: string): Promise<ProcessMapForCost[]> => {
+  private loadProcessMapsForCost = async (
+    productId: string
+  ): Promise<ProcessMapForCost[]> => {
     const cached = this.processMapsForCostCache.get(productId);
     if (cached) {
       return cached;
     }
 
-    const data = await this.gql(PRODUCT_PROCESS_MAPS_FOR_COST_QUERY, { productId });
-    const maps = (data.processMaps as ProcessMapForCost[]) ?? [];
+    const data = await this.gql<{ processMaps: ProcessMapForCost[] }>(
+      PRODUCT_PROCESS_MAPS_FOR_COST_QUERY,
+      {
+        productId,
+      }
+    );
+    const maps = data.processMaps ?? [];
     this.processMapsForCostCache.set(productId, maps);
     return maps;
   };
@@ -620,7 +685,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
 
     const configuredMainId = this.productMainProcessMapById[productId];
     if (configuredMainId) {
-      const configuredMain = processMaps.find((pm) => pm.id === configuredMainId);
+      const configuredMain = processMaps.find(
+        (pm) => pm.id === configuredMainId
+      );
       if (configuredMain) {
         return configuredMain;
       }
@@ -629,12 +696,15 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
     return processMaps[0] ?? null;
   };
 
-  private setMainProcessMapForProduct = async (productId: string, processMapId: string) => {
+  private setMainProcessMapForProduct = async (
+    productId: string,
+    processMapId: string
+  ) => {
     this.productMainProcessMapById = {
       ...this.productMainProcessMapById,
       [productId]: processMapId,
     };
-const maps = this.processMapsForCostCache.get(productId);
+    const maps = this.processMapsForCostCache.get(productId);
     const selectedMain = maps?.find((pm) => pm.id === processMapId);
     if (selectedMain?.outcomeUnit?.trim()) {
       this.setState((prev) => ({
@@ -645,7 +715,6 @@ const maps = this.processMapsForCostCache.get(productId);
       }));
     }
 
-    
     // Force immediate UI refresh for "main" badge/button state.
     this.setState({ error: null });
     this.triggerProductTableAutoCostCalculation();
@@ -653,7 +722,9 @@ const maps = this.processMapsForCostCache.get(productId);
     try {
       await this.gql(UPDATE_COST_SETTINGS_MUTATION, {
         input: {
-          productMainProcessMaps: JSON.stringify(this.productMainProcessMapById),
+          productMainProcessMaps: JSON.stringify(
+            this.productMainProcessMapById
+          ),
         },
       });
     } catch (error) {
@@ -683,21 +754,29 @@ const maps = this.processMapsForCostCache.get(productId);
     try {
       const maps = await this.loadProcessMapsForCost(productId);
       if (maps.length === 0) {
-        throw new Error('Referenced product has no process map for cost calculation.');
+        throw new Error(
+          'Referenced product has no process map for cost calculation.'
+        );
       }
 
       const selectedMap = this.getMainProcessMapForProduct(productId, maps);
       if (!selectedMap) {
-        throw new Error('Referenced product has no process map for cost calculation.');
+        throw new Error(
+          'Referenced product has no process map for cost calculation.'
+        );
       }
       const outcome = Number(selectedMap.outcome);
       if (!Number.isFinite(outcome) || outcome <= 0) {
-        throw new Error('Referenced product process map outcome must be greater than zero.');
+        throw new Error(
+          'Referenced product process map outcome must be greater than zero.'
+        );
       }
 
       const mapRateOfLoss = Number(selectedMap.rateOfLoss);
       const effectiveRateOfLoss =
-        Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+        Number.isFinite(mapRateOfLoss) &&
+        mapRateOfLoss >= 0 &&
+        mapRateOfLoss < 100
           ? mapRateOfLoss
           : 0;
 
@@ -715,7 +794,8 @@ const maps = this.processMapsForCostCache.get(productId);
         }
 
         if (ingredient.material) {
-          ingredientsTotal += this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
+          ingredientsTotal +=
+            this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
           continue;
         }
 
@@ -735,7 +815,9 @@ const maps = this.processMapsForCostCache.get(productId);
         : ingredientsTotal;
       const effectiveOutcome = outcome * (1 - effectiveRateOfLoss / 100);
       if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
-        throw new Error('Referenced product process map effective outcome must be greater than zero.');
+        throw new Error(
+          'Referenced product process map effective outcome must be greater than zero.'
+        );
       }
       const unitPriceWithoutVat = totalCostWithoutVat / effectiveOutcome;
       this.productUnitPriceCache.set(cacheKey, unitPriceWithoutVat);
@@ -758,31 +840,45 @@ const maps = this.processMapsForCostCache.get(productId);
     });
     const outcome = Number.parseFloat(processMapPanelForm.outcome);
     if (!Number.isFinite(outcome) || outcome <= 0) {
-      this.setState(getValidationState('Outcome must be greater than zero to calculate cost.'));
+      this.setState(
+        getValidationState(
+          'Outcome must be greater than zero to calculate cost.'
+        )
+      );
       return;
     }
 
     const rateOfLoss = Number.parseFloat(processMapPanelForm.rateOfLoss);
     if (!Number.isFinite(rateOfLoss) || rateOfLoss < 0 || rateOfLoss >= 100) {
-      this.setState(getValidationState('Rate of loss must be between 0 and 100.'));
+      this.setState(
+        getValidationState('Rate of loss must be between 0 and 100.')
+      );
       return;
     }
 
-    const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const marginalCoefficient = Number.parseFloat(
+      processMapPanelForm.marginalCoefficient
+    );
     if (!Number.isFinite(marginalCoefficient) || marginalCoefficient <= 0) {
-      this.setState(getValidationState('Marginal coefficient must be greater than zero.'));
+      this.setState(
+        getValidationState('Marginal coefficient must be greater than zero.')
+      );
       return;
     }
 
     const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
     if (!Number.isFinite(containerCost) || containerCost < 0) {
-      this.setState(getValidationState('Cost of container must be a non-negative number.'));
+      this.setState(
+        getValidationState('Cost of container must be a non-negative number.')
+      );
       return;
     }
 
     const productVat = Number.parseFloat(processMapPanelForm.productVat);
     if (!Number.isFinite(productVat) || productVat < 0) {
-      this.setState(getValidationState('VAT of product must be a non-negative number.'));
+      this.setState(
+        getValidationState('VAT of product must be a non-negative number.')
+      );
       return;
     }
 
@@ -792,13 +888,21 @@ const maps = this.processMapsForCostCache.get(productId);
       return;
     }
 
-    this.setState({ processMapCostCalculating: true, processMapCostResult: null, error: null });
+    this.setState({
+      processMapCostCalculating: true,
+      processMapCostResult: null,
+      error: null,
+    });
     this.productUnitPriceCache.clear();
     this.processMapsForCostCache.clear();
 
     try {
       const lines: CostCalculationLine[] = [];
-      for (let idx = 0; idx < processMapPanelForm.ingredients.length; idx += 1) {
+      for (
+        let idx = 0;
+        idx < processMapPanelForm.ingredients.length;
+        idx += 1
+      ) {
         const ingredient = processMapPanelForm.ingredients[idx];
         const amount = Number.parseFloat(ingredient.amount);
         if (!Number.isFinite(amount) || amount <= 0) {
@@ -807,7 +911,9 @@ const maps = this.processMapsForCostCache.get(productId);
 
         let unitPriceWithoutVat = 0;
         if (ingredient.type === 'material') {
-          const material = this.state.materials.find((item) => item.id === ingredient.materialId);
+          const material = this.state.materials.find(
+            (item) => item.id === ingredient.materialId
+          );
           if (!material) {
             continue;
           }
@@ -828,15 +934,20 @@ const maps = this.processMapsForCostCache.get(productId);
         });
       }
 
-      const ingredientsTotal = lines.reduce((sum, line) => sum + line.lineCost, 0);
+      const ingredientsTotal = lines.reduce(
+        (sum, line) => sum + line.lineCost,
+        0
+      );
       const effectiveOutcome = outcome * (1 - rateOfLoss / 100);
       if (!Number.isFinite(effectiveOutcome) || effectiveOutcome <= 0) {
         throw new Error('Effective outcome must be greater than zero.');
       }
-      const costPerGramWithoutVat = (ingredientsTotal * marginalCoefficient) / effectiveOutcome;
+      const costPerGramWithoutVat =
+        (ingredientsTotal * marginalCoefficient) / effectiveOutcome;
       const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
       const totalCostWithoutVat = weightedCostWithoutVat + containerCost;
-      const totalCostWithVat = weightedCostWithoutVat * (1 + productVat / 100) + containerCost;
+      const totalCostWithVat =
+        weightedCostWithoutVat * (1 + productVat / 100) + containerCost;
 
       this.setState({
         processMapCostCalculating: false,
@@ -868,7 +979,9 @@ const maps = this.processMapsForCostCache.get(productId);
 
   private getParsedCostSettings = (): CostSettingsStorage | null => {
     const { processMapPanelForm } = this.state;
-    const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const marginalCoefficient = Number.parseFloat(
+      processMapPanelForm.marginalCoefficient
+    );
     const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
     const productVat = Number.parseFloat(processMapPanelForm.productVat);
     const productWeight = Number.parseFloat(processMapPanelForm.productWeight);
@@ -905,7 +1018,9 @@ const maps = this.processMapsForCostCache.get(productId);
 
     const mapRateOfLoss = Number(processMap.rateOfLoss);
     const rateOfLoss =
-      Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+      Number.isFinite(mapRateOfLoss) &&
+      mapRateOfLoss >= 0 &&
+      mapRateOfLoss < 100
         ? mapRateOfLoss
         : 0;
 
@@ -919,8 +1034,11 @@ const maps = this.processMapsForCostCache.get(productId);
         ? mapMarginalCoefficient
         : defaults.marginalCoefficient;
     const productWeight =
-      Number.isFinite(mapDose) && mapDose >= 0 ? mapDose : defaults.productWeight;
-    const productVat = Number.isFinite(mapVat) && mapVat >= 0 ? mapVat : defaults.productVat;
+      Number.isFinite(mapDose) && mapDose >= 0
+        ? mapDose
+        : defaults.productWeight;
+    const productVat =
+      Number.isFinite(mapVat) && mapVat >= 0 ? mapVat : defaults.productVat;
     const containerCost =
       Number.isFinite(mapContainerCost) && mapContainerCost >= 0
         ? mapContainerCost
@@ -934,17 +1052,19 @@ const maps = this.processMapsForCostCache.get(productId);
       }
 
       if (ingredient.material) {
-        ingredientsTotal += this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
+        ingredientsTotal +=
+          this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
         continue;
       }
 
       if (ingredient.product?.id) {
-        const unitPriceWithoutVat = await this.computeProductUnitPriceWithoutVat(
-          ingredient.product.id,
-          defaults.marginalCoefficient,
-          new Set<string>(),
-          false
-        );
+        const unitPriceWithoutVat =
+          await this.computeProductUnitPriceWithoutVat(
+            ingredient.product.id,
+            defaults.marginalCoefficient,
+            new Set<string>(),
+            false
+          );
         ingredientsTotal += unitPriceWithoutVat * amount;
       }
     }
@@ -993,14 +1113,19 @@ const maps = this.processMapsForCostCache.get(productId);
     try {
       const pairs = await Promise.all(
         processMaps.map(async (pm) => {
-          const total = await this.calculateSingleProcessMapTotalWithVat(pm, settings);
+          const total = await this.calculateSingleProcessMapTotalWithVat(
+            pm,
+            settings
+          );
           if (total === null) {
             return [pm.id, null, null, null] as const;
           }
 
           const mapDose = Number(pm.dose);
           const resolvedWeight =
-            Number.isFinite(mapDose) && mapDose >= 0 ? mapDose : settings.productWeight;
+            Number.isFinite(mapDose) && mapDose >= 0
+              ? mapDose
+              : settings.productWeight;
           const resolvedUnit = pm.outcomeUnit.trim() || null;
           return [pm.id, total, resolvedWeight, resolvedUnit] as const;
         })
@@ -1062,7 +1187,10 @@ const maps = this.processMapsForCostCache.get(productId);
       const pairs = await Promise.all(
         products.map(async (product) => {
           const maps = await this.loadProcessMapsForCost(product.id);
-          const selectedMap = this.getMainProcessMapForProduct(product.id, maps);
+          const selectedMap = this.getMainProcessMapForProduct(
+            product.id,
+            maps
+          );
           if (!selectedMap) {
             return [product.id, null, null, null, null] as const;
           }
@@ -1078,11 +1206,13 @@ const maps = this.processMapsForCostCache.get(productId);
               ? Number(selectedMap.containerCost)
               : settings.containerCost;
           const productVat =
-            Number.isFinite(Number(selectedMap.VAT)) && Number(selectedMap.VAT) >= 0
+            Number.isFinite(Number(selectedMap.VAT)) &&
+            Number(selectedMap.VAT) >= 0
               ? Number(selectedMap.VAT)
               : settings.productVat;
           const productWeight =
-            Number.isFinite(Number(selectedMap.dose)) && Number(selectedMap.dose) >= 0
+            Number.isFinite(Number(selectedMap.dose)) &&
+            Number(selectedMap.dose) >= 0
               ? Number(selectedMap.dose)
               : settings.productWeight;
 
@@ -1106,17 +1236,20 @@ const maps = this.processMapsForCostCache.get(productId);
             }
 
             if (ingredient.material) {
-              ingredientsTotal += this.getMaterialUnitPriceWithoutVat(ingredient.material) * amount;
+              ingredientsTotal +=
+                this.getMaterialUnitPriceWithoutVat(ingredient.material) *
+                amount;
               continue;
             }
 
             if (ingredient.product?.id) {
-              const unitPriceWithoutVat = await this.computeProductUnitPriceWithoutVat(
-                ingredient.product.id,
-                productMarginalCoefficient,
-                new Set<string>(),
-                false
-              );
+              const unitPriceWithoutVat =
+                await this.computeProductUnitPriceWithoutVat(
+                  ingredient.product.id,
+                  productMarginalCoefficient,
+                  new Set<string>(),
+                  false
+                );
               ingredientsTotal += unitPriceWithoutVat * amount;
             }
           }
@@ -1130,10 +1263,17 @@ const maps = this.processMapsForCostCache.get(productId);
             (ingredientsTotal * productMarginalCoefficient) / effectiveOutcome;
           const weightedCostWithoutVat = costPerGramWithoutVat * productWeight;
           const totalCostWithVat =
-            weightedCostWithoutVat * (1 + productVat / 100) + productContainerCost;
+            weightedCostWithoutVat * (1 + productVat / 100) +
+            productContainerCost;
 
           const resolvedUnit = selectedMap.outcomeUnit.trim() || null;
-          return [product.id, totalCostWithVat, productWeight, resolvedUnit, productMarginalCoefficient] as const;
+          return [
+            product.id,
+            totalCostWithVat,
+            productWeight,
+            resolvedUnit,
+            productMarginalCoefficient,
+          ] as const;
         })
       );
 
@@ -1147,7 +1287,10 @@ const maps = this.processMapsForCostCache.get(productId);
         ),
 
         productAutoCostWeights: Object.fromEntries(
-          pairs.map(([productId, , productWeight]) => [productId, productWeight ?? null])
+          pairs.map(([productId, , productWeight]) => [
+            productId,
+            productWeight ?? null,
+          ])
         ) as Record<string, number | null>,
         productAutoCostUnits: Object.fromEntries(
           pairs.map(([productId, , , unit]) => [productId, unit])
@@ -1175,30 +1318,46 @@ const maps = this.processMapsForCostCache.get(productId);
       : this.toFixed(weight);
   };
 
-
   private fetchProducts = async () => {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(PRODUCTS_QUERY);
-      const products = data.products as StaffProductData[];
-      this.setState({
-        loading: false,
-        products,
-        materials: data.materials as MaterialOption[],
-      }, () => {
-        this.triggerProductTableAutoCostCalculation();
-      });
+      const data = await this.gql<{
+        products: StaffProductData[];
+        materials: MaterialOption[];
+      }>(PRODUCTS_QUERY);
+      const products = data.products.sort((a, b) =>
+        new MLString(a.name)
+          .toString()
+          .localeCompare(new MLString(b.name).toString())
+      );
+      this.setState(
+        {
+          loading: false,
+          products,
+          materials: data.materials,
+        },
+        () => {
+          this.triggerProductTableAutoCostCalculation();
+        }
+      );
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
     }
   };
 
   private loadProcessMaps = async (productId: string) => {
-    this.setState({ processMapLoading: true, processMapAutoCostLoading: true, error: null });
+    this.setState({
+      processMapLoading: true,
+      processMapAutoCostLoading: true,
+      error: null,
+    });
     try {
-      const data = await this.gql(PROCESS_MAPS_QUERY, { productId });
-      const processMaps = data.processMaps as ProcessMapData[];
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(
+        PROCESS_MAPS_QUERY,
+        { productId }
+      );
+      const processMaps = data.processMaps;
       this.setState({
         processMaps,
         processMapLoading: false,
@@ -1217,7 +1376,7 @@ const maps = this.processMapsForCostCache.get(productId);
     this.setState({ csvProcessing: true, error: null, csvResult: null });
 
     try {
-      const data = await this.gql(PRODUCTS_CSV_QUERY);
+      const data = await this.gql<{ productsCsv: string }>(PRODUCTS_CSV_QUERY);
       const csv = String(data.productsCsv ?? '');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1253,16 +1412,19 @@ const maps = this.processMapsForCostCache.get(productId);
 
     try {
       const csv = await file.text();
-      const data = await this.gql(IMPORT_PRODUCTS_CSV_MUTATION, {
+      const data = await this.gql<{
+        importProductsCsv: ImportProductsCsvResult;
+      }>(IMPORT_PRODUCTS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
 
-      const result = data.importProductsCsv as ImportProductsCsvResult;
+      const result = data.importProductsCsv;
       await this.fetchProducts();
 
       const summary = `Imported ${result.importedCount}, skipped ${result.skippedCount}.`;
-      const details = result.errors.length > 0 ? ` Errors: ${result.errors.join(' | ')}` : '';
+      const details =
+        result.errors.length > 0 ? ` Errors: ${result.errors.join(' | ')}` : '';
 
       this.setState({
         csvProcessing: false,
@@ -1301,26 +1463,35 @@ const maps = this.processMapsForCostCache.get(productId);
 
   private openEditForm = (product: StaffProductData) => {
     window.scrollTo({
-      top: 0, 
-      behavior: 'smooth'
+      top: 0,
+      behavior: 'smooth',
     });
     const { processMapPanelForm } = this.state;
-    const fallbackMarginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const fallbackMarginalCoefficient = Number.parseFloat(
+      processMapPanelForm.marginalCoefficient
+    );
     const resolvedMarginalFallback =
-      Number.isFinite(fallbackMarginalCoefficient) && fallbackMarginalCoefficient > 0
+      Number.isFinite(fallbackMarginalCoefficient) &&
+      fallbackMarginalCoefficient > 0
         ? fallbackMarginalCoefficient
         : DEFAULT_MARGINAL_COEFFICIENT;
-    const fallbackContainerCost = Number.parseFloat(processMapPanelForm.containerCost);
+    const fallbackContainerCost = Number.parseFloat(
+      processMapPanelForm.containerCost
+    );
     const resolvedFallback =
       Number.isFinite(fallbackContainerCost) && fallbackContainerCost >= 0
         ? fallbackContainerCost
         : DEFAULT_CONTAINER_COST;
-    const fallbackProductWeight = Number.parseFloat(processMapPanelForm.productWeight);
+    const fallbackProductWeight = Number.parseFloat(
+      processMapPanelForm.productWeight
+    );
     const resolvedWeightFallback =
       Number.isFinite(fallbackProductWeight) && fallbackProductWeight >= 0
         ? fallbackProductWeight
         : DEFAULT_PRODUCT_WEIGHT;
-    const fallbackProductVat = Number.parseFloat(processMapPanelForm.productVat);
+    const fallbackProductVat = Number.parseFloat(
+      processMapPanelForm.productVat
+    );
     const resolvedVatFallback =
       Number.isFinite(fallbackProductVat) && fallbackProductVat >= 0
         ? fallbackProductVat
@@ -1329,9 +1500,18 @@ const maps = this.processMapsForCostCache.get(productId);
       product.id,
       resolvedMarginalFallback
     );
-    const productContainerCost = this.getContainerCostForProduct(product.id, resolvedFallback);
-    const productWeight = this.getProductWeightForProduct(product.id, resolvedWeightFallback);
-    const productVat = this.getProductVatForProduct(product.id, resolvedVatFallback);
+    const productContainerCost = this.getContainerCostForProduct(
+      product.id,
+      resolvedFallback
+    );
+    const productWeight = this.getProductWeightForProduct(
+      product.id,
+      resolvedWeightFallback
+    );
+    const productVat = this.getProductVatForProduct(
+      product.id,
+      resolvedVatFallback
+    );
     this.setState({
       adding: false,
       editingProduct: product,
@@ -1339,7 +1519,8 @@ const maps = this.processMapsForCostCache.get(productId);
       form: {
         name: product.name,
         batchPrefix: product.batchPrefix,
-        description: product.description ?? '',
+        description: product.description,
+        productionHours: String(product.productionHours ?? 24),
         caloriesKcal: String(product.caloriesKcal),
         fatGrams: String(product.fatGrams),
         proteinGrams: String(product.proteinGrams),
@@ -1347,6 +1528,13 @@ const maps = this.processMapsForCostCache.get(productId);
         sugarsGrams: String(product.sugarsGrams),
         fiberGrams: String(product.fiberGrams),
         saltGrams: String(product.saltGrams),
+        standardDose: String(product.standardDose),
+        tags: product.tags,
+        photos: product.photos,
+        chapters: product.chapters,
+        isPublic: product.isPublic,
+        priority: product.priority,
+        variants: product.variants,
       },
       processMapPanel: 'none',
       processMapEditingId: null,
@@ -1404,44 +1592,54 @@ const maps = this.processMapsForCostCache.get(productId);
 
   private openEditProcessMap = (processMapId: string) => {
     const { processMaps } = this.state;
-    const pm = processMaps.find(p => p.id === processMapId);
+    const pm = processMaps.find((p) => p.id === processMapId);
     if (!pm) return;
-    this.setState({
-      processMapPanel: 'edit',
-      processMapEditingId: processMapId,
-      processMapPanelForm: {
-        name: pm.name,
-        outcome: String(pm.outcome),
-        rateOfLoss: String(pm.rateOfLoss),
-        marginalCoefficient: String(pm.marginalCoefficient),
-        containerCost: String(pm.containerCost),
-        productVat: String(pm.VAT),
-        productWeight: String(pm.dose),
-        parameters: pm.parameters.map(p => ({ name: p.name, value: p.value, unit: p.unit })),
-        ingredients: pm.ingredients.map(ing => ({
-          type: ing.product ? 'product' : 'material',
-          productId: ing.product?.id ?? '',
-          materialId: ing.material?.id ?? '',
-          amount: String(ing.amount),
-        })),
-        outcomeUnit: pm.outcomeUnit,
+    this.setState(
+      {
+        processMapPanel: 'edit',
+        processMapEditingId: processMapId,
+        processMapPanelForm: {
+          name: pm.name,
+          outcome: String(pm.outcome),
+          rateOfLoss: String(pm.rateOfLoss),
+          marginalCoefficient: String(pm.marginalCoefficient),
+          containerCost: String(pm.containerCost),
+          productVat: String(pm.VAT),
+          productWeight: String(pm.dose),
+          parameters: pm.parameters.map((p) => ({
+            name: p.name,
+            value: p.value,
+            unit: p.unit,
+          })),
+          ingredients: pm.ingredients.map((ing) => ({
+            type: ing.product ? 'product' : 'material',
+            productId: ing.product?.id ?? '',
+            materialId: ing.material?.id ?? '',
+            amount: String(ing.amount),
+          })),
+          outcomeUnit: pm.outcomeUnit,
+        },
+        processMapCostResult: null,
       },
-      processMapCostResult: null,
-    }, () => {
-      this.triggerAutoProcessMapCostCalculation();
-    });
+      () => {
+        this.triggerAutoProcessMapCostCalculation();
+      }
+    );
 
     // Pre-load outcomeUnit for any existing product ingredients
     const productIngredientIds = pm.ingredients
-      .filter(ing => ing.product?.id)
-      .map(ing => ing.product!.id);
+      .filter((ing) => ing.product?.id)
+      .map((ing) => ing.product!.id);
     for (const productId of productIngredientIds) {
       void this.loadProcessMapsForCost(productId).then((maps) => {
         const main = this.getMainProcessMapForProduct(productId, maps);
         const outcomeUnit = main?.outcomeUnit?.trim() ?? '';
         if (outcomeUnit) {
-          this.setState(prev => ({
-            productIngredientOutcomeUnits: { ...prev.productIngredientOutcomeUnits, [productId]: outcomeUnit },
+          this.setState((prev) => ({
+            productIngredientOutcomeUnits: {
+              ...prev.productIngredientOutcomeUnits,
+              [productId]: outcomeUnit,
+            },
           }));
         }
       });
@@ -1464,7 +1662,12 @@ const maps = this.processMapsForCostCache.get(productId);
   };
 
   private saveProcessMap = async () => {
-    const { editingProduct, processMapPanel, processMapPanelForm, processMapEditingId } = this.state;
+    const {
+      editingProduct,
+      processMapPanel,
+      processMapPanelForm,
+      processMapEditingId,
+    } = this.state;
     if (!editingProduct) return;
     if (!processMapPanelForm.name.trim()) {
       this.setState({ error: 'Process map name is required.' });
@@ -1482,15 +1685,21 @@ const maps = this.processMapsForCostCache.get(productId);
       return;
     }
 
-    const marginalCoefficient = Number.parseFloat(processMapPanelForm.marginalCoefficient);
+    const marginalCoefficient = Number.parseFloat(
+      processMapPanelForm.marginalCoefficient
+    );
     if (!Number.isFinite(marginalCoefficient) || marginalCoefficient <= 0) {
-      this.setState({ error: 'Marginal coefficient must be greater than zero.' });
+      this.setState({
+        error: 'Marginal coefficient must be greater than zero.',
+      });
       return;
     }
 
     const containerCost = Number.parseFloat(processMapPanelForm.containerCost);
     if (!Number.isFinite(containerCost) || containerCost < 0) {
-      this.setState({ error: 'Cost of container must be a non-negative number.' });
+      this.setState({
+        error: 'Cost of container must be a non-negative number.',
+      });
       return;
     }
 
@@ -1520,16 +1729,24 @@ const maps = this.processMapsForCostCache.get(productId);
             dose: productWeight,
             marginalCoefficient,
             outcomeUnit: processMapPanelForm.outcomeUnit,
-            parameters: processMapPanelForm.parameters.map(p => ({
+            parameters: processMapPanelForm.parameters.map((p) => ({
               name: p.name.trim(),
               value: p.value.trim(),
               unit: p.unit.trim(),
             })),
             ingredients: processMapPanelForm.ingredients
-              .filter(ing => ing.amount.trim() && (ing.productId || ing.materialId))
-              .map(ing => ({
-                productId: ing.type === 'product' ? ing.productId || undefined : undefined,
-                materialId: ing.type === 'material' ? ing.materialId || undefined : undefined,
+              .filter(
+                (ing) => ing.amount.trim() && (ing.productId || ing.materialId)
+              )
+              .map((ing) => ({
+                productId:
+                  ing.type === 'product'
+                    ? ing.productId || undefined
+                    : undefined,
+                materialId:
+                  ing.type === 'material'
+                    ? ing.materialId || undefined
+                    : undefined,
                 amount: Number.parseFloat(ing.amount),
               })),
           },
@@ -1546,16 +1763,24 @@ const maps = this.processMapsForCostCache.get(productId);
             dose: productWeight,
             marginalCoefficient,
             outcomeUnit: processMapPanelForm.outcomeUnit,
-            parameters: processMapPanelForm.parameters.map(p => ({
+            parameters: processMapPanelForm.parameters.map((p) => ({
               name: p.name.trim(),
               value: p.value.trim(),
               unit: p.unit.trim(),
             })),
             ingredients: processMapPanelForm.ingredients
-              .filter(ing => ing.amount.trim() && (ing.productId || ing.materialId))
-              .map(ing => ({
-                productId: ing.type === 'product' ? ing.productId || undefined : undefined,
-                materialId: ing.type === 'material' ? ing.materialId || undefined : undefined,
+              .filter(
+                (ing) => ing.amount.trim() && (ing.productId || ing.materialId)
+              )
+              .map((ing) => ({
+                productId:
+                  ing.type === 'product'
+                    ? ing.productId || undefined
+                    : undefined,
+                materialId:
+                  ing.type === 'material'
+                    ? ing.materialId || undefined
+                    : undefined,
                 amount: Number.parseFloat(ing.amount),
               })),
           },
@@ -1585,7 +1810,10 @@ const maps = this.processMapsForCostCache.get(productId);
     this.setState((prev) => ({
       processMapPanelForm: {
         ...prev.processMapPanelForm,
-        parameters: [...prev.processMapPanelForm.parameters, { name: '', value: '', unit: '' }],
+        parameters: [
+          ...prev.processMapPanelForm.parameters,
+          { name: '', value: '', unit: '' },
+        ],
       },
       processMapCostResult: null,
     }));
@@ -1595,51 +1823,68 @@ const maps = this.processMapsForCostCache.get(productId);
     this.setState((prev) => ({
       processMapPanelForm: {
         ...prev.processMapPanelForm,
-        parameters: prev.processMapPanelForm.parameters.filter((_, i) => i !== idx),
+        parameters: prev.processMapPanelForm.parameters.filter(
+          (_, i) => i !== idx
+        ),
       },
       processMapCostResult: null,
     }));
   };
 
-  private updateParameter = (idx: number, field: 'name' | 'value' | 'unit', val: string) => {
-    this.setState((prev) => {
-      const parameters = prev.processMapPanelForm.parameters.map((p, i) =>
-        i === idx ? { ...p, [field]: val } : p
-      );
-      return {
-        processMapPanelForm: { ...prev.processMapPanelForm, parameters },
-        processMapCostResult: null,
-      };
-    }, () => {
-      this.triggerAutoProcessMapCostCalculation();
-    });
+  private updateParameter = (
+    idx: number,
+    field: 'name' | 'value' | 'unit',
+    val: string
+  ) => {
+    this.setState(
+      (prev) => {
+        const parameters = prev.processMapPanelForm.parameters.map((p, i) =>
+          i === idx ? { ...p, [field]: val } : p
+        );
+        return {
+          processMapPanelForm: { ...prev.processMapPanelForm, parameters },
+          processMapCostResult: null,
+        };
+      },
+      () => {
+        this.triggerAutoProcessMapCostCalculation();
+      }
+    );
   };
 
   private addIngredient = () => {
-    this.setState((prev) => ({
-      processMapPanelForm: {
-        ...prev.processMapPanelForm,
-        ingredients: [
-          ...prev.processMapPanelForm.ingredients,
-          { type: 'material', productId: '', materialId: '', amount: '' },
-        ],
-      },
-      processMapCostResult: null,
-    }), () => {
-      this.triggerAutoProcessMapCostCalculation();
-    });
+    this.setState(
+      (prev) => ({
+        processMapPanelForm: {
+          ...prev.processMapPanelForm,
+          ingredients: [
+            ...prev.processMapPanelForm.ingredients,
+            { type: 'material', productId: '', materialId: '', amount: '' },
+          ],
+        },
+        processMapCostResult: null,
+      }),
+      () => {
+        this.triggerAutoProcessMapCostCalculation();
+      }
+    );
   };
 
   private removeIngredient = (idx: number) => {
-    this.setState((prev) => ({
-      processMapPanelForm: {
-        ...prev.processMapPanelForm,
-        ingredients: prev.processMapPanelForm.ingredients.filter((_, i) => i !== idx),
-      },
-      processMapCostResult: null,
-    }), () => {
-      this.triggerAutoProcessMapCostCalculation();
-    });
+    this.setState(
+      (prev) => ({
+        processMapPanelForm: {
+          ...prev.processMapPanelForm,
+          ingredients: prev.processMapPanelForm.ingredients.filter(
+            (_, i) => i !== idx
+          ),
+        },
+        processMapCostResult: null,
+      }),
+      () => {
+        this.triggerAutoProcessMapCostCalculation();
+      }
+    );
   };
 
   private updateIngredient = (
@@ -1647,47 +1892,61 @@ const maps = this.processMapsForCostCache.get(productId);
     field: 'type' | 'productId' | 'materialId' | 'amount',
     val: string
   ) => {
-    this.setState((prev) => {
-      const ingredients = prev.processMapPanelForm.ingredients.map((ing, i) => {
-      if (field === 'productId' && val) {
-        void this.loadProcessMapsForCost(val)
-          .then((maps) => {
-            const main = this.getMainProcessMapForProduct(val, maps);
-            const outcomeUnit = main?.outcomeUnit?.trim() ?? '';
-            if (!outcomeUnit) {
-              return;
+    this.setState(
+      (prev) => {
+        const ingredients = prev.processMapPanelForm.ingredients.map(
+          (ing, i) => {
+            if (field === 'productId' && val) {
+              void this.loadProcessMapsForCost(val)
+                .then((maps) => {
+                  const main = this.getMainProcessMapForProduct(val, maps);
+                  const outcomeUnit = main?.outcomeUnit?.trim() ?? '';
+                  if (!outcomeUnit) {
+                    return;
+                  }
+                  this.setState((prev) => ({
+                    productIngredientOutcomeUnits: {
+                      ...prev.productIngredientOutcomeUnits,
+                      [val]: outcomeUnit,
+                    },
+                  }));
+                })
+                .catch(() => {
+                  // Ignore unit preload errors for ingredient picker.
+                });
             }
-            this.setState((prev) => ({
-              productIngredientOutcomeUnits: {
-                ...prev.productIngredientOutcomeUnits,
-                [val]: outcomeUnit,
-              },
-            }));
-          })
-          .catch(() => {
-            // Ignore unit preload errors for ingredient picker.
-          });
+            if (i !== idx) return ing;
+            if (field === 'type') {
+              return {
+                ...ing,
+                type: val as 'product' | 'material',
+                productId: '',
+                materialId: '',
+              };
+            }
+            return { ...ing, [field]: val };
+          }
+        );
+        return {
+          processMapPanelForm: { ...prev.processMapPanelForm, ingredients },
+          processMapCostResult: null,
+        };
+      },
+      () => {
+        this.triggerAutoProcessMapCostCalculation();
       }
-        if (i !== idx) return ing;
-        if (field === 'type') {
-          return { ...ing, type: val as 'product' | 'material', productId: '', materialId: '' };
-        }
-        return { ...ing, [field]: val };
-      });
-      return {
-        processMapPanelForm: { ...prev.processMapPanelForm, ingredients },
-        processMapCostResult: null,
-      };
-    }, () => {
-      this.triggerAutoProcessMapCostCalculation();
-    });
+    );
   };
 
   private calculateNutritionsFromComposition = () => {
     const { editingProduct, processMaps, form } = this.state;
     if (!editingProduct) return;
 
-    if (!window.confirm('Do you agree to lose current nutrition values? They will be recalculated from the composition.')) {
+    if (
+      !window.confirm(
+        'Do you agree to lose current nutrition values? They will be recalculated from the composition.'
+      )
+    ) {
       return;
     }
 
@@ -1697,13 +1956,18 @@ const maps = this.processMapsForCostCache.get(productId);
       : processMaps[0];
 
     if (!mainProcessMap) {
-      this.setState({ error: 'No process map found to calculate nutrition from.' });
+      this.setState({
+        error: 'No process map found to calculate nutrition from.',
+      });
       return;
     }
 
     const outcome = Number(mainProcessMap.outcome);
     if (!Number.isFinite(outcome) || outcome <= 0) {
-      this.setState({ error: 'Process map outcome must be greater than zero to calculate nutrition.' });
+      this.setState({
+        error:
+          'Process map outcome must be greater than zero to calculate nutrition.',
+      });
       return;
     }
 
@@ -1755,17 +2019,23 @@ const maps = this.processMapsForCostCache.get(productId);
     const sugarsGrams = Number.parseFloat(form.sugarsGrams);
     const fiberGrams = Number.parseFloat(form.fiberGrams);
     const saltGrams = Number.parseFloat(form.saltGrams);
+    const standardDose = Number.parseFloat(form.standardDose);
+    const productionHours = Number.parseFloat(form.productionHours);
 
     if (
-      !form.name.trim() ||
+      !form.name ||
       !form.batchPrefix.trim() ||
+      !form.description ||
       !Number.isFinite(caloriesKcal) ||
       !Number.isFinite(fatGrams) ||
       !Number.isFinite(proteinGrams) ||
       !Number.isFinite(carbohydratesGrams) ||
       !Number.isFinite(sugarsGrams) ||
       !Number.isFinite(fiberGrams) ||
-      !Number.isFinite(saltGrams)
+      !Number.isFinite(saltGrams) ||
+      !Number.isFinite(standardDose) ||
+      !Number.isFinite(productionHours) ||
+      productionHours < 0
     ) {
       this.setState({
         error: 'Please fill all required fields with valid values.',
@@ -1776,9 +2046,10 @@ const maps = this.processMapsForCostCache.get(productId);
     this.setState({ saving: true, error: null });
 
     const input = {
-      name: form.name.trim(),
+      name: form.name,
       batchPrefix: form.batchPrefix.trim(),
-      description: form.description.trim() || null,
+      description: form.description,
+      productionHours,
       caloriesKcal,
       fatGrams,
       proteinGrams,
@@ -1786,42 +2057,139 @@ const maps = this.processMapsForCostCache.get(productId);
       sugarsGrams,
       fiberGrams,
       saltGrams,
+      standardDose,
+      tags: form.tags,
+      photos: form.photos,
+      chapters: form.chapters,
+      priority: form.priority,
+      isPublic: form.isPublic,
+      variants: form.variants,
     };
 
     try {
       if (editingProduct) {
-        const data = await this.gql(UPDATE_PRODUCT_MUTATION, {
-          id: editingProduct.id,
-          input,
-        });
-        const updated = data.updateProduct as StaffProductData;
+        const data = await this.gql<{ updateProduct: StaffProductData }>(
+          UPDATE_PRODUCT_MUTATION,
+          {
+            id: editingProduct.id,
+            input,
+          }
+        );
+        const updated = data.updateProduct;
+        this.setState(
+          (prevState) => ({
+            saving: false,
+            editingProduct: null,
+            adding: false,
+            form: { ...INITIAL_FORM },
+            products: prevState.products
+              .map((product) => (product.id === updated.id ? updated : product))
+              .sort((a, b) =>
+                new MLString(a.name)
+                  .toString()
+                  .localeCompare(new MLString(b.name).toString())
+              ),
+          }),
+          () => {
+            this.triggerProductTableAutoCostCalculation();
+          }
+        );
+      } else {
+        const data = await this.gql<{ createProduct: StaffProductData }>(
+          CREATE_PRODUCT_MUTATION,
+          { input }
+        );
+        const created = data.createProduct;
 
-        this.setState((prevState) => ({
+        this.setState(
+          (prevState) => ({
+            saving: false,
+            adding: false,
+            form: { ...INITIAL_FORM },
+            products: [...prevState.products, created].sort((a, b) =>
+              new MLString(a.name)
+                .toString()
+                .localeCompare(new MLString(b.name).toString())
+            ),
+          }),
+          () => {
+            this.triggerProductTableAutoCostCalculation();
+          }
+        );
+      }
+    } catch (error) {
+      this.setState({ saving: false, error: String(error) });
+    }
+  };
+
+  private addVariant = () => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: [
+          ...(prev.form.variants ? prev.form.variants : []),
+          {
+            label: { default: '', ts: {} },
+            locationPrices: [],
+            isWeightBased: false,
+            weight: 0,
+            weightUnit: 'g',
+          },
+        ],
+      },
+    }));
+  };
+
+  private removeVariant = (idx: number) => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: prev.form.variants.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  private updateVariant = (idx: number, updatedVariant: IProductVariant) => {
+    this.setState((prev) => ({
+      form: {
+        ...prev.form,
+        variants: prev.form.variants.map((v, i) =>
+          i === idx ? updatedVariant : v
+        ),
+      },
+    }));
+  };
+
+  private publishProduct = async (productId: string, publish: boolean) => {
+    this.setState({ saving: true, error: null });
+    try {
+      const data = await this.gql<{
+        publishProduct: StaffProductData;
+        hideProduct: StaffProductData;
+      }>(
+        `mutation PublishProduct($productId: ID!) {
+          ${publish ? 'publishProduct' : 'hideProduct'}(productId: $productId) {
+            ${ALL_PRODUCT_FIELDS}
+          }
+        }`,
+        { productId }
+      );
+      const updated = data.publishProduct ?? data.hideProduct;
+      this.setState(
+        (prevState) => ({
           saving: false,
-          editingProduct: null,
-          adding: false,
-          form: { ...INITIAL_FORM },
           products: prevState.products
             .map((product) => (product.id === updated.id ? updated : product))
-            .sort((a, b) => a.name.localeCompare(b.name)),
-        }), () => {
-          this.triggerProductTableAutoCostCalculation();
-        });
-      } else {
-        const data = await this.gql(CREATE_PRODUCT_MUTATION, { input });
-        const created = data.createProduct as StaffProductData;
-
-        this.setState((prevState) => ({
-          saving: false,
-          adding: false,
-          form: { ...INITIAL_FORM },
-          products: [...prevState.products, created].sort((a, b) =>
-            a.name.localeCompare(b.name)
-          ),
-        }), () => {
-          this.triggerProductTableAutoCostCalculation();
-        });
-      }
+            .sort((a, b) =>
+              new MLString(a.name)
+                .toString()
+                .localeCompare(new MLString(b.name).toString())
+            ),
+        }),
+        () => {
+          //this.triggerProductTableAutoCostCalculation();
+        }
+      );
     } catch (error) {
       this.setState({ saving: false, error: String(error) });
     }
@@ -1884,7 +2252,10 @@ const maps = this.processMapsForCostCache.get(productId);
                 {csvProcessing ? 'Processing...' : 'Import CSV'}
               </button>
               {!adding && !editingProduct && (
-                <button className="btn-primary cj-add-btn" onClick={this.openCreateForm}>
+                <button
+                  className="btn-primary cj-add-btn"
+                  onClick={this.openCreateForm}
+                >
                   + Add product
                 </button>
               )}
@@ -1905,233 +2276,412 @@ const maps = this.processMapsForCostCache.get(productId);
 
           {(adding || editingProduct) && (
             <form
-              className="material-form"
+              className="material-form product-edit-form"
               onSubmit={(event) => {
                 event.preventDefault();
                 void this.saveProduct();
               }}
             >
-              <label className="cj-label">
-                Name
-                <input
-                  className="cj-input material-input"
-                  type="text"
-                  value={form.name}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, name: event.target.value } })
-                  }
-                  required
-                />
-              </label>
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Product details</h3>
+                    <p>Name, batch prefix and customer-facing description.</p>
+                  </div>
+                </div>
+                <div className="product-details-grid">
+                  <label className="cj-label">
+                    <MLStringEditor
+                      caption="Name"
+                      className="cj-input material-input"
+                      //type="text"
+                      defaultValue={form.name}
+                      onChange={(val) =>
+                        this.setState({ form: { ...form, name: val } })
+                      }
+                    />
+                  </label>
 
-              <label className="cj-label">
-                Batch prefix
-                <input
-                  className="cj-input material-input"
-                  type="text"
-                  value={form.batchPrefix}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, batchPrefix: event.target.value } })
-                  }
-                  required
-                />
-              </label>
+                  <label className="cj-label">
+                    Batch prefix
+                    <input
+                      className="cj-input material-input"
+                      type="text"
+                      value={form.batchPrefix}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, batchPrefix: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label product-description-field">
+                    <MLStringEditor
+                      className="cj-input material-textarea"
+                      caption="Description"
+                      defaultValue={form.description}
+                      onChange={(val) =>
+                        this.setState({ form: { ...form, description: val } })
+                      }
+                      lines={3}
+                    />
+                  </label>
+                </div>
+              </section>
 
-              <label className="cj-label">
-                Description
-                <textarea
-                  className="cj-input material-textarea"
-                  value={form.description}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, description: event.target.value } })
-                  }
-                />
-              </label>
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Nutrition &amp; production</h3>
+                    <p>Product composition values and production settings.</p>
+                  </div>
+                  {editingProduct && (
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      disabled={processMaps.length === 0 || processMapLoading}
+                      onClick={this.calculateNutritionsFromComposition}
+                    >
+                      Calculate from composition
+                    </button>
+                  )}
+                </div>
+                <div className="product-nutrition-grid">
+                  <label className="cj-label">
+                    Calories (kcal)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.caloriesKcal}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, caloriesKcal: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
 
-              {editingProduct && (
-                <div style={{ marginBottom: '8px' }}>
+                  <label className="cj-label">
+                    Fat (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.fatGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, fatGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Protein (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.proteinGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, proteinGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Carbohydrates (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.carbohydratesGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            carbohydratesGrams: event.target.value,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Sugars (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.sugarsGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, sugarsGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Fiber (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.fiberGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, fiberGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label className="cj-label">
+                    Salt (g)
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.saltGrams}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, saltGrams: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label">
+                    Standard Dose, g
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.standardDose}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, standardDose: event.target.value },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                  <label className="cj-label">
+                    Production duration, hours
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={form.productionHours}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            productionHours: event.target.value,
+                          },
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Customer information</h3>
+                    <p>Product photos, tags and catalog chapters.</p>
+                  </div>
+                </div>
+                <div className="product-customer-grid">
+                  <div className="product-customer-photos">
+                    <Photos defaultValue={form.photos} editMode={true} />
+                  </div>
+                  <div className="product-customer-tags">
+                    <Tags
+                      editMode={true}
+                      defaultValue={form.tags}
+                      onChange={(val) => {
+                        this.setState({ form: { ...form, tags: val } });
+                      }}
+                    />
+                    <Tags
+                      caption={'Chapters'}
+                      editMode={true}
+                      defaultValue={form.chapters}
+                      onChange={(val) => {
+                        this.setState({ form: { ...form, chapters: val } });
+                      }}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section className="product-form-section">
+                <div className="product-form-section-header">
+                  <div>
+                    <h3>Variants &amp; pricing</h3>
+                    <p>Set weights, location prices and discount tiers.</p>
+                  </div>
                   <button
                     type="button"
-                    className="btn-outline"
-                    disabled={processMaps.length === 0 || processMapLoading}
-                    onClick={this.calculateNutritionsFromComposition}
+                    className="cj-btn-sm"
+                    onClick={this.addVariant}
                   >
-                    Calculate nutritions by composition
+                    + Add variant
                   </button>
                 </div>
-              )}
-
-              <div className="material-grid">
-                <label className="cj-label">
-                  Calories (kcal)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.caloriesKcal}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, caloriesKcal: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Fat (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.fatGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, fatGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Protein (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.proteinGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, proteinGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Carbohydrates (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.carbohydratesGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, carbohydratesGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Sugars (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.sugarsGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, sugarsGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Fiber (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.fiberGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, fiberGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                <label className="cj-label">
-                  Salt (g)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.saltGrams}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, saltGrams: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-              </div>
-
+                <div className="product-variants-list">
+                  {this.props.companyInfo ? (
+                    form.variants?.map((variant, idx) => (
+                      <ProductVariantEditor
+                        locations={this.props.companyInfo!.locations}
+                        key={idx}
+                        variant={variant}
+                        onChange={(updated) => this.updateVariant(idx, updated)}
+                        onRemove={() => this.removeVariant(idx)}
+                      />
+                    ))
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              </section>
               {editingProduct && (
-                <div className="cj-label">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Process maps</span>
-                    <button type="button" className="cj-btn-sm" onClick={this.openCreateProcessMap}>
+                <section className="product-form-section product-process-section">
+                  <div className="product-form-section-header">
+                    <div>
+                      <h3>Process maps</h3>
+                      <p>Manage production recipes and their ingredients.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="cj-btn-sm"
+                      onClick={this.openCreateProcessMap}
+                    >
                       + New process map
                     </button>
                   </div>
 
-                  <div style={{ marginTop: '8px', display: 'grid', gap: '6px' }}>
+                  <div
+                    style={{ marginTop: '8px', display: 'grid', gap: '6px' }}
+                  >
                     {processMapLoading ? (
-                      <span className="cj-loading">Loading process maps...</span>
+                      <span className="cj-loading">
+                        Loading process maps...
+                      </span>
                     ) : processMaps.length === 0 ? (
-                      <span className="cj-empty">No process maps for this product.</span>
+                      <span className="cj-empty">
+                        No process maps for this product.
+                      </span>
                     ) : (
-                      processMaps.map(pm => {
+                      processMaps.map((pm) => {
                         const isMainProcessMap =
                           (editingProduct
                             ? this.productMainProcessMapById[editingProduct.id]
                             : undefined) === pm.id ||
-                          (!editingProduct || !this.productMainProcessMapById[editingProduct.id]
+                          (!editingProduct ||
+                          !this.productMainProcessMapById[editingProduct.id]
                             ? processMaps[0]?.id === pm.id
                             : false);
 
                         return (
-                        <div
-                          key={pm.id}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            border: '1px solid #ddd',
-                            borderRadius: '6px',
-                            padding: '8px 10px',
-                          }}
-                        >
-                          <span>
-                            <strong>{pm.name}</strong> (outcome: {pm.outcome})
-                            {processMapAutoCostLoading ? (
-                              <span style={{ marginLeft: '8px', color: '#666', fontSize: '0.85em' }}>
-                                auto cost: calculating...
-                              </span>
-                            ) : processMapAutoCosts[pm.id] != null ? (
-                              <span style={{ marginLeft: '8px', color: '#345d2f', fontSize: '0.85em' }}>
-                                auto cost: {this.toFixed(processMapAutoCosts[pm.id]??0)} /{this.formatAutoCostWeight(processMapAutoCostWeights[pm.id] ?? null)} {(processMapAutoCostUnits[pm.id] ?? pm.outcomeUnit) || 'unit'}
-                              </span>
-                            ) : (
-                              <span style={{ marginLeft: '8px', color: '#888', fontSize: '0.85em' }}>
-                                auto cost: -
-                              </span>
-                            )}
-                          </span>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              type="button"
-                              className="cj-btn-sm"
-                              disabled={isMainProcessMap || !editingProduct}
-                              onClick={() => {
-                                if (!editingProduct) {
-                                  return;
-                                }
-                                void this.setMainProcessMapForProduct(editingProduct.id, pm.id);
-                              }}
-                            >
-                              {isMainProcessMap ? 'Main for auto cost' : 'Set as main'}
-                            </button>
-                            <button type="button" className="cj-btn-sm" onClick={() => this.openEditProcessMap(pm.id)}>
-                              Edit
-                            </button>
+                          <div
+                            key={pm.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              padding: '8px 10px',
+                            }}
+                          >
+                            <span>
+                              <strong>{pm.name}</strong> (outcome: {pm.outcome})
+                              {processMapAutoCostLoading ? (
+                                <span
+                                  style={{
+                                    marginLeft: '8px',
+                                    color: '#666',
+                                    fontSize: '0.85em',
+                                  }}
+                                >
+                                  auto cost: calculating...
+                                </span>
+                              ) : processMapAutoCosts[pm.id] != null ? (
+                                <span
+                                  style={{
+                                    marginLeft: '8px',
+                                    color: '#345d2f',
+                                    fontSize: '0.85em',
+                                  }}
+                                >
+                                  auto cost:{' '}
+                                  {this.toFixed(
+                                    processMapAutoCosts[pm.id] ?? 0
+                                  )}{' '}
+                                  /
+                                  {this.formatAutoCostWeight(
+                                    processMapAutoCostWeights[pm.id] ?? null
+                                  )}{' '}
+                                  {(processMapAutoCostUnits[pm.id] ??
+                                    pm.outcomeUnit) ||
+                                    'unit'}
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    marginLeft: '8px',
+                                    color: '#888',
+                                    fontSize: '0.85em',
+                                  }}
+                                >
+                                  auto cost: -
+                                </span>
+                              )}
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                type="button"
+                                className="cj-btn-sm"
+                                disabled={isMainProcessMap || !editingProduct}
+                                onClick={() => {
+                                  if (!editingProduct) {
+                                    return;
+                                  }
+                                  void this.setMainProcessMapForProduct(
+                                    editingProduct.id,
+                                    pm.id
+                                  );
+                                }}
+                              >
+                                {isMainProcessMap
+                                  ? 'Main for auto cost'
+                                  : 'Set as main'}
+                              </button>
+                              <button
+                                type="button"
+                                className="cj-btn-sm"
+                                onClick={() => this.openEditProcessMap(pm.id)}
+                              >
+                                Edit
+                              </button>
+                            </div>
                           </div>
-                        </div>
                         );
                       })
                     )}
@@ -2140,13 +2690,27 @@ const maps = this.processMapsForCostCache.get(productId);
                   {processMapPanel !== 'none' && (
                     <div
                       className="material-form"
-                      style={{ marginTop: '12px', padding: '12px', border: '1px solid #ddd', borderRadius: '6px' }}
+                      style={{
+                        marginTop: '12px',
+                        padding: '12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                      }}
                     >
                       <h4 style={{ margin: '0 0 8px' }}>
-                        {processMapPanel === 'create' ? 'New process map' : 'Edit process map'}
+                        {processMapPanel === 'create'
+                          ? 'New process map'
+                          : 'Edit process map'}
                       </h4>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', alignItems: 'end' }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '6px 12px',
+                          alignItems: 'end',
+                        }}
+                      >
                         <label className="cj-label" style={{ margin: 0 }}>
                           Name
                           <input
@@ -2173,21 +2737,35 @@ const maps = this.processMapsForCostCache.get(productId);
                             step="1"
                             value={processMapPanelForm.outcome}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  outcome: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    outcome: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                }
+                              )
                             }
                             placeholder="Outcome"
                           />
                           {processMapCostResult && (
-                            <div style={{ marginTop: '4px', fontSize: '0.8em', color: '#345d2f' }}>
-                              Auto total (with VAT): <strong>{this.toCurrency(processMapCostResult.totalCostWithVat)}</strong>
+                            <div
+                              style={{
+                                marginTop: '4px',
+                                fontSize: '0.8em',
+                                color: '#345d2f',
+                              }}
+                            >
+                              Auto total (with VAT):{' '}
+                              <strong>
+                                {this.toCurrency(
+                                  processMapCostResult.totalCostWithVat
+                                )}
+                              </strong>
                             </div>
                           )}
                         </label>
@@ -2220,16 +2798,19 @@ const maps = this.processMapsForCostCache.get(productId);
                             max="99.99"
                             value={processMapPanelForm.rateOfLoss}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  rateOfLoss: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    rateOfLoss: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                                this.triggerProductTableAutoCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                  this.triggerProductTableAutoCostCalculation();
+                                }
+                              )
                             }
                             placeholder="Rate of loss %"
                           />
@@ -2243,16 +2824,19 @@ const maps = this.processMapsForCostCache.get(productId);
                             step="1"
                             value={processMapPanelForm.marginalCoefficient}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  marginalCoefficient: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    marginalCoefficient: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                                this.triggerProductTableAutoCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                  this.triggerProductTableAutoCostCalculation();
+                                }
+                              )
                             }
                             placeholder="Marginal coeff"
                           />
@@ -2266,16 +2850,19 @@ const maps = this.processMapsForCostCache.get(productId);
                             step="1"
                             value={processMapPanelForm.containerCost}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  containerCost: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    containerCost: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                                this.triggerProductTableAutoCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                  this.triggerProductTableAutoCostCalculation();
+                                }
+                              )
                             }
                             placeholder="Container cost"
                           />
@@ -2289,16 +2876,19 @@ const maps = this.processMapsForCostCache.get(productId);
                             step="1"
                             value={processMapPanelForm.productVat}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  productVat: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    productVat: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                                this.triggerProductTableAutoCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                  this.triggerProductTableAutoCostCalculation();
+                                }
+                              )
                             }
                             placeholder="VAT %"
                           />
@@ -2313,23 +2903,34 @@ const maps = this.processMapsForCostCache.get(productId);
                             min="0"
                             value={processMapPanelForm.productWeight}
                             onChange={(event) =>
-                              this.setState({
-                                processMapPanelForm: {
-                                  ...processMapPanelForm,
-                                  productWeight: event.target.value,
+                              this.setState(
+                                {
+                                  processMapPanelForm: {
+                                    ...processMapPanelForm,
+                                    productWeight: event.target.value,
+                                  },
+                                  processMapCostResult: null,
                                 },
-                                processMapCostResult: null,
-                              }, () => {
-                                this.triggerAutoProcessMapCostCalculation();
-                                this.triggerProductTableAutoCostCalculation();
-                              })
+                                () => {
+                                  this.triggerAutoProcessMapCostCalculation();
+                                  this.triggerProductTableAutoCostCalculation();
+                                }
+                              )
                             }
                             placeholder={`Dose ${outcomeUnitLabel}`}
                           />
                         </label>
                       </div>
 
-                      <div style={{ marginTop: '8px', display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <div
+                        style={{
+                          marginTop: '8px',
+                          display: 'flex',
+                          gap: '12px',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                        }}
+                      >
                         <button
                           type="button"
                           className="btn-outline"
@@ -2339,7 +2940,9 @@ const maps = this.processMapsForCostCache.get(productId);
                             void this.calculateProcessMapCost();
                           }}
                         >
-                          {processMapCostCalculating ? 'Calculating...' : 'Calculate cost'}
+                          {processMapCostCalculating
+                            ? 'Calculating...'
+                            : 'Calculate cost'}
                         </button>
                         {processMapCostResult && (
                           <div
@@ -2352,42 +2955,98 @@ const maps = this.processMapsForCostCache.get(productId);
                               lineHeight: '1.6',
                             }}
                           >
-                            <div>Ingredients total (w/o VAT): {this.toCurrency(processMapCostResult.ingredientsTotal)}</div>
-                            <div>Cost / {outcomeUnitLabel} (w/o VAT): {this.toCurrency(processMapCostResult.costPerGramWithoutVat)}</div>
-                            <div>Cost for dose (w/o VAT): {this.toCurrency(processMapCostResult.weightedCostWithoutVat)}</div>
-                            <div>Total (w/o VAT): {this.toCurrency(processMapCostResult.totalCostWithoutVat)}</div>
-                            <div>Total (with VAT): <strong>{this.toCurrency(processMapCostResult.totalCostWithVat)}</strong></div>
+                            <div>
+                              Ingredients total (w/o VAT):{' '}
+                              {this.toCurrency(
+                                processMapCostResult.ingredientsTotal
+                              )}
+                            </div>
+                            <div>
+                              Cost / {outcomeUnitLabel} (w/o VAT):{' '}
+                              {this.toCurrency(
+                                processMapCostResult.costPerGramWithoutVat
+                              )}
+                            </div>
+                            <div>
+                              Cost for dose (w/o VAT):{' '}
+                              {this.toCurrency(
+                                processMapCostResult.weightedCostWithoutVat
+                              )}
+                            </div>
+                            <div>
+                              Total (w/o VAT):{' '}
+                              {this.toCurrency(
+                                processMapCostResult.totalCostWithoutVat
+                              )}
+                            </div>
+                            <div>
+                              Total (with VAT):{' '}
+                              <strong>
+                                {this.toCurrency(
+                                  processMapCostResult.totalCostWithVat
+                                )}
+                              </strong>
+                            </div>
                           </div>
                         )}
                       </div>
 
                       <div style={{ marginTop: '8px' }}>
-                        <strong style={{ fontSize: '0.9em' }}>Parameters</strong>
+                        <strong style={{ fontSize: '0.9em' }}>
+                          Parameters
+                        </strong>
                         {processMapPanelForm.parameters.map((param, idx) => (
                           <div
                             key={idx}
-                            style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px' }}
+                            style={{
+                              display: 'flex',
+                              gap: '6px',
+                              alignItems: 'center',
+                              marginTop: '6px',
+                            }}
                           >
                             <input
                               className="cj-input material-input"
                               placeholder="Name"
                               value={param.name}
-                              onChange={(e) => this.updateParameter(idx, 'name', e.target.value)}
+                              onChange={(e) =>
+                                this.updateParameter(
+                                  idx,
+                                  'name',
+                                  e.target.value
+                                )
+                              }
                             />
                             <input
                               className="cj-input material-input"
                               placeholder="Value"
                               value={param.value}
-                              onChange={(e) => this.updateParameter(idx, 'value', e.target.value)}
+                              onChange={(e) =>
+                                this.updateParameter(
+                                  idx,
+                                  'value',
+                                  e.target.value
+                                )
+                              }
                             />
                             <input
                               className="cj-input material-input"
                               placeholder="Unit"
                               value={param.unit}
                               style={{ maxWidth: '80px' }}
-                              onChange={(e) => this.updateParameter(idx, 'unit', e.target.value)}
+                              onChange={(e) =>
+                                this.updateParameter(
+                                  idx,
+                                  'unit',
+                                  e.target.value
+                                )
+                              }
                             />
-                            <button type="button" className="cj-btn-sm" onClick={() => this.removeParameter(idx)}>
+                            <button
+                              type="button"
+                              className="cj-btn-sm"
+                              onClick={() => this.removeParameter(idx)}
+                            >
                               x
                             </button>
                           </div>
@@ -2403,17 +3062,22 @@ const maps = this.processMapsForCostCache.get(productId);
                       </div>
 
                       <div style={{ marginTop: '12px' }}>
-                        <strong style={{ fontSize: '0.9em' }}>Ingredients</strong>
+                        <strong style={{ fontSize: '0.9em' }}>
+                          Ingredients
+                        </strong>
                         {processMapPanelForm.ingredients.map((ing, idx) => {
                           const costLine = processMapCostResult?.lines.find(
                             (line) => line.ingredientIndex === idx
                           );
                           const unit =
                             ing.type === 'material'
-                              ? (materials.find(m => m.id === ing.materialId)?.consumptionUnit ?? '')
-                              : (ing.productId
-                                  ? (this.state.productIngredientOutcomeUnits[ing.productId] ?? '')
-                                  : '');
+                              ? (materials.find((m) => m.id === ing.materialId)
+                                  ?.consumptionUnit ?? '')
+                              : ing.productId
+                                ? (this.state.productIngredientOutcomeUnits[
+                                    ing.productId
+                                  ] ?? '')
+                                : '';
                           return (
                             <div
                               key={idx}
@@ -2429,7 +3093,13 @@ const maps = this.processMapsForCostCache.get(productId);
                                 className="cj-select"
                                 style={{ width: '90px' }}
                                 value={ing.type}
-                                onChange={(e) => this.updateIngredient(idx, 'type', e.target.value)}
+                                onChange={(e) =>
+                                  this.updateIngredient(
+                                    idx,
+                                    'type',
+                                    e.target.value
+                                  )
+                                }
                               >
                                 <option value="material">Material</option>
                                 <option value="product">Product</option>
@@ -2440,10 +3110,16 @@ const maps = this.processMapsForCostCache.get(productId);
                                   className="cj-select"
                                   style={{ flex: 1, minWidth: '140px' }}
                                   value={ing.materialId}
-                                  onChange={(e) => this.updateIngredient(idx, 'materialId', e.target.value)}
+                                  onChange={(e) =>
+                                    this.updateIngredient(
+                                      idx,
+                                      'materialId',
+                                      e.target.value
+                                    )
+                                  }
                                 >
                                   <option value="">Select material</option>
-                                  {materials.map(m => (
+                                  {materials.map((m) => (
                                     <option key={m.id} value={m.id}>
                                       {m.name} ({m.consumptionUnit})
                                     </option>
@@ -2454,12 +3130,18 @@ const maps = this.processMapsForCostCache.get(productId);
                                   className="cj-select"
                                   style={{ flex: 1, minWidth: '140px' }}
                                   value={ing.productId}
-                                  onChange={(e) => this.updateIngredient(idx, 'productId', e.target.value)}
+                                  onChange={(e) =>
+                                    this.updateIngredient(
+                                      idx,
+                                      'productId',
+                                      e.target.value
+                                    )
+                                  }
                                 >
                                   <option value="">Select product</option>
-                                  {products.map(p => (
+                                  {products.map((p) => (
                                     <option key={p.id} value={p.id}>
-                                      {p.name}
+                                      {p.name.toString()}
                                     </option>
                                   ))}
                                 </select>
@@ -2473,17 +3155,45 @@ const maps = this.processMapsForCostCache.get(productId);
                                 placeholder="Amount"
                                 style={{ width: '90px' }}
                                 value={ing.amount}
-                                onChange={(e) => this.updateIngredient(idx, 'amount', e.target.value)}
+                                onChange={(e) =>
+                                  this.updateIngredient(
+                                    idx,
+                                    'amount',
+                                    e.target.value
+                                  )
+                                }
                               />
                               {unit && (
-                                <span style={{ fontSize: '0.85em', color: '#666', minWidth: '40px' }}>{unit}</span>
-                              )}
-                              {costLine && (
-                                <span style={{ fontSize: '0.8em', color: '#666', minWidth: '210px' }}>
-                                  unit: {this.toCurrency(costLine.unitPriceWithoutVat)} | line: {this.toCurrency(costLine.lineCost)}
+                                <span
+                                  style={{
+                                    fontSize: '0.85em',
+                                    color: '#666',
+                                    minWidth: '40px',
+                                  }}
+                                >
+                                  {unit}
                                 </span>
                               )}
-                              <button type="button" className="cj-btn-sm" onClick={() => this.removeIngredient(idx)}>
+                              {costLine && (
+                                <span
+                                  style={{
+                                    fontSize: '0.8em',
+                                    color: '#666',
+                                    minWidth: '210px',
+                                  }}
+                                >
+                                  unit:{' '}
+                                  {this.toCurrency(
+                                    costLine.unitPriceWithoutVat
+                                  )}{' '}
+                                  | line: {this.toCurrency(costLine.lineCost)}
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                className="cj-btn-sm"
+                                onClick={() => this.removeIngredient(idx)}
+                              >
                                 x
                               </button>
                             </div>
@@ -2500,7 +3210,10 @@ const maps = this.processMapsForCostCache.get(productId);
                         </button>
                       </div>
 
-                      <div className="material-actions" style={{ marginTop: '12px' }}>
+                      <div
+                        className="material-actions"
+                        style={{ marginTop: '12px' }}
+                      >
                         <button
                           type="button"
                           className="btn-primary"
@@ -2509,20 +3222,32 @@ const maps = this.processMapsForCostCache.get(productId);
                         >
                           {processMapSaving ? 'Saving...' : 'Save process map'}
                         </button>
-                        <button type="button" className="btn-outline" onClick={this.closeProcessMapPanel}>
+                        <button
+                          type="button"
+                          className="btn-outline"
+                          onClick={this.closeProcessMapPanel}
+                        >
                           Cancel
                         </button>
                       </div>
                     </div>
                   )}
-                </div>
+                </section>
               )}
 
-              <div className="material-actions">
+              <div className="material-actions product-form-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : editingProduct ? 'Update product' : 'Create product'}
+                  {saving
+                    ? 'Saving...'
+                    : editingProduct
+                      ? 'Update product'
+                      : 'Create product'}
                 </button>
-                <button type="button" className="btn-outline" onClick={this.closeForm}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={this.closeForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -2556,12 +3281,23 @@ const maps = this.processMapsForCostCache.get(productId);
                   products.map((product) => (
                     <tr key={product.id}>
                       <td>
-                        <strong>{product.name}</strong>
-                        <div className="material-description">{product.description || 'No description'}</div>
+                        <strong
+                          className={
+                            product.isPublic ? 'published-product' : ''
+                          }
+                        >
+                          {this.toString(product.name)}
+                        </strong>
+                        <div className="material-description">
+                          {this.toString(product.description)}
+                        </div>
                       </td>
-                      <td>{productAutoCostLoading
-                        ? '...': productAutoCostMarginals[product.id] != null 
-                        ? productAutoCostMarginals[product.id]: '-'}
+                      <td>
+                        {productAutoCostLoading
+                          ? '...'
+                          : productAutoCostMarginals[product.id] != null
+                            ? productAutoCostMarginals[product.id]
+                            : '-'}
                       </td>
                       <td>{product.caloriesKcal}</td>
                       <td>{product.fatGrams}</td>
@@ -2575,8 +3311,19 @@ const maps = this.processMapsForCostCache.get(productId);
                             : '-'}
                       </td>
                       <td className="cj-row-actions">
-                        <button className="cj-btn-sm" onClick={() => this.openEditForm(product)}>
+                        <button
+                          className="cj-btn-sm"
+                          onClick={() => this.openEditForm(product)}
+                        >
                           Edit
+                        </button>
+                        <button
+                          className="cj-btn-sm"
+                          onClick={() =>
+                            this.publishProduct(product.id, !product.isPublic)
+                          }
+                        >
+                          {product.isPublic ? 'Hide' : 'Publish'}
                         </button>
                       </td>
                     </tr>

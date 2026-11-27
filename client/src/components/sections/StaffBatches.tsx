@@ -1,11 +1,20 @@
-import Proto from '../../proto';
+import { IMLString, MLString } from '../../mlstring';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
+import { MLSTRING_FIELDS } from '../../types/gql';
+import './StaffBatches.css';
 
 const INITIAL_QUERY = `
   query {
     products {
       id
-      name
+      name ${MLSTRING_FIELDS}
       batchPrefix
+      variants {
+        id
+        label ${MLSTRING_FIELDS}
+        weight
+        weightUnit
+      }
     }
     storageConditions {
       id
@@ -22,7 +31,7 @@ const INITIAL_QUERY = `
       updatedAt
       product {
         id
-        name
+        name ${MLSTRING_FIELDS}
         batchPrefix
       }
       storageCondition {
@@ -74,7 +83,7 @@ const PROCESS_MAPS_QUERY = `
         unit
         product {
           id
-          name
+          name ${MLSTRING_FIELDS}
         }
         material {
           id
@@ -109,8 +118,14 @@ const UPDATE_BATCH_MUTATION = `
 
 interface BatchProductOption {
   id: string;
-  name: string;
+  name: IMLString;
   batchPrefix: string;
+  variants: {
+    id: string;
+    label: IMLString;
+    weight: number;
+    weightUnit: string;
+  }[];
 }
 
 interface StorageConditionOption {
@@ -173,6 +188,7 @@ interface StaffBatchData {
 interface BatchForm {
   productId: string;
   nettoWeight: string;
+  variantLabel?: string;
   storageDurationDays: string;
   storageConditionId: string;
   storageConditionName: string;
@@ -181,7 +197,7 @@ interface BatchForm {
   sampleCount: string;
 }
 
-interface StaffBatchesState {
+interface StaffBatchesState extends IProtoState {
   products: BatchProductOption[];
   storageConditions: StorageConditionOption[];
   batches: StaffBatchData[];
@@ -214,7 +230,7 @@ const INITIAL_FORM: BatchForm = {
   sampleCount: '0',
 };
 
-class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
+class StaffBatches extends Proto<IProtoProps, StaffBatchesState> {
   state: StaffBatchesState = {
     products: [],
     storageConditions: [],
@@ -245,19 +261,36 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(INITIAL_QUERY);
+      const data = await this.gql<{
+        products: BatchProductOption[];
+        storageConditions: StorageConditionOption[];
+        batches: StaffBatchData[];
+        costSettings: { productMainProcessMaps?: string };
+      }>(INITIAL_QUERY);
       this.setState({
         loading: false,
-        products: data.products as BatchProductOption[],
+        products: (data.products as BatchProductOption[]).sort((a, b) =>
+          new MLString(a.name)
+            .toString()
+            .localeCompare(new MLString(b.name).toString())
+        ),
         storageConditions: data.storageConditions as StorageConditionOption[],
         batches: data.batches as StaffBatchData[],
         productMainProcessMapById: (() => {
           try {
-            const raw = (data.costSettings as { productMainProcessMaps?: string } | undefined)?.productMainProcessMaps ?? '{}';
+            const raw =
+              (
+                data.costSettings as
+                  | { productMainProcessMaps?: string }
+                  | undefined
+              )?.productMainProcessMaps ?? '{}';
             const parsed = JSON.parse(raw) as Record<string, string>;
             return Object.fromEntries(
               Object.entries(parsed)
-                .map(([productId, processMapId]) => [productId, String(processMapId)] as const)
+                .map(
+                  ([productId, processMapId]) =>
+                    [productId, String(processMapId)] as const
+                )
                 .filter((entry) => entry[1].trim().length > 0)
             );
           } catch {
@@ -276,12 +309,19 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       return;
     }
 
-    this.setState({ previewLoading: true, error: null, nextBatchPreview: null });
+    this.setState({
+      previewLoading: true,
+      error: null,
+      nextBatchPreview: null,
+    });
     try {
-      const data = await this.gql(NEXT_BATCH_PREVIEW_QUERY, { productId });
+      const data = await this.gql<{ nextBatchPreview: BatchPreview }>(
+        NEXT_BATCH_PREVIEW_QUERY,
+        { productId }
+      );
       this.setState({
         previewLoading: false,
-        nextBatchPreview: data.nextBatchPreview as BatchPreview,
+        nextBatchPreview: data.nextBatchPreview,
       });
     } catch (error) {
       this.setState({ previewLoading: false, error: String(error) });
@@ -295,9 +335,12 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
     }
     this.setState({ processMapLoading: true });
     try {
-      const data = await this.gql(PROCESS_MAPS_QUERY, { productId });
+      const data = await this.gql<{ processMaps: ProcessMapData[] }>(
+        PROCESS_MAPS_QUERY,
+        { productId }
+      );
       this.setState({
-        processMaps: data.processMaps as ProcessMapData[],
+        processMaps: data.processMaps,
         processMapLoading: false,
       });
     } catch (error) {
@@ -323,8 +366,8 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
 
   private openEditForm = (batch: StaffBatchData) => {
     window.scrollTo({
-      top: 0, 
-      behavior: 'smooth'
+      top: 0,
+      behavior: 'smooth',
     });
     this.setState({
       adding: false,
@@ -380,32 +423,38 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
   };
 
   private calculateIngredientsForBatch = () => {
-    const {
-      form,
-      processMaps,
-      productMainProcessMapById,
-    } = this.state;
+    const { form, processMaps, productMainProcessMapById } = this.state;
 
     const nettoWeight = Number.parseFloat(form.nettoWeight);
     if (!Number.isFinite(nettoWeight) || nettoWeight <= 0) {
-      this.setState({ error: 'Enter a valid netto weight before calculating ingredients.' });
+      this.setState({
+        error: 'Enter a valid netto weight before calculating ingredients.',
+      });
       return;
     }
 
     if (!form.productId) {
-      this.setState({ error: 'Select a product before calculating ingredients.' });
+      this.setState({
+        error: 'Select a product before calculating ingredients.',
+      });
       return;
     }
 
     if (processMaps.length === 0) {
-      this.setState({ error: 'No process maps available for the selected product.' });
+      this.setState({
+        error: 'No process maps available for the selected product.',
+      });
       return;
     }
 
-    const selectedMapId = form.processMapId || productMainProcessMapById[form.productId] || '';
+    const selectedMapId =
+      form.processMapId || productMainProcessMapById[form.productId] || '';
     const selectedMap = processMaps.find((pm) => pm.id === selectedMapId);
     if (!selectedMap) {
-      this.setState({ error: 'Choose a process map or set a main process map for this product.' });
+      this.setState({
+        error:
+          'Choose a process map or set a main process map for this product.',
+      });
       return;
     }
 
@@ -416,13 +465,17 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
     }, 0);*/
 
     if (!Number.isFinite(ingredientAmountSum) || ingredientAmountSum <= 0) {
-      this.setState({ error: 'Selected process map has no valid ingredient proportions.' });
+      this.setState({
+        error: 'Selected process map has no valid ingredient proportions.',
+      });
       return;
     }
 
     const mapRateOfLoss = Number(selectedMap.rateOfLoss);
     const effectiveRateOfLoss =
-      Number.isFinite(mapRateOfLoss) && mapRateOfLoss >= 0 && mapRateOfLoss < 100
+      Number.isFinite(mapRateOfLoss) &&
+      mapRateOfLoss >= 0 &&
+      mapRateOfLoss < 100
         ? mapRateOfLoss
         : 0;
     const requiredInputWeight = nettoWeight / (1 - effectiveRateOfLoss / 100);
@@ -436,12 +489,18 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
         const proportion = requiredInputWeight / selectedMap.outcome;
         return {
           id: ingredient.id,
-          name: ingredient.product?.name ?? ingredient.material?.name ?? 'Unknown ingredient',
+          name:
+            ingredient.product?.name ??
+            ingredient.material?.name ??
+            'Unknown ingredient',
           amount: amount * proportion,
           unit: ingredient.unit,
         };
       })
-      .filter((ingredient): ingredient is CalculatedIngredientLine => ingredient !== null);
+      .filter(
+        (ingredient): ingredient is CalculatedIngredientLine =>
+          ingredient !== null
+      );
 
     this.setState({
       error: null,
@@ -471,13 +530,21 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       <div className="batch-preview-box batch-ingredients-box">
         <strong>Ingredients calculation</strong>
         <div>Process map: {calculatedProcessMapName}</div>
-        <div>Netto weight target: {Number.isFinite(nettoWeight) ? this.toFixed(nettoWeight) : form.nettoWeight}</div>
-        <div>Rate of loss: {this.toInteger((calculatedRateOfLoss ?? 0))}%</div>
-        <div>Required total input: {this.toFixed(calculatedInputWeight ?? 0)}</div>
+        <div>
+          Netto weight target:{' '}
+          {Number.isFinite(nettoWeight)
+            ? this.toFixed(nettoWeight)
+            : form.nettoWeight}
+        </div>
+        <div>Rate of loss: {this.toInteger(calculatedRateOfLoss ?? 0)}%</div>
+        <div>
+          Required total input: {this.toFixed(calculatedInputWeight ?? 0)}
+        </div>
         <ul className="batch-ingredients-list">
           {calculatedIngredients.map((ingredient) => (
             <li key={ingredient.id}>
-              {ingredient.name}: {this.toCurrency(ingredient.amount)} {ingredient.unit}
+              {ingredient.name}: {this.toCurrency(ingredient.amount)}{' '}
+              {ingredient.unit}
             </li>
           ))}
         </ul>
@@ -511,21 +578,29 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
 
     try {
       if (adding) {
-        const data = await this.gql(CREATE_BATCH_MUTATION, {
-          input: {
-            productId: form.productId,
-            nettoWeight,
-            storageDurationDays,
-            storageConditionId: form.storageConditionId.trim() || null,
-            storageConditionName: form.storageConditionName.trim() || null,
-            processDeviations: form.processDeviations.trim() || null,
-            processMapId: form.processMapId.trim() || null,
-            sampleCount,
-          },
-        });
+        const data = await this.gql<{ createBatch: StaffBatchData }>(
+          CREATE_BATCH_MUTATION,
+          {
+            input: {
+              productId: form.productId,
+              variantLabel: form.variantLabel,
+              nettoWeight,
+              storageDurationDays,
+              storageConditionId: form.storageConditionId.trim() || null,
+              storageConditionName: form.storageConditionName.trim() || null,
+              processDeviations: form.processDeviations.trim() || null,
+              processMapId: form.processMapId.trim() || null,
+              sampleCount,
+            },
+          }
+        );
 
-        const createdBatch = data.createBatch as { samples?: CreatedSampleInfo[] };
-        const createdSampleNumbers = (createdBatch.samples ?? []).map(sample => sample.numberStr);
+        const createdBatch = data.createBatch as {
+          samples?: CreatedSampleInfo[];
+        };
+        const createdSampleNumbers = (createdBatch.samples ?? []).map(
+          (sample) => sample.numberStr
+        );
 
         await this.fetchData();
         this.setState({
@@ -571,11 +646,17 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
   private renderBatchPreview() {
     const { form, nextBatchPreview, previewLoading } = this.state;
     if (!form.productId) {
-      return <div className="batch-preview-box">Choose a product to generate the next batch number.</div>;
+      return (
+        <div className="batch-preview-box">
+          Choose a product to generate the next batch number.
+        </div>
+      );
     }
 
     if (previewLoading) {
-      return <div className="batch-preview-box">Generating next batch number...</div>;
+      return (
+        <div className="batch-preview-box">Generating next batch number...</div>
+      );
     }
 
     if (!nextBatchPreview) {
@@ -606,6 +687,8 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
       calculatedIngredients,
     } = this.state;
 
+    const product = this.state.products.find((p) => p.id === form.productId);
+
     return (
       <div className="cleaning-journal">
         <div className="cj-header">
@@ -617,7 +700,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
           <div className="cj-panel-header">
             <h2 className="cj-panel-title">Batch list</h2>
             {!adding && !editingBatch && (
-              <button className="btn-primary cj-add-btn" onClick={this.openCreateForm}>
+              <button
+                className="btn-primary cj-add-btn"
+                onClick={this.openCreateForm}
+              >
                 + Add batch
               </button>
             )}
@@ -628,53 +714,126 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
 
           {(adding || editingBatch) && (
             <form
-              className="material-form"
+              className="material-form batch-edit-form"
               onSubmit={(event) => {
                 event.preventDefault();
                 void this.saveBatch();
               }}
             >
               {adding ? (
-                <label className="cj-label">
-                  Product
-                  <select
-                    className="cj-select batch-select"
-                    value={form.productId}
-                    onChange={(event) => {
-                      void this.handleCreateProductChange(event.target.value);
-                    }}
-                    required
-                  >
-                    <option value="">Select product</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name} ({product.batchPrefix})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <section className="batch-form-section">
+                  <div className="batch-section-heading">
+                    <h3>Product and variant</h3>
+                    <p>
+                      Select the product and, if needed, a specific variant.
+                    </p>
+                  </div>
+                  <div className="batch-product-grid">
+                    <label className="cj-label">
+                      Product
+                      <select
+                        className="cj-select batch-select"
+                        value={form.productId}
+                        onChange={(event) => {
+                          void this.handleCreateProductChange(
+                            event.target.value
+                          );
+                        }}
+                        required
+                      >
+                        <option value="">Select product</option>
+                        {products.map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {this.toString(product.name)} ({product.batchPrefix}
+                            )
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="cj-label">
+                      Variant
+                      <select
+                        className="cj-select batch-select"
+                        onClick={(event) =>
+                          this.setState({
+                            ...this.state,
+                            form: {
+                              ...this.state.form,
+                              variantLabel: event.currentTarget.value,
+                            },
+                          })
+                        }
+                      >
+                        <option>Select variant</option>
+                        {product ? (
+                          product.variants.map((v) => (
+                            <option
+                              key={v.id}
+                              value={
+                                typeof v.label === 'string'
+                                  ? v.label
+                                  : v.label.default
+                              }
+                            >
+                              {`${this.toString(v.label)} - ${v.weight}${v.weightUnit}`}
+                            </option>
+                          ))
+                        ) : (
+                          <></>
+                        )}
+                      </select>
+                    </label>
+                  </div>
+                  {this.renderBatchPreview()}
+                </section>
               ) : (
-                <div className="batch-preview-box">
-                  <strong>Product:</strong> {editingBatch?.product.name} ({editingBatch?.product.batchPrefix})
-                  <br />
-                  <strong>Batch number:</strong> {editingBatch?.numberStr}
-                </div>
+                <section className="batch-form-section">
+                  <div className="batch-section-heading">
+                    <h3>Batch details</h3>
+                    <p>The product and batch number cannot be changed here.</p>
+                  </div>
+                  <div className="batch-preview-box batch-edit-identity">
+                    <div>
+                      <span>Product</span>
+                      <strong>
+                        {`${this.toString(editingBatch?.product.name)} (${editingBatch?.product.batchPrefix})`}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Batch number</span>
+                      <strong>{editingBatch?.numberStr}</strong>
+                    </div>
+                  </div>
+                </section>
               )}
 
-              <div className="material-grid">
-                {adding && this.renderBatchPreview()}
-
+              <section className="batch-form-section">
+                <div className="batch-section-heading">
+                  <h3>Production details</h3>
+                  <p>Process map, finished weight and storage duration.</p>
+                </div>
+                <div className="batch-production-grid">
                   {form.productId && (
                     <div className="cj-label">
                       <span>Process map</span>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          marginTop: '4px',
+                        }}
+                      >
                         <select
                           className="cj-select batch-select"
                           value={form.processMapId}
                           disabled={processMapLoading}
                           onChange={(event) =>
                             this.setState({
-                              form: { ...form, processMapId: event.target.value },
+                              form: {
+                                ...form,
+                                processMapId: event.target.value,
+                              },
                               calculatedIngredients: [],
                               calculatedProcessMapName: '',
                               calculatedInputWeight: null,
@@ -692,128 +851,162 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       </div>
                     </div>
                   )}
-                  {adding && calculatedIngredients.length > 0 ? this.renderCalculatedIngredients() : <div></div>}
-                <label className="cj-label">
-                  Netto weight
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    value={form.nettoWeight}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, nettoWeight: event.target.value },
-                        calculatedIngredients: [],
-                        calculatedProcessMapName: '',
-                        calculatedInputWeight: null,
-                        calculatedRateOfLoss: null,
-                      })
-                    }
-                    required
-                  />
-                  {adding && (
-                    <button
-                      type="button"
-                      className="btn-outline"
-                      style={{ marginTop: '8px' }}
-                      onClick={this.calculateIngredientsForBatch}
-                    >
-                      Calculate ingredients
-                    </button>
-                  )}
-                </label>
-
-                <label className="cj-label">
-                  Storage duration (days)
-                  <input
-                    className="cj-input material-input"
-                    type="number"
-                    step="1"
-                    min="0"
-                    value={form.storageDurationDays}
-                    onChange={(event) =>
-                      this.setState({ form: { ...form, storageDurationDays: event.target.value } })
-                    }
-                    required
-                  />
-                </label>
-
-                {adding && (
                   <label className="cj-label">
-                    New samples count
+                    Netto weight
+                    <input
+                      className="cj-input material-input"
+                      type="number"
+                      step="1"
+                      value={form.nettoWeight}
+                      onChange={(event) =>
+                        this.setState({
+                          form: { ...form, nettoWeight: event.target.value },
+                          calculatedIngredients: [],
+                          calculatedProcessMapName: '',
+                          calculatedInputWeight: null,
+                          calculatedRateOfLoss: null,
+                        })
+                      }
+                      required
+                    />
+                    {adding && (
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        style={{ marginTop: '8px' }}
+                        onClick={this.calculateIngredientsForBatch}
+                      >
+                        Calculate ingredients
+                      </button>
+                    )}
+                  </label>
+
+                  <label className="cj-label">
+                    Storage duration (days)
                     <input
                       className="cj-input material-input"
                       type="number"
                       step="1"
                       min="0"
-                      value={form.sampleCount}
+                      value={form.storageDurationDays}
                       onChange={(event) =>
-                        this.setState({ form: { ...form, sampleCount: event.target.value } })
+                        this.setState({
+                          form: {
+                            ...form,
+                            storageDurationDays: event.target.value,
+                          },
+                        })
                       }
                       required
                     />
                   </label>
-                )}
-              </div>
 
-              <label className="cj-label">
-                Storage condition
-                <select
-                  className="cj-select batch-select"
-                  value={form.storageConditionId}
-                  onChange={(event) =>
-                    this.setState({
-                      form: {
-                        ...form,
-                        storageConditionId: event.target.value,
-                        storageConditionName: event.target.value ? '' : form.storageConditionName,
-                      },
-                    })
-                  }
-                >
-                  <option value="">Enter manually</option>
-                  {storageConditions.map((condition) => (
-                    <option key={condition.id} value={condition.id}>
-                      {condition.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {adding && (
+                    <label className="cj-label">
+                      New samples count
+                      <input
+                        className="cj-input material-input"
+                        type="number"
+                        step="1"
+                        min="0"
+                        value={form.sampleCount}
+                        onChange={(event) =>
+                          this.setState({
+                            form: { ...form, sampleCount: event.target.value },
+                          })
+                        }
+                        required
+                      />
+                    </label>
+                  )}
+                </div>
+                {adding && calculatedIngredients.length > 0
+                  ? this.renderCalculatedIngredients()
+                  : null}
+              </section>
 
-              {!form.storageConditionId && (
-                <label className="cj-label">
-                  New storage condition
-                  <input
-                    className="cj-input batch-input-wide"
-                    type="text"
-                    value={form.storageConditionName}
-                    onChange={(event) =>
-                      this.setState({
-                        form: { ...form, storageConditionName: event.target.value },
-                      })
-                    }
-                    placeholder="Enter storage condition name"
-                  />
-                </label>
-              )}
+              <section className="batch-form-section">
+                <div className="batch-section-heading">
+                  <h3>Storage and notes</h3>
+                  <p>Choose the storage condition and record deviations.</p>
+                </div>
+                <div className="batch-storage-grid">
+                  <label className="cj-label">
+                    Storage condition
+                    <select
+                      className="cj-select batch-select"
+                      value={form.storageConditionId}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            storageConditionId: event.target.value,
+                            storageConditionName: event.target.value
+                              ? ''
+                              : form.storageConditionName,
+                          },
+                        })
+                      }
+                    >
+                      <option value="">Enter manually</option>
+                      {storageConditions.map((condition) => (
+                        <option key={condition.id} value={condition.id}>
+                          {condition.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-              <label className="cj-label">
-                Process deviations
-                <textarea
-                  className="cj-input material-textarea"
-                  value={form.processDeviations}
-                  onChange={(event) =>
-                    this.setState({ form: { ...form, processDeviations: event.target.value } })
-                  }
-                />
-              </label>
+                  {!form.storageConditionId && (
+                    <label className="cj-label">
+                      New storage condition
+                      <input
+                        className="cj-input batch-input-wide"
+                        type="text"
+                        value={form.storageConditionName}
+                        onChange={(event) =>
+                          this.setState({
+                            form: {
+                              ...form,
+                              storageConditionName: event.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Enter storage condition name"
+                      />
+                    </label>
+                  )}
+                  <label className="cj-label batch-deviations-field">
+                    Process deviations
+                    <textarea
+                      className="cj-input material-textarea"
+                      value={form.processDeviations}
+                      onChange={(event) =>
+                        this.setState({
+                          form: {
+                            ...form,
+                            processDeviations: event.target.value,
+                          },
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+              </section>
 
-
-              <div className="material-actions">
+              <div className="material-actions batch-form-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : adding ? 'Create batch' : 'Update batch'}
+                  {saving
+                    ? 'Saving...'
+                    : adding
+                      ? 'Create batch'
+                      : 'Update batch'}
                 </button>
-                <button type="button" className="btn-outline" onClick={this.closeForm}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={this.closeForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -849,16 +1042,22 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       <td>
                         <strong>{batch.numberStr}</strong>
                         {batch.processDeviations ? (
-                          <div className="material-description">{batch.processDeviations}</div>
+                          <div className="material-description">
+                            {batch.processDeviations}
+                          </div>
                         ) : null}
                       </td>
-                      <td>{batch.product.name}</td>
+                      <td>{this.toString(batch.product.name)}</td>
                       <td>{batch.nettoWeight}</td>
                       <td>{batch.storageDurationDays} d</td>
                       <td>{batch.storageCondition.name}</td>
                       <td>
                         {batch.processMap ? (
-                          <span title={batch.processMap.parameters.map(p => `${p.name}: ${p.value} ${p.unit}`).join('\n')}>
+                          <span
+                            title={batch.processMap.parameters
+                              .map((p) => `${p.name}: ${p.value} ${p.unit}`)
+                              .join('\n')}
+                          >
                             {batch.processMap.name}
                           </span>
                         ) : (
@@ -867,7 +1066,10 @@ class StaffBatches extends Proto<Record<string, never>, StaffBatchesState> {
                       </td>
                       <td>{this.toLocalDate(batch.createdAt)}</td>
                       <td className="cj-row-actions">
-                        <button className="cj-btn-sm" onClick={() => this.openEditForm(batch)}>
+                        <button
+                          className="cj-btn-sm"
+                          onClick={() => this.openEditForm(batch)}
+                        >
                           Edit
                         </button>
                       </td>

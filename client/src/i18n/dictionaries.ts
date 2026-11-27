@@ -16,9 +16,7 @@ export const dictionaries = {
           <br>Složeni: voda, govedina,  krompir, šargarepa, crni luk, pšenično brašno, začini
           <br><b>U svakoj porciji se nalazi najmanje 90g probrane posne teletine</b>`,
           chapter: 'soups',
-          photos: [
-            '/assets/images/products/tc-1.webp',
-          ],
+          photos: ['/assets/images/products/tc-1.webp'],
           priceVariations: [
             {
               label: '400g',
@@ -28,7 +26,7 @@ export const dictionaries = {
               weight: 400,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 202,
@@ -38,9 +36,7 @@ export const dictionaries = {
 <br>	<b>U svakoj porciji se nalazi najmanje 80 g ribljeg fileta bez kostiju</b>.
 `,
           chapter: 'soups',
-          photos: [
-            '/assets/images/products/rc-1.jpg',
-          ],
+          photos: ['/assets/images/products/rc-1.jpg'],
           priceVariations: [
             {
               label: '360g',
@@ -50,7 +46,7 @@ export const dictionaries = {
               weight: 360,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 203,
@@ -73,7 +69,7 @@ export const dictionaries = {
               weight: 480,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 204,
@@ -83,9 +79,7 @@ export const dictionaries = {
 <br><b>	U svakoj porciji se nalazi najmanje 130 g mesa.</b>
 `,
           chapter: 'soups',
-          photos: [
-            '/assets/images/products/soljanka-1.jfif',
-          ],
+          photos: ['/assets/images/products/soljanka-1.jfif'],
           priceVariations: [
             {
               label: '520g',
@@ -95,7 +89,7 @@ export const dictionaries = {
               weight: 520,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 205,
@@ -105,9 +99,7 @@ export const dictionaries = {
 <br><b>	U svakoj porciji se nalazi najmanje 90 g pilećeg mesa. </b>
 `,
           chapter: 'soups',
-          photos: [
-            '/assets/images/products/slivochn_sup_shpinat.jpg',
-          ],
+          photos: ['/assets/images/products/slivochn_sup_shpinat.jpg'],
           priceVariations: [
             {
               label: '450g',
@@ -117,7 +109,7 @@ export const dictionaries = {
               weight: 450,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 206,
@@ -139,7 +131,7 @@ export const dictionaries = {
               weight: 450,
               weightUnit: 'g',
             },
-          ]
+          ],
         },
         {
           id: 1,
@@ -365,9 +357,7 @@ export const dictionaries = {
               weightUnit: 'g',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-          ],
+          discounts: [{ threshold: 3, discount: 5 }],
         },
         {
           id: 16,
@@ -401,15 +391,12 @@ export const dictionaries = {
               weightUnit: 'g',
             },
           ],
-          discounts: [
-            { threshold: 3, discount: 5 },
-          ],
+          discounts: [{ threshold: 3, discount: 5 }],
         },
         {
           id: 22,
           name: 'Frozen syrniki',
-          description:
-            'Russian Breakfast. Low-Calorie Dessert',
+          description: 'Russian Breakfast. Low-Calorie Dessert',
           price: 250,
           priceUnit: 'din',
           emoji: '🍮',
@@ -588,14 +575,14 @@ export const dictionaries = {
     },
     recipes: {
       label: 'Recipes',
-      title: 'Here are some recipes for cooking. Please read them carefully to ensure perfect results that will delight you and your family.',
+      title:
+        'Here are some recipes for cooking. Please read them carefully to ensure perfect results that will delight you and your family.',
 
       items: [
         {
           anchorId: 'syrnik',
           name: 'Syrniki',
           description: `<p>Syrniki are a traditional Russian breakfast. They are made with cottage cheese, flour, and egg. They are fried in a frying pan with a small amount of refined sunflower oil until done. We sell frozen, vacuum-packed syrniki. </p><p>1) Heat a frying pan of sufficient size and pour in some refined vegetable oil, </p><p>2) Reduce heat to low, </p><p>3) Place the frozen or thawed syrniki in the pan and fry for 7 minutes on each side. If the syrniki are frozen, cover the pan with a lid. </p><p>4) Bake the syrniki until smooth (they shouldn't be runny inside). </p><p>5) Serve with sour cream, sweetened condensed milk, or fruit or berry puree.</p>`,
-
         },
         {
           anchorId: 'soup-package',
@@ -608,9 +595,9 @@ Method 2. For professionals only. Heat water in a saucepan or sauté pan and imm
 
 DO NOT microwave the bag. If using a microwave, first empty the contents of the bag into a bowl and reheat the soup in the bowl.</p><p>
 
-We do not recommend reheating our dishes in a microwave oven, as microwaves cause electric current to flow through the liquid, which can trigger unexpected chemical reactions. Microwaves inside the oven, due to numerous reflections from the walls, create standing waves, leading to uneven heating of the soup, even as the plate rotates within the oven. This results in localized overheating, which can negatively impact the quality of the dish.</p>`
-        }
-      ]
+We do not recommend reheating our dishes in a microwave oven, as microwaves cause electric current to flow through the liquid, which can trigger unexpected chemical reactions. Microwaves inside the oven, due to numerous reflections from the walls, create standing waves, leading to uneven heating of the soup, even as the plate rotates within the oven. This results in localized overheating, which can negatively impact the quality of the dish.</p>`,
+        },
+      ],
     },
     contacts: {
       label: 'Get in Touch',

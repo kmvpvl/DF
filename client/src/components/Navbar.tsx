@@ -1,9 +1,7 @@
-import { User } from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
-import Proto from '../proto';
+import Proto, { IProtoProps, IProtoState } from '../proto';
 
-interface NavbarProps {
-  user: User | null;
+interface NavbarProps extends IProtoProps {
   isToolPage: boolean;
   isStaffUser: boolean;
   basketCount: number;
@@ -13,7 +11,10 @@ interface NavbarProps {
   onToolClick: () => void;
   onHomeClick: () => void;
   onToolChapterChange: (chapter: string) => void;
+  onLanguageChanged: (newLang: string) => void;
 }
+
+interface NavbarState extends IProtoState {}
 
 const LANGUAGE_FLAGS: Record<string, string> = {
   en: '🇬🇧',
@@ -21,7 +22,7 @@ const LANGUAGE_FLAGS: Record<string, string> = {
   sr: '🇷🇸',
 };
 
-class Navbar extends Proto<NavbarProps, {}> {
+class Navbar extends Proto<NavbarProps, NavbarState> {
   static contextType = I18nContext;
   declare context: I18nContextValue | null;
 
@@ -47,6 +48,7 @@ class Navbar extends Proto<NavbarProps, {}> {
       onToolClick,
       onHomeClick,
       onToolChapterChange,
+      onLanguageChanged,
     } = this.props;
 
     const sections = [
@@ -57,7 +59,16 @@ class Navbar extends Proto<NavbarProps, {}> {
       //Impleme{ id: 'about', label: this.ML('About').toString() },
     ];
 
-    const toolChapters = ['Cleaning', 'Material', 'Products', 'Batches', 'Samples', 'Certificates', 'Orders'];
+    const toolChapters = [
+      'Orders',
+      'Batches',
+      'Movements',
+      'Products',
+      'Material',
+      'Cleaning',
+      'Samples',
+      'Certificates',
+    ];
     const navbarClassName = isToolPage ? 'navbar navbar-tool' : 'navbar';
 
     return (
@@ -119,8 +130,13 @@ class Navbar extends Proto<NavbarProps, {}> {
             </span>
             <select
               className="language-select"
+              name="language-select"
+              autoComplete="off"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={(e) => {
+                onLanguageChanged(e.target.value);
+                return setLanguage(e.target.value);
+              }}
               aria-label={this.ML('Language').toString()}
             >
               {languages.map((code) => (

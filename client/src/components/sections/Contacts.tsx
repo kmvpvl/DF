@@ -1,8 +1,7 @@
 import React from 'react';
 import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import Proto from '../../proto';
+import Proto, { IProtoState } from '../../proto';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/graphql`;
 const CONTACT_REQUEST_TYPE_KEY = 'dolceforte.contactRequestType';
 
 const SEND_CONTACT_MESSAGE_MUTATION = `
@@ -11,26 +10,7 @@ const SEND_CONTACT_MESSAGE_MUTATION = `
   }
 `;
 
-async function gql<T>(
-  query: string,
-  variables: Record<string, unknown>
-): Promise<T> {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ query, variables }),
-  });
-
-  const json = await res.json();
-  if (json.errors?.length) {
-    throw new Error(json.errors[0].message);
-  }
-
-  return json.data as T;
-}
-
-interface ContactsState {
+interface ContactsState extends IProtoState {
   sent: boolean;
   validationError: string;
   loading: boolean;
@@ -114,19 +94,16 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
     this.setState({ loading: true, validationError: '' });
 
     try {
-      await gql<{ sendContactMessage: boolean }>(
-        SEND_CONTACT_MESSAGE_MUTATION,
-        {
-          input: {
-            type: this.state.requestType,
-            name,
-            email: email || undefined,
-            phone: phone || undefined,
-            subject,
-            message,
-          },
-        }
-      );
+      await this.gql(SEND_CONTACT_MESSAGE_MUTATION, {
+        input: {
+          type: this.state.requestType,
+          name,
+          email: email || undefined,
+          phone: phone || undefined,
+          subject,
+          message,
+        },
+      });
 
       this.setState({
         sent: true,
@@ -167,6 +144,16 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
 
           <div className="contacts-grid">
             <div className="contact-info">
+              <div className="contact-item contact-item-company">
+                PAVEL KOMOV PR PROIZVODNJA KOLAČA DOLCEFORTE PANČEVO
+              </div>
+              <div className="contact-item contact-item-label">
+                Glavna šifra delatnosti <strong>1079</strong>
+              </div>
+              <div className="contact-item contact-item-label">
+                Trgovac nije u sistemu PDV-a.
+              </div>
+
               <div className="contact-item contact-item-address">
                 <span className="contact-icon">📍</span>
                 <div>
@@ -271,6 +258,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                       className="form-input"
                       type="text"
                       name="name"
+                      autoComplete="name"
                       placeholder={dictionary.contacts.yourName}
                       required
                     />
@@ -278,6 +266,7 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                       className="form-input"
                       type="email"
                       name="email"
+                      autoComplete="email"
                       placeholder={dictionary.contacts.email}
                     />
                   </div>
@@ -285,12 +274,15 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                     className="form-input"
                     type="tel"
                     name="phone"
+                    autoComplete="tel"
                     placeholder={dictionary.contacts.phoneLabel}
                   />
                   <input
                     className="form-input"
                     type="text"
                     value={subject}
+                    name="subject"
+                    autoComplete="subject"
                     onChange={(event) =>
                       this.setState({ subject: event.target.value })
                     }
@@ -299,6 +291,11 @@ class Contacts extends Proto<Record<string, never>, ContactsState> {
                   />
                   <textarea
                     className="form-input"
+                    name="message"
+                    autoComplete="message"
+                    rows={5}
+                    cols={40}
+                    style={{ resize: 'vertical' }}
                     value={message}
                     onChange={(event) =>
                       this.setState({ message: event.target.value })

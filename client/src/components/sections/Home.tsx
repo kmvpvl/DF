@@ -1,15 +1,20 @@
-import { I18nContext, type I18nContextValue } from '../../i18n/I18nContext';
-import Proto from '../../proto';
+import Proto, { IProtoState, type IProtoProps } from '../../proto';
+import PushNotificationControl from '../PushNotificationControl';
+import { UsingRules } from '../usingRules/usingRules';
 
-interface HomeProps {
+interface HomeProps extends IProtoProps {
   onLegalEntityCtaClick: () => void;
   userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
+  isLoggedIn: boolean;
+  isPushSubscribed: boolean;
+  onPushSubscribe: () => void;
 }
 
-class Home extends Proto<HomeProps, {}> {
-  static contextType = I18nContext;
-  declare context: I18nContextValue | null;
+interface HomeState extends IProtoState {
+  showRules?: boolean;
+}
 
+class Home extends Proto<HomeProps, HomeState> {
   scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -69,6 +74,20 @@ class Home extends Proto<HomeProps, {}> {
           >
             {this.ML('Order a test batch for free').toString()}
           </button>
+          <button
+            className="btn-primary"
+            onClick={() => this.setState({ showRules: !this.state.showRules })}
+          >
+            {this.ML(
+              'Terms of use, payment methods, and refund procedures'
+            ).toString()}
+          </button>
+          {this.props.isLoggedIn && (
+            <PushNotificationControl
+              isSubscribed={this.props.isPushSubscribed}
+              onSubscribe={this.props.onPushSubscribe}
+            />
+          )}
           {/*<button
             className="btn-outline"
             onClick={() => this.scrollTo('about')}
@@ -76,6 +95,9 @@ class Home extends Proto<HomeProps, {}> {
             {this.ML('Our Story').toString()}
           </button>*/}
         </div>
+        {this.state.showRules && (
+          <UsingRules onClose={() => this.setState({ showRules: false })} />
+        )}
       </div>
     );
   }

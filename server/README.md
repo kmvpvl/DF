@@ -14,23 +14,23 @@ This is the GraphQL API server for the DolceForte application, built with Node.j
 
 1. Install dependencies:
 
-   ```bash
-   npm install
-   ```
+    ```bash
+    npm install
+    ```
 
 2. Set up environment variables:
    Copy `.env` and update with your database credentials.
 
 3. Generate Prisma client:
 
-   ```bash
-   npm run prisma:generate
-   ```
+    ```bash
+    npm run prisma:generate
+    ```
 
 4. Run database migrations:
-   ```bash
-   npm run prisma:migrate
-   ```
+    ```bash
+    npm run prisma:migrate
+    ```
 
 ### Running the Server
 
@@ -55,7 +55,7 @@ Server runs on `http://localhost:5000`
 
 ```graphql
 query {
-  hello
+    hello
 }
 ```
 
@@ -63,9 +63,9 @@ Response:
 
 ```json
 {
-  "data": {
-    "hello": "Hello from GraphQL!"
-  }
+    "data": {
+        "hello": "Hello from GraphQL!"
+    }
 }
 ```
 

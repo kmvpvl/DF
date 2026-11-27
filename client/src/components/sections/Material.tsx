@@ -1,5 +1,5 @@
 import { type ChangeEvent, createRef } from 'react';
-import Proto from '../../proto';
+import Proto, { IProtoProps, IProtoState } from '../../proto';
 
 const MATERIAL_FIELDS = `
   id
@@ -91,6 +91,7 @@ interface MaterialData {
   consumptionUnit: string;
   rateOfLoss: number;
   ratio: number;
+  companyId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,7 +123,7 @@ interface ImportMaterialsCsvResult {
   errors: string[];
 }
 
-interface MaterialState {
+interface MaterialState extends IProtoState {
   materials: MaterialData[];
   loading: boolean;
   saving: boolean;
@@ -155,7 +156,7 @@ const INITIAL_FORM: MaterialForm = {
   ratio: '',
 };
 
-class Material extends Proto<Record<string, never>, MaterialState> {
+class Material extends Proto<IProtoProps, MaterialState> {
   private readonly fileInputRef = createRef<HTMLInputElement>();
 
   state: MaterialState = {
@@ -178,10 +179,12 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     this.setState({ loading: true, error: null });
 
     try {
-      const data = await this.gql(MATERIALS_QUERY);
+      const data = await this.gql<{ materials: MaterialData[] }>(
+        MATERIALS_QUERY
+      );
       this.setState({
         loading: false,
-        materials: data.materials as MaterialData[],
+        materials: data.materials.sort((a, b) => a.name.localeCompare(b.name)),
       });
     } catch (error) {
       this.setState({ loading: false, error: String(error) });
@@ -192,7 +195,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
     this.setState({ csvProcessing: true, error: null, csvResult: null });
 
     try {
-      const data = await this.gql(MATERIALS_CSV_QUERY);
+      const data = await this.gql<{ materialsCsv: string | null }>(
+        MATERIALS_CSV_QUERY
+      );
       const csv = String(data.materialsCsv ?? '');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -231,16 +236,19 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
     try {
       const csv = await file.text();
-      const data = await this.gql(IMPORT_MATERIALS_CSV_MUTATION, {
+      const data = await this.gql<{
+        importMaterialsCsv: ImportMaterialsCsvResult;
+      }>(IMPORT_MATERIALS_CSV_MUTATION, {
         csv,
         overwriteExisting: true,
       });
 
-      const result = data.importMaterialsCsv as ImportMaterialsCsvResult;
+      const result = data.importMaterialsCsv;
       await this.fetchMaterials();
 
       const summary = `Imported ${result.importedCount}, skipped ${result.skippedCount}.`;
-      const details = result.errors.length > 0 ? ` Errors: ${result.errors.join(' | ')}` : '';
+      const details =
+        result.errors.length > 0 ? ` Errors: ${result.errors.join(' | ')}` : '';
 
       this.setState({
         csvProcessing: false,
@@ -265,8 +273,8 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
   private openEditForm = (material: MaterialData) => {
     window.scrollTo({
-      top: 0, 
-      behavior: 'smooth'
+      top: 0,
+      behavior: 'smooth',
     });
     this.setState({
       adding: false,
@@ -368,11 +376,14 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
     try {
       if (editingMaterial) {
-        const data = await this.gql(UPDATE_MATERIAL_MUTATION, {
-          id: editingMaterial.id,
-          input,
-        });
-        const updated = data.updateMaterial as MaterialData;
+        const data = await this.gql<{ updateMaterial: MaterialData }>(
+          UPDATE_MATERIAL_MUTATION,
+          {
+            id: editingMaterial.id,
+            input,
+          }
+        );
+        const updated = data.updateMaterial;
 
         this.setState((prevState) => ({
           saving: false,
@@ -380,12 +391,17 @@ class Material extends Proto<Record<string, never>, MaterialState> {
           adding: false,
           form: { ...INITIAL_FORM },
           materials: prevState.materials
-            .map((material) => (material.id === updated.id ? updated : material))
+            .map((material) =>
+              material.id === updated.id ? updated : material
+            )
             .sort((a, b) => a.name.localeCompare(b.name)),
         }));
       } else {
-        const data = await this.gql(CREATE_MATERIAL_MUTATION, { input });
-        const created = data.createMaterial as MaterialData;
+        const data = await this.gql<{ createMaterial: MaterialData }>(
+          CREATE_MATERIAL_MUTATION,
+          { input }
+        );
+        const created = data.createMaterial;
 
         this.setState((prevState) => ({
           saving: false,
@@ -429,8 +445,7 @@ class Material extends Proto<Record<string, never>, MaterialState> {
       adding,
       editingMaterial,
       form,
-    } =
-      this.state;
+    } = this.state;
 
     return (
       <div className="cleaning-journal">
@@ -458,7 +473,10 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                 {csvProcessing ? 'Processing...' : 'Import CSV'}
               </button>
               {!adding && !editingMaterial && (
-                <button className="btn-primary cj-add-btn" onClick={this.openCreateForm}>
+                <button
+                  className="btn-primary cj-add-btn"
+                  onClick={this.openCreateForm}
+                >
                   + Add material
                 </button>
               )}
@@ -491,7 +509,11 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   className="cj-input material-input"
                   type="text"
                   value={form.name}
-                  onChange={(event) => this.setState({ form: { ...form, name: event.target.value } })}
+                  onChange={(event) =>
+                    this.setState({
+                      form: { ...form, name: event.target.value },
+                    })
+                  }
                   required
                 />
               </label>
@@ -502,7 +524,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   className="cj-input material-textarea"
                   value={form.description}
                   onChange={(event) =>
-                    this.setState({ form: { ...form, description: event.target.value } })
+                    this.setState({
+                      form: { ...form, description: event.target.value },
+                    })
                   }
                 />
               </label>
@@ -513,7 +537,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   type="checkbox"
                   checked={form.selfProduced}
                   onChange={(event) =>
-                    this.setState({ form: { ...form, selfProduced: event.target.checked } })
+                    this.setState({
+                      form: { ...form, selfProduced: event.target.checked },
+                    })
                   }
                 />
                 Self produced
@@ -525,7 +551,12 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                   type="checkbox"
                   checked={form.isPublicComposition}
                   onChange={(event) =>
-                    this.setState({ form: { ...form, isPublicComposition: event.target.checked } })
+                    this.setState({
+                      form: {
+                        ...form,
+                        isPublicComposition: event.target.checked,
+                      },
+                    })
                   }
                 />
                 Public in certificate composition
@@ -540,7 +571,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.caloriesKcal}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, caloriesKcal: event.target.value } })
+                      this.setState({
+                        form: { ...form, caloriesKcal: event.target.value },
+                      })
                     }
                     required
                   />
@@ -554,7 +587,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.fatGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, fatGrams: event.target.value } })
+                      this.setState({
+                        form: { ...form, fatGrams: event.target.value },
+                      })
                     }
                     required
                   />
@@ -568,7 +603,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.proteinGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, proteinGrams: event.target.value } })
+                      this.setState({
+                        form: { ...form, proteinGrams: event.target.value },
+                      })
                     }
                     required
                   />
@@ -582,7 +619,12 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.carbohydratesGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, carbohydratesGrams: event.target.value } })
+                      this.setState({
+                        form: {
+                          ...form,
+                          carbohydratesGrams: event.target.value,
+                        },
+                      })
                     }
                     required
                   />
@@ -596,7 +638,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.sugarsGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, sugarsGrams: event.target.value } })
+                      this.setState({
+                        form: { ...form, sugarsGrams: event.target.value },
+                      })
                     }
                     required
                   />
@@ -610,7 +654,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.fiberGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, fiberGrams: event.target.value } })
+                      this.setState({
+                        form: { ...form, fiberGrams: event.target.value },
+                      })
                     }
                     required
                   />
@@ -624,7 +670,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.saltGrams}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, saltGrams: event.target.value } })
+                      this.setState({
+                        form: { ...form, saltGrams: event.target.value },
+                      })
                     }
                     required
                   />
@@ -638,7 +686,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.VAT}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, VAT: event.target.value } })
+                      this.setState({
+                        form: { ...form, VAT: event.target.value },
+                      })
                     }
                     required
                   />
@@ -652,7 +702,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.Price}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, Price: event.target.value } })
+                      this.setState({
+                        form: { ...form, Price: event.target.value },
+                      })
                     }
                     required
                   />
@@ -665,7 +717,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     type="text"
                     value={form.purchaseUnit}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, purchaseUnit: event.target.value } })
+                      this.setState({
+                        form: { ...form, purchaseUnit: event.target.value },
+                      })
                     }
                     required
                   />
@@ -679,7 +733,12 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.purchaseUnitAmount}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, purchaseUnitAmount: event.target.value } })
+                      this.setState({
+                        form: {
+                          ...form,
+                          purchaseUnitAmount: event.target.value,
+                        },
+                      })
                     }
                     required
                   />
@@ -692,7 +751,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     type="text"
                     value={form.consumptionUnit}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, consumptionUnit: event.target.value } })
+                      this.setState({
+                        form: { ...form, consumptionUnit: event.target.value },
+                      })
                     }
                     required
                   />
@@ -706,7 +767,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     step="1"
                     value={form.ratio}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, ratio: event.target.value } })
+                      this.setState({
+                        form: { ...form, ratio: event.target.value },
+                      })
                     }
                     required
                   />
@@ -718,7 +781,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                     type="text"
                     value={form.rateOfLoss}
                     onChange={(event) =>
-                      this.setState({ form: { ...form, rateOfLoss: event.target.value } })
+                      this.setState({
+                        form: { ...form, rateOfLoss: event.target.value },
+                      })
                     }
                     required
                   />
@@ -727,9 +792,17 @@ class Material extends Proto<Record<string, never>, MaterialState> {
 
               <div className="material-actions">
                 <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : editingMaterial ? 'Update material' : 'Create material'}
+                  {saving
+                    ? 'Saving...'
+                    : editingMaterial
+                      ? 'Update material'
+                      : 'Create material'}
                 </button>
-                <button type="button" className="btn-outline" onClick={this.closeForm}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={this.closeForm}
+                >
                   Cancel
                 </button>
               </div>
@@ -765,7 +838,9 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                       <td>
                         <strong>{material.name}</strong>
                         {material.description ? (
-                          <div className="material-description">{material.description}</div>
+                          <div className="material-description">
+                            {material.description}
+                          </div>
                         ) : null}
                       </td>
                       <td>{material.caloriesKcal}</td>
@@ -775,7 +850,10 @@ class Material extends Proto<Record<string, never>, MaterialState> {
                       <td>{this.toCurrency(material.Price)}</td>
                       <td>{this.toInteger(material.VAT)}</td>
                       <td className="cj-row-actions">
-                        <button className="cj-btn-sm" onClick={() => this.openEditForm(material)}>
+                        <button
+                          className="cj-btn-sm"
+                          onClick={() => this.openEditForm(material)}
+                        >
                           Edit
                         </button>
                         <button

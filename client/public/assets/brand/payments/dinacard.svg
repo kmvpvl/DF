@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 72" role="img" aria-labelledby="title">
+  <title id="title">DinaCard</title>
+  <rect x="2" y="2" width="216" height="68" rx="10" fill="#fff" stroke="#163c78" stroke-width="4"/>
+  <rect x="14" y="18" width="52" height="36" rx="6" fill="#d9a520"/>
+  <rect x="22" y="26" width="36" height="20" rx="3" fill="#fff"/>
+  <text x="82" y="47" fill="#163c78" font-family="Arial, sans-serif" font-size="30" font-weight="700">DinaCard</text>
+</svg>

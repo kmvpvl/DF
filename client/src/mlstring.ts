@@ -3,50 +3,35 @@ export type IMLString =
   | string
   | {
       default: string;
-      values: [string, string][];
+      // Используем простой объект вместо массива кортежей
+      ts: Record<string, string>;
     };
 export class MLString extends String {
-  private _map?: Map<string, string> = new Map<string, string>();
-  constructor();
-  constructor(str: string);
-  constructor(mlString: IMLString);
-  constructor(...arg: any[]) {
-    super(
-      arg.length === 0
-        ? ''
-        : typeof arg[0] === 'object'
-          ? arg[0].default
-          : arg[0]
-    );
-    switch (arg.length) {
-      case 0:
-        return;
-      case 1:
-        if (typeof arg[0] === 'object') {
-          this._map = new Map<string, string>(arg[0].map);
-        }
+  private _translations: Record<string, string> = {};
+  constructor(input?: IMLString) {
+    super(input ? (typeof input === 'object' ? input.default : input) : '');
+    if (!input) {
+      this._translations = {};
+    } else if (typeof input === 'string') {
+      this._translations = {};
+    } else {
+      this._translations = input.ts;
     }
   }
-  toString(): string;
-  toString(lang: string): string;
-  toString(...arg: any[]): string | undefined {
-    switch (arg.length) {
-      case 0:
-        return super.toString();
-      default:
-        return this._map?.has(arg[0])
-          ? (this._map.get(arg[0]) as string)
-          : super.toString();
+
+  toString(lang?: string): string {
+    if (!lang) lang = MLString.getLang();
+    if (lang && this._translations[lang]) {
+      return this._translations[lang] as string;
     }
+    return super.toString();
   }
-  get json(): IMLString {
-    return this._map === undefined
-      ? this.toString()
-      : {
-          default: this.toString(),
-          values: Array.from(this._map),
-        };
+
+  // Для удобного маппинга в UI
+  get entries(): [string, string | undefined][] {
+    return Object.entries(this._translations);
   }
+
   public static getLang(): string {
     const params: string[] = window.location.search.substring(1).split('&');
     let lang = window.navigator.language.split('-')[0];
@@ -54,6 +39,12 @@ export class MLString extends String {
     if (lang_param !== undefined && lang_param.length > 0)
       lang = lang_param[0].split('=')[1];
     return lang;
+  }
+  get Json(): IMLString {
+    return {
+      default: super.toString(),
+      ts: this._translations,
+    };
   }
 }
 
@@ -136,6 +127,440 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `Close basket`,
+    new Map([
+      [`de`, 'Warenkorb schließen'],
+      [`fr`, 'Fermer le panier'],
+      [`es`, 'Cerrar la cesta'],
+      [`ru`, 'Закрыть корзину'],
+      [`it`, 'Chiudi il carrello'],
+      [`sr`, 'Zatvori korpu'],
+    ]),
+  ],
+  [
+    `Your basket is empty`,
+    new Map([
+      [`de`, 'Ihr Warenkorb ist leer'],
+      [`fr`, 'Votre panier est vide'],
+      [`es`, 'Tu cesta está vacía'],
+      [`ru`, 'Ваша корзина пуста'],
+      [`it`, 'Il carrello è vuoto'],
+      [`sr`, 'Vaša korpa je prazna'],
+    ]),
+  ],
+  [
+    `Loading...`,
+    new Map([
+      [`de`, 'Wird geladen...'],
+      [`fr`, 'Chargement...'],
+      [`es`, 'Cargando...'],
+      [`ru`, 'Загрузка...'],
+      [`it`, 'Caricamento...'],
+      [`sr`, 'Učitavanje...'],
+    ]),
+  ],
+  [
+    `Decrease quantity for`,
+    new Map([
+      [`de`, 'Menge verringern für'],
+      [`fr`, 'Diminuer la quantité de'],
+      [`es`, 'Reducir la cantidad de'],
+      [`ru`, 'Уменьшить количество товара'],
+      [`it`, 'Riduci la quantità di'],
+      [`sr`, 'Smanji količinu za'],
+    ]),
+  ],
+  [
+    `Increase quantity for`,
+    new Map([
+      [`de`, 'Menge erhöhen für'],
+      [`fr`, 'Augmenter la quantité de'],
+      [`es`, 'Aumentar la cantidad de'],
+      [`ru`, 'Увеличить количество товара'],
+      [`it`, 'Aumenta la quantità di'],
+      [`sr`, 'Povećaj količinu za'],
+    ]),
+  ],
+  [
+    `Remove`,
+    new Map([
+      [`de`, 'Entfernen'],
+      [`fr`, 'Supprimer'],
+      [`es`, 'Quitar'],
+      [`ru`, 'Убрать'],
+      [`it`, 'Rimuovi'],
+      [`sr`, 'Ukloni'],
+    ]),
+  ],
+  [
+    `Full name`,
+    new Map([
+      [`de`, 'Vollständiger Name'],
+      [`fr`, 'Nom complet'],
+      [`es`, 'Nombre completo'],
+      [`ru`, 'Полное имя'],
+      [`it`, 'Nome completo'],
+      [`sr`, 'Ime i prezime'],
+    ]),
+  ],
+  [
+    `Email`,
+    new Map([
+      [`de`, 'E-Mail'],
+      [`fr`, 'E-mail'],
+      [`es`, 'Correo electrónico'],
+      [`ru`, 'Электронная почта'],
+      [`it`, 'E-mail'],
+      [`sr`, 'E-pošta'],
+    ]),
+  ],
+  [
+    `Phone`,
+    new Map([
+      [`de`, 'Telefon'],
+      [`fr`, 'Téléphone'],
+      [`es`, 'Teléfono'],
+      [`ru`, 'Телефон'],
+      [`it`, 'Telefono'],
+      [`sr`, 'Telefon'],
+    ]),
+  ],
+  [
+    `Order note (optional)`,
+    new Map([
+      [`de`, 'Bestellhinweis (optional)'],
+      [`fr`, 'Note de commande (facultatif)'],
+      [`es`, 'Nota del pedido (opcional)'],
+      [`ru`, 'Комментарий к заказу (необязательно)'],
+      [`it`, "Nota sull'ordine (facoltativa)"],
+      [`sr`, 'Napomena uz porudžbinu (opciono)'],
+    ]),
+  ],
+  [
+    `Searching addresses...`,
+    new Map([
+      [`de`, 'Adressen werden gesucht...'],
+      [`fr`, 'Recherche des adresses...'],
+      [`es`, 'Buscando direcciones...'],
+      [`ru`, 'Поиск адресов...'],
+      [`it`, 'Ricerca degli indirizzi...'],
+      [`sr`, 'Pretraga adresa...'],
+    ]),
+  ],
+  [
+    `Loading saved delivery address...`,
+    new Map([
+      [`de`, 'Gespeicherte Lieferadresse wird geladen...'],
+      [`fr`, "Chargement de l'adresse de livraison enregistrée..."],
+      [`es`, 'Cargando la dirección de entrega guardada...'],
+      [`ru`, 'Загрузка сохранённого адреса доставки...'],
+      [`it`, "Caricamento dell'indirizzo di consegna salvato..."],
+      [`sr`, 'Učitavanje sačuvane adrese za isporuku...'],
+    ]),
+  ],
+  [
+    `Select an address to calculate delivery`,
+    new Map([
+      [`de`, 'Wählen Sie eine Adresse, um die Lieferung zu berechnen'],
+      [`fr`, 'Sélectionnez une adresse pour calculer la livraison'],
+      [`es`, 'Selecciona una dirección para calcular la entrega'],
+      [`ru`, 'Выберите адрес для расчёта доставки'],
+      [`it`, 'Seleziona un indirizzo per calcolare la consegna'],
+      [`sr`, 'Izaberite adresu za obračun isporuke'],
+    ]),
+  ],
+  [
+    `add a house number`,
+    new Map([
+      [`de`, 'Hausnummer hinzufügen'],
+      [`fr`, 'ajoutez un numéro de rue'],
+      [`es`, 'añade el número de la casa'],
+      [`ru`, 'укажите номер дома'],
+      [`it`, 'aggiungi il numero civico'],
+      [`sr`, 'dodajte kućni broj'],
+    ]),
+  ],
+  [
+    `Calculating delivery route...`,
+    new Map([
+      [`de`, 'Lieferroute wird berechnet...'],
+      [`fr`, "Calcul de l'itinéraire de livraison..."],
+      [`es`, 'Calculando la ruta de entrega...'],
+      [`ru`, 'Расчёт маршрута доставки...'],
+      [`it`, 'Calcolo del percorso di consegna...'],
+      [`sr`, 'Izračunavanje rute isporuke...'],
+    ]),
+  ],
+  [
+    `Distance`,
+    new Map([
+      [`de`, 'Entfernung'],
+      [`fr`, 'Distance'],
+      [`es`, 'Distancia'],
+      [`ru`, 'Расстояние'],
+      [`it`, 'Distanza'],
+      [`sr`, 'Udaljenost'],
+    ]),
+  ],
+  [
+    `km`,
+    new Map([
+      [`de`, 'km'],
+      [`fr`, 'km'],
+      [`es`, 'km'],
+      [`ru`, 'км'],
+      [`it`, 'km'],
+      [`sr`, 'km'],
+    ]),
+  ],
+  [
+    `tariff not configured`,
+    new Map([
+      [`de`, 'Tarif nicht konfiguriert'],
+      [`fr`, 'Tarif non configuré'],
+      [`es`, 'Tarifa no configurada'],
+      [`ru`, 'тариф не настроен'],
+      [`it`, 'Tariffa non configurata'],
+      [`sr`, 'Tarifa nije podešena'],
+    ]),
+  ],
+  [
+    `Address selected and verified`,
+    new Map([
+      [`de`, 'Adresse ausgewählt und bestätigt'],
+      [`fr`, 'Adresse sélectionnée et vérifiée'],
+      [`es`, 'Dirección seleccionada y verificada'],
+      [`ru`, 'Адрес выбран и подтверждён'],
+      [`it`, 'Indirizzo selezionato e verificato'],
+      [`sr`, 'Adresa je izabrana i potvrđena'],
+    ]),
+  ],
+  [
+    `Basket is empty.`,
+    new Map([
+      [`de`, 'Der Warenkorb ist leer.'],
+      [`fr`, 'Le panier est vide.'],
+      [`es`, 'La cesta está vacía.'],
+      [`ru`, 'Корзина пуста.'],
+      [`it`, 'Il carrello è vuoto.'],
+      [`sr`, 'Korpa je prazna.'],
+    ]),
+  ],
+  [
+    `Unable to submit order because the saved draft is missing.`,
+    new Map([
+      [
+        `de`,
+        'Die Bestellung kann nicht gesendet werden, da der gespeicherte Entwurf fehlt.',
+      ],
+      [
+        `fr`,
+        "Impossible d'envoyer la commande : le brouillon enregistré est introuvable.",
+      ],
+      [
+        `es`,
+        'No se puede enviar el pedido porque no se encuentra el borrador guardado.',
+      ],
+      [`ru`, 'Не удалось отправить заказ: сохранённый черновик не найден.'],
+      [
+        `it`,
+        "Impossibile inviare l'ordine: la bozza salvata non è disponibile.",
+      ],
+      [`sr`, 'Porudžbina nije poslata jer sačuvani nacrt nije pronađen.'],
+    ]),
+  ],
+  [
+    `Please fill in name, delivery address and phone before placing an order.`,
+    new Map([
+      [
+        `de`,
+        'Bitte geben Sie vor der Bestellung Ihren Namen, Ihre Lieferadresse und Telefonnummer ein.',
+      ],
+      [
+        `fr`,
+        'Veuillez saisir votre nom, votre adresse de livraison et votre téléphone avant de commander.',
+      ],
+      [
+        `es`,
+        'Introduce tu nombre, dirección de entrega y teléfono antes de realizar el pedido.',
+      ],
+      [`ru`, 'Перед оформлением заказа укажите имя, адрес доставки и телефон.'],
+      [
+        `it`,
+        "Inserisci nome, indirizzo di consegna e telefono prima di effettuare l'ordine.",
+      ],
+      [
+        `sr`,
+        'Pre slanja porudžbine unesite ime, adresu za isporuku i broj telefona.',
+      ],
+    ]),
+  ],
+  [
+    `Choose a delivery address with a house number from the suggestions.`,
+    new Map([
+      [
+        `de`,
+        'Wählen Sie in den Vorschlägen eine Lieferadresse mit Hausnummer aus.',
+      ],
+      [
+        `fr`,
+        'Choisissez dans les suggestions une adresse de livraison avec numéro.',
+      ],
+      [
+        `es`,
+        'Elige en las sugerencias una dirección de entrega con número de casa.',
+      ],
+      [`ru`, 'Выберите в подсказках адрес доставки с номером дома.'],
+      [
+        `it`,
+        'Seleziona tra i suggerimenti un indirizzo di consegna con numero civico.',
+      ],
+      [`sr`, 'Izaberite predloženu adresu za isporuku koja sadrži kućni broj.'],
+    ]),
+  ],
+  [
+    `Failed to place order.`,
+    new Map([
+      [`de`, 'Bestellung konnte nicht aufgegeben werden.'],
+      [`fr`, "Échec de l'envoi de la commande."],
+      [`es`, 'No se pudo realizar el pedido.'],
+      [`ru`, 'Не удалось оформить заказ.'],
+      [`it`, "Impossibile inviare l'ordine."],
+      [`sr`, 'Porudžbina nije poslata.'],
+    ]),
+  ],
+  [
+    `Could not load the saved delivery address.`,
+    new Map([
+      [`de`, 'Die gespeicherte Lieferadresse konnte nicht geladen werden.'],
+      [`fr`, "Impossible de charger l'adresse de livraison enregistrée."],
+      [`es`, 'No se pudo cargar la dirección de entrega guardada.'],
+      [`ru`, 'Не удалось загрузить сохранённый адрес доставки.'],
+      [`it`, "Impossibile caricare l'indirizzo di consegna salvato."],
+      [`sr`, 'Nije moguće učitati sačuvanu adresu za isporuku.'],
+    ]),
+  ],
+  [
+    `Address search failed.`,
+    new Map([
+      [`de`, 'Adresssuche fehlgeschlagen.'],
+      [`fr`, "Échec de la recherche d'adresses."],
+      [`es`, 'Error al buscar direcciones.'],
+      [`ru`, 'Не удалось найти адрес.'],
+      [`it`, 'Ricerca indirizzi non riuscita.'],
+      [`sr`, 'Pretraga adresa nije uspela.'],
+    ]),
+  ],
+  [
+    `Could not calculate the delivery route.`,
+    new Map([
+      [`de`, 'Die Lieferroute konnte nicht berechnet werden.'],
+      [`fr`, "Impossible de calculer l'itinéraire de livraison."],
+      [`es`, 'No se pudo calcular la ruta de entrega.'],
+      [`ru`, 'Не удалось рассчитать маршрут доставки.'],
+      [`it`, 'Impossibile calcolare il percorso di consegna.'],
+      [`sr`, 'Nije moguće izračunati rutu isporuke.'],
+    ]),
+  ],
+  [
+    `Order sent to sales@dolceforte.rs. We will contact you soon.`,
+    new Map([
+      [
+        `de`,
+        'Die Bestellung wurde an sales@dolceforte.rs gesendet. Wir werden Sie bald kontaktieren.',
+      ],
+      [
+        `fr`,
+        'La commande a été envoyée à sales@dolceforte.rs. Nous vous contacterons bientôt.',
+      ],
+      [
+        `es`,
+        'El pedido se envió a sales@dolceforte.rs. Nos pondremos en contacto contigo pronto.',
+      ],
+      [
+        `ru`,
+        'Заказ отправлен на sales@dolceforte.rs. Мы скоро свяжемся с вами.',
+      ],
+      [
+        `it`,
+        "L'ordine è stato inviato a sales@dolceforte.rs. Ti contatteremo presto.",
+      ],
+      [
+        `sr`,
+        'Porudžbina je poslata na sales@dolceforte.rs. Uskoro ćemo vas kontaktirati.',
+      ],
+    ]),
+  ],
+  [
+    `Sending order...`,
+    new Map([
+      [`de`, 'Bestellung wird gesendet...'],
+      [`fr`, 'Envoi de la commande...'],
+      [`es`, 'Enviando pedido...'],
+      [`ru`, 'Отправка заказа...'],
+      [`it`, "Invio dell'ordine..."],
+      [`sr`, 'Slanje porudžbine...'],
+    ]),
+  ],
+  [
+    `Place order`,
+    new Map([
+      [`de`, 'Bestellung aufgeben'],
+      [`fr`, 'Passer la commande'],
+      [`es`, 'Realizar pedido'],
+      [`ru`, 'Оформить заказ'],
+      [`it`, "Invia l'ordine"],
+      [`sr`, 'Pošalji porudžbinu'],
+    ]),
+  ],
+  [
+    `I agree to the`,
+    new Map([
+      [`de`, 'Ich stimme zu:'],
+      [`fr`, "J'accepte"],
+      [`es`, 'Acepto'],
+      [`ru`, 'Я согласен с'],
+      [`it`, 'Accetto'],
+      [`sr`, 'Saglasan/saglasna sam sa'],
+    ]),
+  ],
+  [
+    `and`,
+    new Map([
+      [`de`, 'und'],
+      [`fr`, 'et'],
+      [`es`, 'y'],
+      [`ru`, 'и'],
+      [`it`, 'e'],
+      [`sr`, 'i'],
+    ]),
+  ],
+  [
+    `You must agree to the terms of use and delivery rules.`,
+    new Map([
+      [`de`, 'Sie müssen den Nutzungs- und Lieferbedingungen zustimmen.'],
+      [
+        `fr`,
+        "Vous devez accepter les conditions d'utilisation et de livraison.",
+      ],
+      [`es`, 'Debe aceptar los términos de uso y las reglas de entrega.'],
+      [`ru`, 'Необходимо согласиться с правилами пользования и доставки.'],
+      [`it`, 'Devi accettare le condizioni di utilizzo e consegna.'],
+      [`sr`, 'Morate prihvatiti uslove korišćenja i pravila dostave.'],
+    ]),
+  ],
+  [
+    `Ready by`,
+    new Map([
+      [`de`, 'Fertig bis'],
+      [`fr`, 'Prêt le'],
+      [`es`, 'Listo el'],
+      [`ru`, 'Готово к'],
+      [`it`, 'Pronto entro'],
+      [`sr`, 'Spremno do'],
+    ]),
+  ],
+  [
     `Hi`,
     new Map([
       [`de`, undefined],
@@ -166,6 +591,100 @@ export const mlStrings = new Map([
       [`ru`, 'Доставка'],
       [`it`, undefined],
       [`sr`, 'Dostava'],
+    ]),
+  ],
+  [
+    `Delivery tariff is not configured.`,
+    new Map([
+      [`de`, 'Der Liefertarif ist nicht konfiguriert.'],
+      [`fr`, 'Le tarif de livraison n’est pas configuré.'],
+      [`es`, 'La tarifa de entrega no está configurada.'],
+      [`ru`, 'Тариф доставки не настроен.'],
+      [`it`, 'La tariffa di consegna non è configurata.'],
+      [`sr`, 'Tarifa isporuke nije podešena.'],
+    ]),
+  ],
+  [
+    `Online payment`,
+    new Map([
+      [`de`, 'Online-Zahlung'],
+      [`fr`, 'Paiement en ligne'],
+      [`es`, 'Pago en línea'],
+      [`ru`, 'Онлайн-оплата'],
+      [`it`, 'Pagamento online'],
+      [`sr`, 'Plaćanje onlajn'],
+    ]),
+  ],
+  [
+    `Card`,
+    new Map([
+      [`de`, 'Karte'],
+      [`fr`, 'Carte'],
+      [`es`, 'Tarjeta'],
+      [`ru`, 'Картой'],
+      [`it`, 'Carta'],
+      [`sr`, 'Karticom'],
+    ]),
+  ],
+  [
+    `Cash`,
+    new Map([
+      [`de`, 'Barzahlung'],
+      [`fr`, 'Espèces'],
+      [`es`, 'Efectivo'],
+      [`ru`, 'Наличными'],
+      [`it`, 'Contanti'],
+      [`sr`, 'Gotovinom'],
+    ]),
+  ],
+  [
+    `Bank transfer (7 days)`,
+    new Map([
+      [`de`, 'Banküberweisung (7 Tage)'],
+      [`fr`, 'Virement bancaire (7 jours)'],
+      [`es`, 'Transferencia bancaria (7 días)'],
+      [`ru`, 'Банковский перевод (7 дней)'],
+      [`it`, 'Bonifico bancario (7 giorni)'],
+      [`sr`, 'Bankovni transfer (7 dana)'],
+    ]),
+  ],
+  [
+    `Pickup`,
+    new Map([
+      [`de`, 'Abholung'],
+      [`fr`, 'Retrait sur place'],
+      [`es`, 'Recogida'],
+      [`ru`, 'Самовывоз'],
+      [`it`, 'Ritiro'],
+      [`sr`, 'Preuzimanje'],
+    ]),
+  ],
+  [
+    `Courier delivery`,
+    new Map([
+      [`de`, 'Kurierlieferung'],
+      [`fr`, 'Livraison par coursier'],
+      [`es`, 'Entrega por mensajero'],
+      [`ru`, 'Доставка курьером'],
+      [`it`, 'Consegna tramite corriere'],
+      [`sr`, 'Kurirska dostava'],
+    ]),
+  ],
+  [
+    `Please fill in name and phone before placing an order.`,
+    new Map([
+      [
+        `de`,
+        'Bitte geben Sie vor der Bestellung Ihren Namen und Ihre Telefonnummer ein.',
+      ],
+      [
+        `fr`,
+        'Veuillez saisir votre nom et votre téléphone avant de commander.',
+      ],
+      [`es`, 'Introduce tu nombre y teléfono antes de realizar el pedido.'],
+      [`ru`, 'Перед оформлением заказа укажите имя и телефон.'],
+      [`it`, 'Inserisci nome e telefono prima di effettuare l’ordine.'],
+      [`sr`, 'Pre slanja porudžbine unesite ime i broj telefona.'],
     ]),
   ],
   [
@@ -274,6 +793,28 @@ export const mlStrings = new Map([
     ]),
   ],
   [
+    `Enable push notifications`,
+    new Map([
+      [`de`, 'Push-Benachrichtigungen aktivieren'],
+      [`fr`, 'Activer les notifications push'],
+      [`es`, 'Activar las notificaciones push'],
+      [`ru`, 'Включить push-уведомления'],
+      [`it`, 'Attiva le notifiche push'],
+      [`sr`, 'Omogući push obaveštenja'],
+    ]),
+  ],
+  [
+    `Push notifications enabled`,
+    new Map([
+      [`de`, 'Push-Benachrichtigungen aktiviert'],
+      [`fr`, 'Notifications push activées'],
+      [`es`, 'Notificaciones push activadas'],
+      [`ru`, 'Push-уведомления включены'],
+      [`it`, 'Notifiche push attivate'],
+      [`sr`, 'Push obaveštenja su uključena'],
+    ]),
+  ],
+  [
     `Order a test batch for free`,
     new Map([
       [`de`, undefined],
@@ -282,6 +823,281 @@ export const mlStrings = new Map([
       [`ru`, 'Заказать тестовую партию бесплатно'],
       [`it`, undefined],
       [`sr`, 'Naručite besplatnu testnu seriju'],
+    ]),
+  ],
+  [
+    `Order`,
+    new Map([
+      [`de`, 'Bestellung'],
+      [`fr`, 'Commande'],
+      [`es`, 'Pedido'],
+      [`ru`, 'Заказ'],
+      [`it`, 'Ordine'],
+      [`sr`, 'Porudžbina'],
+    ]),
+  ],
+  [
+    `Orders`,
+    new Map([
+      [`de`, 'Bestellungen'],
+      [`fr`, 'Commandes'],
+      [`es`, 'Pedidos'],
+      [`ru`, 'Заказы'],
+      [`it`, 'Ordini'],
+      [`sr`, 'Porudžbine'],
+    ]),
+  ],
+  [
+    `Conversations`,
+    new Map([
+      [`de`, 'Unterhaltungen'],
+      [`fr`, 'Conversations'],
+      [`es`, 'Conversaciones'],
+      [`ru`, 'Переписки'],
+      [`it`, 'Conversazioni'],
+      [`sr`, 'Razgovori'],
+    ]),
+  ],
+  [
+    `Settings`,
+    new Map([
+      [`de`, 'Einstellungen'],
+      [`fr`, 'Paramètres'],
+      [`es`, 'Ajustes'],
+      [`ru`, 'Настройки'],
+      [`it`, 'Impostazioni'],
+      [`sr`, 'Podešavanja'],
+    ]),
+  ],
+  [
+    `Order details`,
+    new Map([
+      [`de`, 'Bestelldetails'],
+      [`fr`, 'Détails de la commande'],
+      [`es`, 'Detalles del pedido'],
+      [`ru`, 'Детали заказа'],
+      [`it`, "Dettagli dell'ordine"],
+      [`sr`, 'Detalji porudžbine'],
+    ]),
+  ],
+  [
+    `Close order details`,
+    new Map([
+      [`de`, 'Bestelldetails schließen'],
+      [`fr`, 'Fermer les détails de la commande'],
+      [`es`, 'Cerrar detalles del pedido'],
+      [`ru`, 'Закрыть сведения о заказе'],
+      [`it`, "Chiudi i dettagli dell'ordine"],
+      [`sr`, 'Zatvori detalje porudžbine'],
+    ]),
+  ],
+  [
+    `Order date`,
+    new Map([
+      [`de`, 'Bestelldatum'],
+      [`fr`, 'Date de la commande'],
+      [`es`, 'Fecha del pedido'],
+      [`ru`, 'Дата заказа'],
+      [`it`, "Data dell'ordine"],
+      [`sr`, 'Datum porudžbine'],
+    ]),
+  ],
+  [
+    `Order not found`,
+    new Map([
+      [`de`, 'Bestellung nicht gefunden'],
+      [`fr`, 'Commande introuvable'],
+      [`es`, 'No se encontró el pedido'],
+      [`ru`, 'Заказ не найден'],
+      [`it`, 'Ordine non trovato'],
+      [`sr`, 'Porudžbina nije pronađena'],
+    ]),
+  ],
+  [
+    `Loading order...`,
+    new Map([
+      [`de`, 'Bestellung wird geladen...'],
+      [`fr`, 'Chargement de la commande...'],
+      [`es`, 'Cargando pedido...'],
+      [`ru`, 'Загрузка заказа...'],
+      [`it`, 'Caricamento ordine...'],
+      [`sr`, 'Učitavanje porudžbine...'],
+    ]),
+  ],
+  [
+    `Failed to load order`,
+    new Map([
+      [`de`, 'Bestellung konnte nicht geladen werden'],
+      [`fr`, 'Échec du chargement de la commande'],
+      [`es`, 'No se pudo cargar el pedido'],
+      [`ru`, 'Не удалось загрузить заказ'],
+      [`it`, "Impossibile caricare l'ordine"],
+      [`sr`, 'Porudžbina nije mogla da se učita'],
+    ]),
+  ],
+  [
+    `Product unavailable`,
+    new Map([
+      [`de`, 'Produkt nicht verfügbar'],
+      [`fr`, 'Produit indisponible'],
+      [`es`, 'Producto no disponible'],
+      [`ru`, 'Товар недоступен'],
+      [`it`, 'Prodotto non disponibile'],
+      [`sr`, 'Proizvod nije dostupan'],
+    ]),
+  ],
+  [
+    `Quantity`,
+    new Map([
+      [`de`, 'Menge'],
+      [`fr`, 'Quantité'],
+      [`es`, 'Cantidad'],
+      [`ru`, 'Количество'],
+      [`it`, 'Quantità'],
+      [`sr`, 'Količina'],
+    ]),
+  ],
+  [
+    `Unit price`,
+    new Map([
+      [`de`, 'Stückpreis'],
+      [`fr`, 'Prix unitaire'],
+      [`es`, 'Precio unitario'],
+      [`ru`, 'Цена за единицу'],
+      [`it`, 'Prezzo unitario'],
+      [`sr`, 'Cena po jedinici'],
+    ]),
+  ],
+  [
+    `Total`,
+    new Map([
+      [`de`, 'Gesamt'],
+      [`fr`, 'Total'],
+      [`es`, 'Total'],
+      [`ru`, 'Итого'],
+      [`it`, 'Totale'],
+      [`sr`, 'Ukupno'],
+    ]),
+  ],
+  [
+    `Delivery address`,
+    new Map([
+      [`de`, 'Lieferadresse'],
+      [`fr`, 'Adresse de livraison'],
+      [`es`, 'Dirección de entrega'],
+      [`ru`, 'Адрес доставки'],
+      [`it`, 'Indirizzo di consegna'],
+      [`sr`, 'Adresa za isporuku'],
+    ]),
+  ],
+  [
+    `Shipping method`,
+    new Map([
+      [`de`, 'Versandart'],
+      [`fr`, 'Mode de livraison'],
+      [`es`, 'Método de envío'],
+      [`ru`, 'Способ доставки'],
+      [`it`, 'Metodo di spedizione'],
+      [`sr`, 'Način isporuke'],
+    ]),
+  ],
+  [
+    `Payment method`,
+    new Map([
+      [`de`, 'Zahlungsmethode'],
+      [`fr`, 'Mode de paiement'],
+      [`es`, 'Método de pago'],
+      [`ru`, 'Способ оплаты'],
+      [`it`, 'Metodo di pagamento'],
+      [`sr`, 'Način plaćanja'],
+    ]),
+  ],
+  [
+    `Tracking number`,
+    new Map([
+      [`de`, 'Sendungsnummer'],
+      [`fr`, 'Numéro de suivi'],
+      [`es`, 'Número de seguimiento'],
+      [`ru`, 'Номер отслеживания'],
+      [`it`, 'Numero di tracciamento'],
+      [`sr`, 'Broj za praćenje'],
+    ]),
+  ],
+  [
+    `DRAFT`,
+    new Map([
+      [`de`, 'Entwurf'],
+      [`fr`, 'Brouillon'],
+      [`es`, 'Borrador'],
+      [`ru`, 'Черновик'],
+      [`it`, 'Bozza'],
+      [`sr`, 'Nacrt'],
+    ]),
+  ],
+  [
+    `CONFIRMED`,
+    new Map([
+      [`de`, 'Bestätigt'],
+      [`fr`, 'Confirmée'],
+      [`es`, 'Confirmado'],
+      [`ru`, 'Подтверждён'],
+      [`it`, 'Confermato'],
+      [`sr`, 'Potvrđena'],
+    ]),
+  ],
+  [
+    `IN_PRODUCTION`,
+    new Map([
+      [`de`, 'In Produktion'],
+      [`fr`, 'En production'],
+      [`es`, 'En producción'],
+      [`ru`, 'В производстве'],
+      [`it`, 'In produzione'],
+      [`sr`, 'U proizvodnji'],
+    ]),
+  ],
+  [
+    `READY`,
+    new Map([
+      [`de`, 'Bereit'],
+      [`fr`, 'Prête'],
+      [`es`, 'Listo'],
+      [`ru`, 'Готов'],
+      [`it`, 'Pronto'],
+      [`sr`, 'Spremna'],
+    ]),
+  ],
+  [
+    `SHIPPED`,
+    new Map([
+      [`de`, 'Versandt'],
+      [`fr`, 'Expédiée'],
+      [`es`, 'Enviado'],
+      [`ru`, 'Отправлен'],
+      [`it`, 'Spedito'],
+      [`sr`, 'Poslata'],
+    ]),
+  ],
+  [
+    `COMPLETED`,
+    new Map([
+      [`de`, 'Abgeschlossen'],
+      [`fr`, 'Terminée'],
+      [`es`, 'Completado'],
+      [`ru`, 'Завершён'],
+      [`it`, 'Completato'],
+      [`sr`, 'Završena'],
+    ]),
+  ],
+  [
+    `CANCELLED`,
+    new Map([
+      [`de`, 'Storniert'],
+      [`fr`, 'Annulée'],
+      [`es`, 'Cancelado'],
+      [`ru`, 'Отменён'],
+      [`it`, 'Annullato'],
+      [`sr`, 'Otkazana'],
     ]),
   ],
   [
@@ -351,20 +1167,14 @@ export const mlStrings = new Map([
     ]),
   ],
   [
-    `Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.`,
+    `Everything is made in small batches from the finest ingredients`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [
-        `ru`,
-        'Все делается небольшими партиями из лучших ингредиентов. Заказывайте до полудня для доставки в тот же день.',
-      ],
+      [`ru`, 'Все делается небольшими партиями из лучших ингредиентов'],
       [`it`, undefined],
-      [
-        `sr`,
-        'Sve se pravi u malim serijama od najboljih sastojaka. Poručite pre podne za isporuku istog dana.',
-      ],
+      [`sr`, 'Sve se pravi u malim serijama od najboljih sastojaka'],
     ]),
   ],
   [
@@ -1031,14 +1841,14 @@ export const mlStrings = new Map([
     ]),
   ],
   [
-    `Order fulfillment period is 24 hours`,
+    `We will deliver any order within 24 hours`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Срок выполнения заказа составляет 24 часа'],
+      [`ru`, 'Мы доставим любой заказ в течение 24 часов'],
       [`it`, undefined],
-      [`sr`, 'Rok za ispunjenje porudžbine je 24 sata'],
+      [`sr`, 'Dostavljamo bilo koji zahtev u roku od 24 sata'],
     ]),
   ],
   [
@@ -1047,9 +1857,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Мы рекомендуем размещать заказы как минимум за 24 часа, чтобы обеспечить наивысшую свежесть доставки'],
+      [
+        `ru`,
+        'Мы рекомендуем размещать заказы как минимум за 24 часа, чтобы обеспечить наивысшую свежесть доставки',
+      ],
       [`it`, undefined],
-      [`sr`, 'Preporučujemo da narudžbine budu izvršene najmanje 24 sata unapred kako bi se osigurala najviša svežina dostave'],
+      [
+        `sr`,
+        'Preporučujemo da narudžbine budu izvršene najmanje 24 sata unapred kako bi se osigurala najviša svežina dostave',
+      ],
     ]),
   ],
   [
@@ -1069,9 +1885,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Каждый заказ упакован в термоконтролируемые, экологически чистые коробки, чтобы прибыть в идеальном состоянии'],
+      [
+        `ru`,
+        'Каждый заказ упакован в термоконтролируемые, экологически чистые коробки, чтобы прибыть в идеальном состоянии',
+      ],
       [`it`, undefined],
-      [`sr`, 'Svaka porudžbina je upakovana u kutije sa kontrolisanom temperaturom, ekološki prihvatljive, kako bi stigla savršena'],
+      [
+        `sr`,
+        'Svaka porudžbina je upakovana u kutije sa kontrolisanom temperaturom, ekološki prihvatljive, kako bi stigla savršena',
+      ],
     ]),
   ],
   [
@@ -1091,9 +1913,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Мы доставляем по Панчево (бесплатно), Белграду (345 дин) и окрестностям (звоните). Пожалуйста, введите ваш почтовый индекс при оформлении заказа, чтобы подтвердить доступность'],
+      [
+        `ru`,
+        'Мы доставляем по Панчево (бесплатно), Белграду (345 дин) и окрестностям (звоните). Пожалуйста, введите ваш почтовый индекс при оформлении заказа, чтобы подтвердить доступность',
+      ],
       [`it`, undefined],
-      [`sr`, 'Dostavljamo u Pančevu (besplatno), Beogradu (345 din) i okolnim područjima (pozovite). Molimo unesite vaš poštanski broj prilikom plaćanja kako biste potvrdili dostupnost'],
+      [
+        `sr`,
+        'Dostavljamo u Pančevu (besplatno), Beogradu (345 din) i okolnim područjima (pozovite). Molimo unesite vaš poštanski broj prilikom plaćanja kako biste potvrdili dostupnost',
+      ],
     ]),
   ],
   [
@@ -1157,9 +1985,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, 'Здесь находятся рецепты приготовления блюд. Пожалуйста, прочитайте внимательно, чтобы получить идеальный результат, который порадует Вас и Вашу семью'],
+      [
+        `ru`,
+        'Здесь находятся рецепты приготовления блюд. Пожалуйста, прочитайте внимательно, чтобы получить идеальный результат, который порадует Вас и Вашу семью',
+      ],
       [`it`, undefined],
-      [`sr`, 'Evo nekoliko recepata za kuvanje. Pažljivo ih pročitajte kako biste osigurali savršene rezultate koji će oduševiti vas i vašu porodicu.'],
+      [
+        `sr`,
+        'Evo nekoliko recepata za kuvanje. Pažljivo ih pročitajte kako biste osigurali savršene rezultate koji će oduševiti vas i vašu porodicu.',
+      ],
     ]),
   ],
   [
@@ -1168,9 +2002,15 @@ export const mlStrings = new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, '<p>Сырники это традиционный русский завтрак. Сырники готовятся из творога, муки и яйца. Сырники необходимо обжарить до готовности на сковороде с небольшим количеством рафинированного подсолнечного масла. Мы продаем сырники в замороженном виде в вакуумной упаковке. </p><p>1) разогрейте сковороду достаточного размера и налейте немного рафинированного растительного масла, </p><p>2) сделайте малый огонь, </p><p>3) выложите замороженные или размороженные сырники на сковороду и обжаривайте на каждой стороне по 7 минут, если сырники заморожены, то накройте сковороду крышкой, </p><p>4) пропеките сырники до однородной консистенции (внутри они не должны быть жидкими), </p><p>5) подавайте сырники со сметаной, сладким сгущеным молоком или фруктовым или ягодным пюре.</p>'],
+      [
+        `ru`,
+        '<p>Сырники это традиционный русский завтрак. Сырники готовятся из творога, муки и яйца. Сырники необходимо обжарить до готовности на сковороде с небольшим количеством рафинированного подсолнечного масла. Мы продаем сырники в замороженном виде в вакуумной упаковке. </p><p>1) разогрейте сковороду достаточного размера и налейте немного рафинированного растительного масла, </p><p>2) сделайте малый огонь, </p><p>3) выложите замороженные или размороженные сырники на сковороду и обжаривайте на каждой стороне по 7 минут, если сырники заморожены, то накройте сковороду крышкой, </p><p>4) пропеките сырники до однородной консистенции (внутри они не должны быть жидкими), </p><p>5) подавайте сырники со сметаной, сладким сгущеным молоком или фруктовым или ягодным пюре.</p>',
+      ],
       [`it`, undefined],
-      [`sr`, '<p>Sirnici su tradicionalni ruski doručak. Prave se od svežeg sira, brašna i jajeta. Prže se u tiganju sa malom količinom rafinisanog suncokretovog ulja dok ne budu gotovi. Prodajemo zamrznute, vakuumski upakovane sirnike. </p><p>1) Zagrejte tiganj dovoljne veličine i sipajte malo rafinisanog biljnog ulja, </p><p>2) Smanjite vatru na najslabije, </p><p>3) Stavite zamrznute ili odmrznute sirnike u tiganj i pržite 7 minuta sa svake strane. Ako su sirnici zamrznuti, pokrijte tiganj poklopcem. </p><p>4) Pecite sirnike dok ne postanu glatki (ne smeju biti tečni unutra). </p><p>5) Poslužite sa pavlakom, zaslađenim kondenzovanim mlekom ili pireom od voća ili bobičastog voća.</p>'],
+      [
+        `sr`,
+        '<p>Sirnici su tradicionalni ruski doručak. Prave se od svežeg sira, brašna i jajeta. Prže se u tiganju sa malom količinom rafinisanog suncokretovog ulja dok ne budu gotovi. Prodajemo zamrznute, vakuumski upakovane sirnike. </p><p>1) Zagrejte tiganj dovoljne veličine i sipajte malo rafinisanog biljnog ulja, </p><p>2) Smanjite vatru na najslabije, </p><p>3) Stavite zamrznute ili odmrznute sirnike u tiganj i pržite 7 minuta sa svake strane. Ako su sirnici zamrznuti, pokrijte tiganj poklopcem. </p><p>4) Pecite sirnike dok ne postanu glatki (ne smeju biti tečni unutra). </p><p>5) Poslužite sa pavlakom, zaslađenim kondenzovanim mlekom ili pireom od voća ili bobičastog voća.</p>',
+      ],
     ]),
   ],
   [
@@ -1209,7 +2049,9 @@ We do not recommend reheating our dishes in a microwave oven, as microwaves caus
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, `<p>Все супы готовятся при температуре ниже 100°C, чтобы сохранить полезные свойства всех ингредиентов. Поэтому мы рекомендуем использовать один из двух способов сервировки.</p><p>
+      [
+        `ru`,
+        `<p>Все супы готовятся при температуре ниже 100°C, чтобы сохранить полезные свойства всех ингредиентов. Поэтому мы рекомендуем использовать один из двух способов сервировки.</p><p>
 
 Способ 1. Подходит для большинства пользователей. Кухонными ножницами отрежьте один край пакета и вылейте содержимое в кастрюлю или сотейник. Нагрейте суп до 60°C и разлейте по тарелкам.</p><p>
 
@@ -1217,9 +2059,12 @@ We do not recommend reheating our dishes in a microwave oven, as microwaves caus
 
 ЗАПРЕЩЕНО разогревать пакет в микроволновой печи. Если используете микроволновую печь, то предварительно вылейте содержимое пакета в тарелку и разогревайте суп в тарелке. </p><p>
 
-Мы не рекомендуем разогрев изготовленных нами блюд в микроволновой печи, так как СВЧ приводит к протеканию электрического тока в жидкости, что порождает самые неожиданные химические реакции. СВЧ внутри печи из-за многочисленных отражений от стенок внутри формирует стоячие волны, что приводит к неравномерному нагреванию супа даже в процессе вращения тарелки внутри печи. В результате возникают локальные перегревы, что может негативно сказаться на свойствах блюда</p>`],
+Мы не рекомендуем разогрев изготовленных нами блюд в микроволновой печи, так как СВЧ приводит к протеканию электрического тока в жидкости, что порождает самые неожиданные химические реакции. СВЧ внутри печи из-за многочисленных отражений от стенок внутри формирует стоячие волны, что приводит к неравномерному нагреванию супа даже в процессе вращения тарелки внутри печи. В результате возникают локальные перегревы, что может негативно сказаться на свойствах блюда</p>`,
+      ],
       [`it`, undefined],
-      [`sr`, `<p>Sve supe se kuvaju na temperaturi ispod 100°C kako bi se sačuvala korisna svojstva svih sastojaka. Stoga preporučujemo upotrebu jednog od dva načina serviranja.</p><p>
+      [
+        `sr`,
+        `<p>Sve supe se kuvaju na temperaturi ispod 100°C kako bi se sačuvala korisna svojstva svih sastojaka. Stoga preporučujemo upotrebu jednog od dva načina serviranja.</p><p>
 
 Metod 1. Pogodno za većinu korisnika. Kuhinjskim makazama odsecite jedan kraj kesice i sipajte sadržaj u šerpu ili tiganj. Zagrejte supu na 60°C i sipajte u činije.</p><p>
 
@@ -1227,7 +2072,8 @@ Metod 2. Samo za profesionalce. Zagrejte vodu u šerpi ili tiganju i potopite ke
 
 NE zagrevajte kesicu u mikrotalasnoj pećnici. Ako koristite mikrotalasnu, prvo ispraznite sadržaj kesice u činiju i ponovo zagrejte supu u činiji.</p><p>
 
-Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrotalasi izazivaju protok električne struje kroz tečnost, što može izazvati neočekivane hemijske reakcije. Mikrotalasi unutar rerne, zbog brojnih refleksija od zidova, stvaraju stojeće talase, što dovodi do neravnomernog zagrevanja supe, čak i dok se tanjir okreće unutar rerne. To rezultira lokalizovanim pregrevanjem, što može negativno uticati na kvalitet jela</p>`],
+Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrotalasi izazivaju protok električne struje kroz tečnost, što može izazvati neočekivane hemijske reakcije. Mikrotalasi unutar rerne, zbog brojnih refleksija od zidova, stvaraju stojeće talase, što dovodi do neravnomernog zagrevanja supe, čak i dok se tanjir okreće unutar rerne. To rezultira lokalizovanim pregrevanjem, što može negativno uticati na kvalitet jela</p>`,
+      ],
     ]),
   ],
   [
@@ -1319,14 +2165,153 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    ``,
+    `available`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
-      [`ru`, ''],
+      [`ru`, 'доступно'],
       [`it`, undefined],
-      [`sr`, ''],
+      [`sr`, 'dostupno'],
+    ]),
+  ],
+  [
+    `All products`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Все товары'],
+      [`it`, undefined],
+      [`sr`, 'Svi proizvodi'],
+    ]),
+  ],
+  [
+    `Only in stock`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Только в наличии'],
+      [`it`, undefined],
+      [`sr`, 'Samo na lageru'],
+    ]),
+  ],
+  [
+    `Search products...`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Искать продукты...'],
+      [`it`, undefined],
+      [`sr`, 'Pretraži proizvode...'],
+    ]),
+  ],
+  [
+    `Terms of use, payment methods, and refund procedures`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Условия использования, способы оплаты и процедуры возврата'],
+      [`it`, undefined],
+      [`sr`, 'Uslovi korišćenja, načini plaćanja i procedure povraćaja'],
+    ]),
+  ],
+  [
+    `If only items that are in stock are ordered, the order will be delivered within 2 hours`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [
+        `ru`,
+        'Если будут заказаны только доступные товары, заказ будет доставлен в течение 2 часов',
+      ],
+      [`it`, undefined],
+      [
+        `sr`,
+        'Ako su naručeni samo artikli koji su na lageru, porudžbina će biti isporučena u roku od 2 sata',
+      ],
+    ]),
+  ],
+  [
+    `We automatically calculate the shipping cost`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Мы автоматически рассчитываем стоимость доставки'],
+      [`it`, undefined],
+      [`sr`, 'Automatski izračunavamo troškove dostave'],
+    ]),
+  ],
+  [
+    `When placing an order, the delivery cost will be shown as a separate line item. The cost is calculated as 200 dinars plus 50 dinars for every kilometer.`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [
+        `ru`,
+        'При размещении заказа стоимость доставки будет показана как отдельный пункт. Стоимость рассчитывается как 200 динаров плюс 50 динаров за каждый километр.',
+      ],
+      [`it`, undefined],
+      [
+        `sr`,
+        'Prilikom postavljanja porudžbine, trošak dostave će biti prikazan kao zaseban stavka. Trošak se računa kao 200 dinara plus 50 dinara za svaki kilometar.',
+      ],
+    ]),
+  ],
+  [
+    `Review the delivery terms and conditions`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Просмотрите условия доставки'],
+      [`it`, undefined],
+      [`sr`, 'Pregledajte uslove dostave'],
+    ]),
+  ],
+  [
+    `Click to view the full delivery terms and conditions`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Нажмите, чтобы просмотреть полные условия доставки'],
+      [`it`, undefined],
+      [`sr`, 'Kliknite da biste videli kompletne uslove i odredbe isporuke'],
+    ]),
+  ],
+  [
+    `Privacy Policy`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [`ru`, 'Политика конфиденциальности'],
+      [`it`, undefined],
+      [`sr`, 'Politika privatnosti'],
+    ]),
+  ],
+  [
+    `To receive push notifications on iOS, please install the app to your home screen and open it from there.`,
+    new Map([
+      [`de`, undefined],
+      [`fr`, undefined],
+      [`es`, undefined],
+      [
+        `ru`,
+        'Для включения уведомлений на iOS сначала добавьте приложение на экран "Домой" через меню "Поделиться"!',
+      ],
+      [`it`, undefined],
+      [
+        `sr`,
+        'Да бисте добили push обавештења на iOS, инсталирајте апликацију на екрану "Почетна" и отворите је од тамо.',
+      ],
     ]),
   ],
   [
@@ -1572,135 +2557,468 @@ Ne preporučujemo ponovno zagrevanje jela u mikrotalasnoj pećnici, jer mikrota
     ]),
   ],
   [
-    ``,
+    `Staff`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Personal'],
+      [`fr`, 'Équipe'],
+      [`es`, 'Personal'],
+      [`ru`, 'Персонал'],
+      [`it`, 'Personale'],
+      [`sr`, 'Osoblje'],
     ]),
   ],
   [
-    ``,
+    `Customer`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Kunde'],
+      [`fr`, 'Client'],
+      [`es`, 'Cliente'],
+      [`ru`, 'Клиент'],
+      [`it`, 'Cliente'],
+      [`sr`, 'Kupac'],
     ]),
   ],
   [
-    ``,
+    `Product`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Produkt'],
+      [`fr`, 'Produit'],
+      [`es`, 'Producto'],
+      [`ru`, 'Товар'],
+      [`it`, 'Prodotto'],
+      [`sr`, 'Proizvod'],
     ]),
   ],
   [
-    ``,
+    `Yes`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Ja'],
+      [`fr`, 'Oui'],
+      [`es`, 'Sí'],
+      [`ru`, 'Да'],
+      [`it`, 'Sì'],
+      [`sr`, 'Da'],
     ]),
   ],
   [
-    ``,
+    `No`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Nein'],
+      [`fr`, 'Non'],
+      [`es`, 'No'],
+      [`ru`, 'Нет'],
+      [`it`, 'No'],
+      [`sr`, 'Ne'],
     ]),
   ],
   [
-    ``,
+    `Delivery coordinates`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Lieferkoordinaten'],
+      [`fr`, 'Coordonnées de livraison'],
+      [`es`, 'Coordenadas de entrega'],
+      [`ru`, 'Координаты доставки'],
+      [`it`, 'Coordinate di consegna'],
+      [`sr`, 'Koordinate isporuke'],
     ]),
   ],
   [
-    ``,
+    `Ready date`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Fertigstellungsdatum'],
+      [`fr`, 'Date de disponibilité'],
+      [`es`, 'Fecha de preparación'],
+      [`ru`, 'Дата готовности'],
+      [`it`, 'Data di disponibilità'],
+      [`sr`, 'Datum spremnosti'],
     ]),
   ],
   [
-    ``,
+    `Created`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Erstellt'],
+      [`fr`, 'Créé'],
+      [`es`, 'Creado'],
+      [`ru`, 'Создан'],
+      [`it`, 'Creato'],
+      [`sr`, 'Kreirano'],
     ]),
   ],
   [
-    ``,
+    `Updated`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Aktualisiert'],
+      [`fr`, 'Mis à jour'],
+      [`es`, 'Actualizado'],
+      [`ru`, 'Обновлён'],
+      [`it`, 'Aggiornato'],
+      [`sr`, 'Ažurirano'],
     ]),
   ],
   [
-    ``,
+    `Paid`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Bezahlt'],
+      [`fr`, 'Payé'],
+      [`es`, 'Pagado'],
+      [`ru`, 'Оплачен'],
+      [`it`, 'Pagato'],
+      [`sr`, 'Plaćeno'],
     ]),
   ],
   [
-    ``,
+    `Delivery fee`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Liefergebühr'],
+      [`fr`, 'Frais de livraison'],
+      [`es`, 'Tarifa de entrega'],
+      [`ru`, 'Стоимость доставки'],
+      [`it`, 'Costo di consegna'],
+      [`sr`, 'Cena dostave'],
     ]),
   ],
   [
-    ``,
+    `Customer note`,
     new Map([
-      [`de`, undefined],
-      [`fr`, undefined],
-      [`es`, undefined],
-      [`ru`, ''],
-      [`it`, undefined],
-      [`sr`, ''],
+      [`de`, 'Kundennotiz'],
+      [`fr`, 'Note du client'],
+      [`es`, 'Nota del cliente'],
+      [`ru`, 'Комментарий клиента'],
+      [`it`, 'Nota del cliente'],
+      [`sr`, 'Napomena kupca'],
+    ]),
+  ],
+  [
+    `Variant`,
+    new Map([
+      [`de`, 'Variante'],
+      [`fr`, 'Variante'],
+      [`es`, 'Variante'],
+      [`ru`, 'Вариант'],
+      [`it`, 'Variante'],
+      [`sr`, 'Varijanta'],
+    ]),
+  ],
+  [
+    `Line total`,
+    new Map([
+      [`de`, 'Positionssumme'],
+      [`fr`, 'Total de la ligne'],
+      [`es`, 'Total de línea'],
+      [`ru`, 'Сумма по позиции'],
+      [`it`, 'Totale riga'],
+      [`sr`, 'Ukupno za stavku'],
+    ]),
+  ],
+  [
+    `Actions`,
+    new Map([
+      [`de`, 'Aktionen'],
+      [`fr`, 'Actions'],
+      [`es`, 'Acciones'],
+      [`ru`, 'Действия'],
+      [`it`, 'Azioni'],
+      [`sr`, 'Akcije'],
+    ]),
+  ],
+  [
+    `Hide details`,
+    new Map([
+      [`de`, 'Details ausblenden'],
+      [`fr`, 'Masquer les détails'],
+      [`es`, 'Ocultar detalles'],
+      [`ru`, 'Скрыть детали'],
+      [`it`, 'Nascondi dettagli'],
+      [`sr`, 'Sakrij detalje'],
+    ]),
+  ],
+  [
+    `View details`,
+    new Map([
+      [`de`, 'Details ansehen'],
+      [`fr`, 'Voir les détails'],
+      [`es`, 'Ver detalles'],
+      [`ru`, 'Детали'],
+      [`it`, 'Visualizza dettagli'],
+      [`sr`, 'Prikaži detalje'],
+    ]),
+  ],
+  [
+    `Start production`,
+    new Map([
+      [`de`, 'Produktion starten'],
+      [`fr`, 'Lancer la production'],
+      [`es`, 'Iniciar producción'],
+      [`ru`, 'Начать производство'],
+      [`it`, 'Avvia produzione'],
+      [`sr`, 'Pokreni proizvodnju'],
+    ]),
+  ],
+  [
+    `Starting production...`,
+    new Map([
+      [`de`, 'Produktion wird gestartet...'],
+      [`fr`, 'Démarrage de la production...'],
+      [`es`, 'Iniciando producción...'],
+      [`ru`, 'Запуск производства...'],
+      [`it`, 'Avvio della produzione...'],
+      [`sr`, 'Pokretanje proizvodnje...'],
+    ]),
+  ],
+  [
+    `Loading orders...`,
+    new Map([
+      [`de`, 'Bestellungen werden geladen...'],
+      [`fr`, 'Chargement des commandes...'],
+      [`es`, 'Cargando pedidos...'],
+      [`ru`, 'Загрузка заказов...'],
+      [`it`, 'Caricamento ordini...'],
+      [`sr`, 'Učitavanje porudžbina...'],
+    ]),
+  ],
+  [
+    `No orders are available for this location.`,
+    new Map([
+      [`de`, 'Für diesen Standort sind keine Bestellungen verfügbar.'],
+      [`fr`, 'Aucune commande n’est disponible pour cet emplacement.'],
+      [`es`, 'No hay pedidos disponibles para esta ubicación.'],
+      [`ru`, 'Для этой локации нет заказов.'],
+      [`it`, 'Nessun ordine disponibile per questa sede.'],
+      [`sr`, 'Nema porudžbina za ovu lokaciju.'],
+    ]),
+  ],
+  [
+    `Status`,
+    new Map([
+      [`de`, 'Status'],
+      [`fr`, 'Statut'],
+      [`es`, 'Estado'],
+      [`ru`, 'Статус'],
+      [`it`, 'Stato'],
+      [`sr`, 'Status'],
+    ]),
+  ],
+  [
+    `Push`,
+    new Map([
+      [`de`, 'Push'],
+      [`fr`, 'Push'],
+      [`es`, 'Push'],
+      [`ru`, 'Push'],
+      [`it`, 'Push'],
+      [`sr`, 'Push'],
+    ]),
+  ],
+  [
+    `sent`,
+    new Map([
+      [`de`, 'gesendet'],
+      [`fr`, 'envoyée'],
+      [`es`, 'enviada'],
+      [`ru`, 'отправлено'],
+      [`it`, 'inviata'],
+      [`sr`, 'poslato'],
+    ]),
+  ],
+  [
+    `failed`,
+    new Map([
+      [`de`, 'fehlgeschlagen'],
+      [`fr`, 'échec'],
+      [`es`, 'fallida'],
+      [`ru`, 'не отправлено'],
+      [`it`, 'non inviata'],
+      [`sr`, 'nije poslato'],
+    ]),
+  ],
+  [
+    `Order moved to production.`,
+    new Map([
+      [`de`, 'Bestellung in die Produktion übernommen.'],
+      [`fr`, 'Commande transférée en production.'],
+      [`es`, 'Pedido enviado a producción.'],
+      [`ru`, 'Заказ переведён в производство.'],
+      [`it`, 'Ordine avviato alla produzione.'],
+      [`sr`, 'Porudžbina je prebačena u proizvodnju.'],
+    ]),
+  ],
+  [
+    `The server did not return the updated order.`,
+    new Map([
+      [
+        `de`,
+        'Der Server hat die aktualisierte Bestellung nicht zurückgegeben.',
+      ],
+      [`fr`, 'Le serveur n’a pas renvoyé la commande mise à jour.'],
+      [`es`, 'El servidor no devolvió el pedido actualizado.'],
+      [`ru`, 'Сервер не вернул обновлённый заказ.'],
+      [`it`, 'Il server non ha restituito l’ordine aggiornato.'],
+      [`sr`, 'Server nije vratio ažuriranu porudžbinu.'],
+    ]),
+  ],
+  [
+    `Cancel order`,
+    new Map([
+      [`de`, 'Bestellung stornieren'],
+      [`fr`, 'Annuler la commande'],
+      [`es`, 'Cancelar pedido'],
+      [`ru`, 'Отменить заказ'],
+      [`it`, 'Annulla ordine'],
+      [`sr`, 'Otkaži porudžbinu'],
+    ]),
+  ],
+  [
+    `Cancelling order...`,
+    new Map([
+      [`de`, 'Bestellung wird storniert...'],
+      [`fr`, 'Annulation de la commande...'],
+      [`es`, 'Cancelando pedido...'],
+      [`ru`, 'Отмена заказа...'],
+      [`it`, 'Annullamento dell’ordine...'],
+      [`sr`, 'Otkazivanje porudžbine...'],
+    ]),
+  ],
+  [
+    `Are you sure you want to cancel this order?`,
+    new Map([
+      [`de`, 'Möchten Sie diese Bestellung wirklich stornieren?'],
+      [`fr`, 'Voulez-vous vraiment annuler cette commande ?'],
+      [`es`, '¿Seguro que quieres cancelar este pedido?'],
+      [`ru`, 'Вы действительно хотите отменить этот заказ?'],
+      [`it`, 'Vuoi davvero annullare questo ordine?'],
+      [`sr`, 'Da li ste sigurni da želite da otkažete ovu porudžbinu?'],
+    ]),
+  ],
+  [
+    `Order cancelled.`,
+    new Map([
+      [`de`, 'Bestellung storniert.'],
+      [`fr`, 'Commande annulée.'],
+      [`es`, 'Pedido cancelado.'],
+      [`ru`, 'Заказ отменён.'],
+      [`it`, 'Ordine annullato.'],
+      [`sr`, 'Porudžbina je otkazana.'],
+    ]),
+  ],
+  [
+    `Active orders`,
+    new Map([
+      [`de`, 'Aktive Bestellungen'],
+      [`fr`, 'Commandes actives'],
+      [`es`, 'Pedidos activos'],
+      [`ru`, 'Активные заказы'],
+      [`it`, 'Ordini attivi'],
+      [`sr`, 'Aktivne porudžbine'],
+    ]),
+  ],
+  [
+    `All statuses`,
+    new Map([
+      [`de`, 'Alle Status'],
+      [`fr`, 'Tous les statuts'],
+      [`es`, 'Todos los estados'],
+      [`ru`, 'Все статусы'],
+      [`it`, 'Tutti gli stati'],
+      [`sr`, 'Svi statusi'],
+    ]),
+  ],
+  [
+    `Created from`,
+    new Map([
+      [`de`, 'Erstellt ab'],
+      [`fr`, 'Créé à partir du'],
+      [`es`, 'Creado desde'],
+      [`ru`, 'Создан с'],
+      [`it`, 'Creato dal'],
+      [`sr`, 'Kreirano od'],
+    ]),
+  ],
+  [
+    `Created to`,
+    new Map([
+      [`de`, 'Erstellt bis'],
+      [`fr`, 'Créé jusqu’au'],
+      [`es`, 'Creado hasta'],
+      [`ru`, 'Создан по'],
+      [`it`, 'Creato fino al'],
+      [`sr`, 'Kreirano do'],
+    ]),
+  ],
+  [
+    `Customer name`,
+    new Map([
+      [`de`, 'Kundenname'],
+      [`fr`, 'Nom du client'],
+      [`es`, 'Nombre del cliente'],
+      [`ru`, 'Имя клиента'],
+      [`it`, 'Nome del cliente'],
+      [`sr`, 'Ime kupca'],
+    ]),
+  ],
+  [
+    `Customer phone`,
+    new Map([
+      [`de`, 'Telefonnummer des Kunden'],
+      [`fr`, 'Téléphone du client'],
+      [`es`, 'Teléfono del cliente'],
+      [`ru`, 'Телефон клиента'],
+      [`it`, 'Telefono del cliente'],
+      [`sr`, 'Telefon kupca'],
+    ]),
+  ],
+  [
+    `No orders match the selected filters.`,
+    new Map([
+      [`de`, 'Keine Bestellungen entsprechen den ausgewählten Filtern.'],
+      [`fr`, 'Aucune commande ne correspond aux filtres sélectionnés.'],
+      [`es`, 'Ningún pedido coincide con los filtros seleccionados.'],
+      [`ru`, 'По выбранным фильтрам заказов нет.'],
+      [`it`, 'Nessun ordine corrisponde ai filtri selezionati.'],
+      [`sr`, 'Nema porudžbina prema izabranim filterima.'],
+    ]),
+  ],
+  [
+    `Mark as ready`,
+    new Map([
+      [`de`, 'Als fertig markieren'],
+      [`fr`, 'Marquer comme prête'],
+      [`es`, 'Marcar como listo'],
+      [`ru`, 'Отметить как готовый'],
+      [`it`, 'Segna come pronto'],
+      [`sr`, 'Označi kao spremno'],
+    ]),
+  ],
+  [
+    `Marking as ready...`,
+    new Map([
+      [`de`, 'Wird als fertig markiert...'],
+      [`fr`, 'Marquage comme prête...'],
+      [`es`, 'Marcando como listo...'],
+      [`ru`, 'Отмечаем как готовый...'],
+      [`it`, 'Contrassegnando come pronto...'],
+      [`sr`, 'Označavanje kao spremno...'],
+    ]),
+  ],
+  [
+    `Order marked ready.`,
+    new Map([
+      [`de`, 'Bestellung als fertig markiert.'],
+      [`fr`, 'Commande marquée comme prête.'],
+      [`es`, 'Pedido marcado como listo.'],
+      [`ru`, 'Заказ отмечен как готовый.'],
+      [`it`, 'Ordine contrassegnato come pronto.'],
+      [`sr`, 'Porudžbina je označena kao spremna.'],
+    ]),
+  ],
+  [
+    `Toggle order details`,
+    new Map([
+      [`de`, 'Bestelldetails ein- oder ausblenden'],
+      [`fr`, 'Afficher ou masquer les détails de la commande'],
+      [`es`, 'Mostrar u ocultar detalles del pedido'],
+      [`ru`, 'Показать или скрыть детали заказа'],
+      [`it`, 'Mostra o nascondi i dettagli dell’ordine'],
+      [`sr`, 'Prikaži ili sakrij detalje porudžbine'],
     ]),
   ],
 ]);
