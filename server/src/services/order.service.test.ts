@@ -1,9 +1,13 @@
 /// <reference types="vitest/globals" />
 import type { GraphQLContext } from '../types/types';
-import { Prisma } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
+import type { CreateOrderInput } from '../types/order';
+import { afterEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     authorize: vi.fn(),
+    aggregate: vi.fn(),
+    create: vi.fn(),
     updateMany: vi.fn(),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -18,6 +22,8 @@ vi.mock('../lib/prisma', () => ({
     prisma: {
         $transaction: mocks.transaction,
         order: {
+            aggregate: mocks.aggregate,
+            create: mocks.create,
             updateMany: mocks.updateMany,
             findUnique: mocks.findUnique,
             findFirst: mocks.findFirst,
@@ -35,6 +41,78 @@ vi.mock('./push.service', () => ({
 }));
 
 import { OrderService } from './order.service';
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
+
+describe('OrderService.Draft order numbers', () => {
+    const ctx = {
+        userId: 'customer-1',
+        locationId: 'location-1',
+    } as GraphQLContext;
+    const orderInput: CreateOrderInput = {
+        customerUserId: 'customer-1',
+        status: OrderStatus.DRAFT,
+        products: [{ productId: 'product-1', quantity: 1 }],
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mocks.authorize.mockResolvedValue(undefined);
+        mocks.findFirst.mockResolvedValue(null);
+        mocks.aggregate.mockResolvedValue({ _max: { numberInt: 10 } });
+        vi.spyOn(OrderService, 'normalizeOrder').mockResolvedValue(orderInput);
+        vi.spyOn(OrderService, 'getEffectivePrice').mockResolvedValue(25);
+    });
+
+    it('retries a unique order-number conflict with a new random number', async () => {
+        const conflict = new Prisma.PrismaClientKnownRequestError(
+            'Unique constraint failed',
+            {
+                code: 'P2002',
+                clientVersion: 'test',
+                meta: { target: ['number'] },
+            }
+        );
+        mocks.create
+            .mockRejectedValueOnce(conflict)
+            .mockResolvedValueOnce({ id: 'order-1' });
+
+        await OrderService.Draft(orderInput, ctx);
+
+        expect(mocks.create).toHaveBeenCalledTimes(2);
+        const numbers = mocks.create.mock.calls.map(
+            (call) => call[0].data.number
+        );
+        expect(numbers[0]).not.toBe(numbers[1]);
+        expect(numbers[1]).toMatch(
+            new RegExp(
+                `^${new Date().getFullYear()}-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$`
+            )
+        );
+        expect(mocks.create.mock.calls[1][0]).toMatchObject({
+            data: { numberInt: 11 },
+        });
+    });
+
+    it('does not retry unrelated unique constraint errors', async () => {
+        const conflict = new Prisma.PrismaClientKnownRequestError(
+            'Unique constraint failed',
+            {
+                code: 'P2002',
+                clientVersion: 'test',
+                meta: { target: ['orderId', 'productId'] },
+            }
+        );
+        mocks.create.mockRejectedValueOnce(conflict);
+
+        await expect(OrderService.Draft(orderInput, ctx)).rejects.toBe(
+            conflict
+        );
+        expect(mocks.create).toHaveBeenCalledTimes(1);
+    });
+});
 
 describe('OrderService.confirmCustomerDraft', () => {
     const ctx = {

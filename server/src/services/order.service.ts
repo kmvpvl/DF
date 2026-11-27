@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { Order, OrderStatus, Prisma, Role, User } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { GraphQLContext } from '../types/types';
@@ -13,6 +14,32 @@ import {
 } from '../types/order';
 import { MLString } from '../lib/mlstring';
 import { IPushMessage } from '../types/pushes';
+
+const ORDER_NUMBER_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const ORDER_NUMBER_ATTEMPTS = 10;
+
+function generateOrderNumber(year: number, numberInt: number): string {
+    const token = Array.from(randomBytes(8), (byte) =>
+        ORDER_NUMBER_ALPHABET.charAt(byte & 31)
+    ).join('');
+    return `${year.toString().slice(-2)}-${token.slice(0, 4)}-${numberInt.toString().padStart(4, '0')}`;//-${token.slice(4)}`;
+}
+
+function isOrderNumberUniqueConflict(error: unknown): boolean {
+    if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== 'P2002'
+    ) {
+        return false;
+    }
+
+    const target = error.meta?.target;
+    const fields = Array.isArray(target) ? target : [target];
+    return fields.some(
+        (field) =>
+            typeof field === 'string' && field.toLowerCase().includes('number')
+    );
+}
 
 function getNewOrderPushMessage(
     orderNumber: string,
@@ -348,8 +375,8 @@ export class OrderService {
             });
         }
         if (normalizedOrder.id === undefined) {
-            //
-            const { start, end } = getYearRange(new Date());
+            const now = new Date();
+            const { start, end } = getYearRange(now);
             const aggregate = await prisma.order.aggregate({
                 where: {
                     locationId: ctx.locationId,
@@ -363,7 +390,7 @@ export class OrderService {
                 },
             });
 
-            const orderNumber = (aggregate._max.numberInt ?? 0) + 1;
+            const legacyNumberInt = (aggregate._max.numberInt ?? 0) + 1;
             // 1. Map the products into an array of Promises
             const productDataPromises = normalizedOrder.products.map(
                 async (el, idx) => {
@@ -393,35 +420,56 @@ export class OrderService {
                 (sum, p) => sum + p.price,
                 0
             );
-            return await prisma.order.create({
-                data: {
-                    ...normalizedOrder,
-                    customerName: normalizedOrder.customerName ?? '',
-                    customerUserId: ctx.userId,
-                    number: `${String(new Date().getFullYear()).slice(-2)}-${orderNumber}`,
-                    numberInt: orderNumber,
-                    status: OrderStatus.DRAFT,
-                    locationId: ctx.locationId!,
-                    totalPrice: totalPrice,
-                    deliveryFee: 0,
-                    products: {
-                        create: resolvedProducts,
-                    },
+            const orderData = {
+                ...normalizedOrder,
+                customerName: normalizedOrder.customerName ?? '',
+                customerUserId: ctx.userId,
+                numberInt: legacyNumberInt,
+                status: OrderStatus.DRAFT,
+                locationId: ctx.locationId!,
+                totalPrice,
+                deliveryFee: 0,
+                products: {
+                    create: resolvedProducts,
                 },
-                include: {
-                    products: {
+            };
+
+            for (
+                let attempt = 0;
+                attempt < ORDER_NUMBER_ATTEMPTS;
+                attempt += 1
+            ) {
+                try {
+                    return await prisma.order.create({
+                        data: {
+                            ...orderData,
+                            number: generateOrderNumber(now.getFullYear(), orderData.numberInt),
+                        },
                         include: {
-                            product: {
+                            products: {
                                 include: {
-                                    variants: true,
-                                    modifierGroups: true,
-                                    comboItems: true,
+                                    product: {
+                                        include: {
+                                            variants: true,
+                                            modifierGroups: true,
+                                            comboItems: true,
+                                        },
+                                    },
                                 },
                             },
                         },
-                    },
-                },
-            });
+                    });
+                } catch (error) {
+                    if (
+                        !isOrderNumberUniqueConflict(error) ||
+                        attempt === ORDER_NUMBER_ATTEMPTS - 1
+                    ) {
+                        throw error;
+                    }
+                }
+            }
+
+            throw new Error('Unable to generate a unique order number');
         } else {
             newData = await prisma.order.findFirst({
                 where: {
