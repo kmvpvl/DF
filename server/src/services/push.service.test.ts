@@ -30,7 +30,7 @@ vi.mock('../lib/prisma', () => ({
     },
 }));
 
-import { PushService } from './push.service';
+import { PushService } from './push.service.js';
 
 describe('PushService notifications', () => {
     beforeEach(() => {

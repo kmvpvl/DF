@@ -1,6 +1,6 @@
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '..';
+import { prisma } from '../lib/prisma.js';
+import { GraphQLContext } from '../index.js';
 
 export class CompanyService {
     static async info(ctx: GraphQLContext) {

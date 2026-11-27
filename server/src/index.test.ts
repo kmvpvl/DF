@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 import request from 'supertest';
-import app from './index';
+import app from './index.js';
 
 describe('GET /', () => {
     it('should return DolceForte API message', async () => {

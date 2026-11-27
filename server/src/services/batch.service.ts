@@ -1,10 +1,10 @@
 // server/src/services/batch.service.ts
 import { Prisma, Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
-import { authorize } from '../utils/auth';
-import { getYearRange } from '../utils/common';
-import { SampleService } from './sample.service';
-import { GraphQLContext } from '..';
+import { prisma } from '../lib/prisma.js';
+import { authorize } from '../utils/auth.js';
+import { getYearRange } from '../utils/common.js';
+import { SampleService } from './sample.service.js';
+import { GraphQLContext } from '../index.js';
 import { BatchNumberPreview, CreateBatchInput, UpdateBatchInput } from '@df/types/batch';
 
 export class BatchService {

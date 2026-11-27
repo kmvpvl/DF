@@ -1,10 +1,10 @@
 // server/src/services/product.service.ts
 import { ProductType, Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '..';
-import { authorize } from '../utils/auth';
-import { parseCsv, parseCsvNumber, escapeCsvValue } from '../utils/common';
-import { MLString } from '../lib/mlstring';
+import { prisma } from '../lib/prisma.js';
+import { GraphQLContext } from '../index.js';
+import { authorize } from '../utils/auth.js';
+import { parseCsv, parseCsvNumber, escapeCsvValue } from '../utils/common.js';
+import { MLString } from '../lib/mlstring.js';
 import {
     CreateProductInput,
     UpdateLocationProductConfigArgs,

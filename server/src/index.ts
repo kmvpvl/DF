@@ -7,29 +7,29 @@ import session from 'express-session';
 import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
-import { prisma } from './lib/prisma';
+import { prisma } from './lib/prisma.js';
 import { ICoords, ILocation } from '@df/types/company';
 import multer from 'multer';
-import { BatchService } from './services/batch.service';
+import { BatchService } from './services/batch.service.js';
 import { gql } from 'graphql-tag';
-import { EquipmentService } from './services/equipment.service';
-import { CleanActionService } from './services/cleanaction.service';
-import { MaterialService } from './services/material.service';
-import { CertificateService } from './services/certificate.service';
-import { ProductService } from './services/product.service';
-import { ProcessMapService } from './services/process-map.service';
-import { CostSettingsService } from './services/cost-settings.service';
-import { StorageConditionService } from './services/storage-condition.service';
-import { MovementService } from './services/movement.service';
+import { EquipmentService } from './services/equipment.service.js';
+import { CleanActionService } from './services/cleanaction.service.js';
+import { MaterialService } from './services/material.service.js';
+import { CertificateService } from './services/certificate.service.js';
+import { ProductService } from './services/product.service.js';
+import { ProcessMapService } from './services/process-map.service.js';
+import { CostSettingsService } from './services/cost-settings.service.js';
+import { StorageConditionService } from './services/storage-condition.service.js';
+import { MovementService } from './services/movement.service.js';
 import { MovementType } from '@prisma/client';
-import { OrderService } from './services/order.service';
-import { PushService } from './services/push.service';
+import { OrderService } from './services/order.service.js';
+import { PushService } from './services/push.service.js';
 import { CreateProductInput, UpdateProductInput } from '@df/types/product';
-import { CreateOrderInput } from '@df/types/order';
-import { CompanyService } from './services/company.service';
-import { MLString } from './lib/mlstring';
-import { AddressService } from './services/address.service';
-import { authorize } from './utils/auth';
+import { CreateOrderInput, IOrderProduct } from '@df/types/order';
+import { CompanyService } from './services/company.service.js';
+import { MLString } from './lib/mlstring.js';
+import { AddressService } from './services/address.service.js';
+import { authorize } from './utils/auth.js';
 import { IMLString } from '@df/types/mlstring';
 import { CreateBatchInput, CreateCertificateInput, CreateProcessMapInput, SearchCertificatesInput, UpdateBatchInput, UpdateCertificateInput, UpdateProcessMapInput } from '@df/types/batch';
 import { CreateCleanActionInput, CreateEquipmentInput, UpdateEquipmentInput } from '@df/types/clean';
@@ -1049,7 +1049,7 @@ const resolvers = {
                 const unitPrice =
                     item.quantity > 0 ? lineTotal / item.quantity : 0;
                 const productName = new MLString(
-                    item.product.name as IMLString
+                    item.product?.name as IMLString
                 ).toString();
                 return [
                     `${index + 1}. ${productName}`,

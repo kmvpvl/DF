@@ -1,8 +1,8 @@
 // server/src/services/cost-settings.service.ts
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '..';
-import { authorize } from '../utils/auth';
+import { prisma } from '../lib/prisma.js';
+import { GraphQLContext } from '../index.js';
+import { authorize } from '../utils/auth.js';
 
 export class CostSettingsService {
     static async get(ctx: GraphQLContext) {

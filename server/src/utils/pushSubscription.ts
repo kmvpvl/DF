@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { vapidKeys } from './common';
+import { vapidKeys } from './common.js';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
 if (vapidKeys.publicKey && vapidKeys.privateKey) {
     const configuredSubject =

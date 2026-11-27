@@ -1,15 +1,15 @@
 // server/src/services/certificate.service.ts
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '..';
-import { authorize } from '../utils/auth';
+import { prisma } from '../lib/prisma.js';
+import { GraphQLContext } from '../index.js';
+import { authorize } from '../utils/auth.js';
 import path from 'node:path';
 import {
     formatDate,
     formatDateTime,
     formatDecimalLike,
     sanitizeFileNameSegment,
-} from '../utils/common';
+} from '../utils/common.js';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';

@@ -1,10 +1,10 @@
 // server/src/services/process-map.service.ts
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma.js';
 import {
     GraphQLContext,
-} from '..';
-import { authorize } from '../utils/auth';
+} from '../index.js';
+import { authorize } from '../utils/auth.js';
 import { CreateProcessMapInput, UpdateProcessMapInput } from '@df/types/batch';
 
 export class ProcessMapService {

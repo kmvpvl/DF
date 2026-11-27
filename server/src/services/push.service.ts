@@ -1,12 +1,12 @@
-import { MLString } from '../lib/mlstring';
-import { prisma } from '../lib/prisma';
+import { MLString } from '../lib/mlstring.js';
+import { prisma } from '../lib/prisma.js';
 import nodemailer, { Transporter } from 'nodemailer';
 import webpush from 'web-push';
 import { Prisma } from '@prisma/client';
-import { vapidKeys } from '../utils/common';
-import { GraphQLContext } from '..';
+import { vapidKeys } from '../utils/common.js';
+import { GraphQLContext } from '../index.js';
 import { IPushMessage } from '@df/types/pushes';
-import { CompanyService } from './company.service';
+import { CompanyService } from './company.service.js';
 import { IMLString } from '@df/types/mlstring';
 // Инициализируем web-push. Обязательно укажите mailto: (требование протокола)
 function normalizeVapidSubject(subject?: string): string {

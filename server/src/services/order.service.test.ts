@@ -1,8 +1,10 @@
 /// <reference types="vitest/globals" />
-import type { GraphQLContext } from '..';
+import type { GraphQLContext } from '../index.js';
 import { OrderStatus, Prisma } from '@prisma/client';
 import type { CreateOrderInput } from '@df/types/order';
 import { afterEach } from 'vitest';
+import { OrderService } from './order.service.js';
+
 
 const mocks = vi.hoisted(() => ({
     authorize: vi.fn(),
@@ -39,8 +41,6 @@ vi.mock('../utils/auth', () => ({ authorize: mocks.authorize }));
 vi.mock('./push.service', () => ({
     PushService: { sendLocationManagers: mocks.sendLocationManagers },
 }));
-
-import { OrderService } from './order.service';
 
 afterEach(() => {
     vi.restoreAllMocks();

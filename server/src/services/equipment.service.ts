@@ -1,10 +1,10 @@
 // server/src/services/equipment.service.ts
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma.js';
 import {
     GraphQLContext,
-} from '..';
-import { authorize } from '../utils/auth';
+} from '../index.js';
+import { authorize } from '../utils/auth.js';
 import { CreateEquipmentInput, UpdateEquipmentInput } from '@df/types/clean';
 
 export class EquipmentService {

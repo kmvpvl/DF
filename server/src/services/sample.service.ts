@@ -1,5 +1,5 @@
-import { prisma } from '../lib/prisma';
-import { getYearRange } from '../utils/common';
+import { prisma } from '../lib/prisma.js';
+import { getYearRange } from '../utils/common.js';
 
 export class SampleService {
     static async getNextSampleNumber(date = new Date()): Promise<number> {

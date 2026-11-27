@@ -1,16 +1,16 @@
 // server/src/services/material.service.ts
 import { Role } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma.js';
 import {
     GraphQLContext,
-} from '..';
-import { authorize } from '../utils/auth';
+} from '../index.js';
+import { authorize } from '../utils/auth.js';
 import {
     escapeCsvValue,
     parseCsv,
     parseCsvBoolean,
     parseCsvNumber,
-} from '../utils/common';
+} from '../utils/common.js';
 import { CreateMaterialInput, UpdateMaterialInput } from '@df/types/material';
 const MATERIAL_CSV_HEADERS = [
     'name',
