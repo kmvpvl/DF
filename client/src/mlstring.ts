@@ -1167,19 +1167,19 @@ export const mlStrings = new Map([
     ]),
   ],
   [
-    `Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.`,
+    `Everything is made in small batches from the finest ingredients`,
     new Map([
       [`de`, undefined],
       [`fr`, undefined],
       [`es`, undefined],
       [
         `ru`,
-        'Все делается небольшими партиями из лучших ингредиентов. Заказывайте до полудня для доставки в тот же день.',
+        'Все делается небольшими партиями из лучших ингредиентов',
       ],
       [`it`, undefined],
       [
         `sr`,
-        'Sve se pravi u malim serijama od najboljih sastojaka. Poručite pre podne za isporuku istog dana.',
+        'Sve se pravi u malim serijama od najboljih sastojaka',
       ],
     ]),
   ],

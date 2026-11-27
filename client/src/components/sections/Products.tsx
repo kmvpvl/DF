@@ -150,7 +150,13 @@ class Products extends Proto<ProductsProps, ProductsState> {
           </h2>
           <p className="section-desc">
             {this.ML(
-              'Everything is made in small batches from the finest ingredients. Order before noon for same-day delivery.'
+              'Everything is made in small batches from the finest ingredients'
+            ).toString()}
+
+          </p>
+          <p className="section-desc">
+            {this.ML(
+              'If only items that are in stock are ordered, the order will be delivered within 2 hours'
             ).toString()}
           </p>
           {this.props.user?.entityType === 'LEGAL_ENTITY' ? (
@@ -180,6 +186,8 @@ class Products extends Proto<ProductsProps, ProductsState> {
               className="products-search-input"
               ref={this.searchInputRef}
               onChange={() => this.forceUpdate()}
+              name="products-search-input"
+              autoComplete="off"
             />
           </div>
 

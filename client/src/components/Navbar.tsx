@@ -130,6 +130,8 @@ class Navbar extends Proto<NavbarProps, NavbarState> {
             </span>
             <select
               className="language-select"
+              name="language-select"
+              autoComplete="off"
               value={language}
               onChange={(e) => {
                 onLanguageChanged(e.target.value);
