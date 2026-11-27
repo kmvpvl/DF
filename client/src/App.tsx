@@ -19,8 +19,8 @@ import {
   IOrderProduct,
   OrderStatus,
 } from './components/sections/Orders.tsx';
-import { ICompany } from '@betypes/company.ts';
-import { PublicProductData } from '@betypes/product.ts';
+import { ICompany } from '@df/types/company';
+import { PublicProductData } from '@df/types/product';
 import Customer from './components/sections/customer/customer.tsx';
 import { DeliveryRules } from './components/deliveryRules/deliveryRules.tsx';
 import { UsingRules } from './components/usingRules/usingRules.tsx';

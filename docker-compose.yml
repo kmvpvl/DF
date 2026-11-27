@@ -1,7 +1,9 @@
 services:
   df-client:
     container_name: df-client
-    build: ./client
+    build: 
+      dockerfile: ./client/Dockerfile
+      context: .
     ports:
       - "3000:3000"
     depends_on:
@@ -11,7 +13,9 @@ services:
 
   df-server:
     container_name: df-server
-    build: ./server
+    build: 
+      dockerfile: ./server/Dockerfile
+      context: .
     env_file:
       - server/.env
     ports:

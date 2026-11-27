@@ -1,5 +1,16 @@
-import { OrderStatus } from '@prisma/client';
-import { PublicProductData } from './product';
+import { PublicProductData } from '@df/types/product';
+
+export const OrderStatus = {
+  DRAFT: 'DRAFT',
+  CONFIRMED: 'CONFIRMED',
+  IN_PRODUCTION: 'IN_PRODUCTION',
+  READY: 'READY',
+  SHIPPED: 'SHIPPED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
 export interface IOrder {
     id?: string;

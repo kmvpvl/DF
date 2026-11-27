@@ -2,11 +2,10 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import {
-    CreateEquipmentInput,
-    UpdateEquipmentInput,
     GraphQLContext,
-} from '../types/types';
+} from '..';
 import { authorize } from '../utils/auth';
+import { CreateEquipmentInput, UpdateEquipmentInput } from '@df/types/clean';
 
 export class EquipmentService {
     static async getAll(ctx: GraphQLContext) {

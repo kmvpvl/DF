@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
 import './tags.css';
 import React from 'react';
-import { IMLString, MLString } from '../../mlstring';
+import { MLString } from '../../mlstring';
 import MLStringEditor from '../mlstring/mlstring';
+import { IMLString } from '@df/types/mlstring';
 
-export type ITags = IMLString[];
 export interface ITagsProps {
   caption?: IMLString;
   defaultValue?: IMLString[];

@@ -1,4 +1,5 @@
-import { IMLString, MLString } from '../../mlstring';
+import { IMLString } from '@df/types/mlstring';
+import { MLString } from '../../mlstring';
 import './mlstring.css';
 import React, { RefObject } from 'react';
 

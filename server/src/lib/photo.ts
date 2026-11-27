@@ -1,10 +1,5 @@
-import { IMLString } from './mlstring';
+import { IMLString } from "@df/types/mlstring";
 
-export interface IPhoto {
-    url: string;
-    caption?: IMLString;
-    tags?: ITag[];
-}
 export interface ITimeSlot {
     start: Date;
     duration: number;
@@ -13,7 +8,6 @@ export interface ITimeSlot {
     includes?: ITimeSlot[];
     excludes?: ITimeSlot[];
 }
-export type ITag = IMLString;
 export interface IRating {
     ratingValue: number;
     ratingCount: number;

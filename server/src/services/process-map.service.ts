@@ -2,11 +2,10 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import {
-    CreateProcessMapInput,
-    UpdateProcessMapInput,
     GraphQLContext,
-} from '../types/types';
+} from '..';
 import { authorize } from '../utils/auth';
+import { CreateProcessMapInput, UpdateProcessMapInput } from '@df/types/batch';
 
 export class ProcessMapService {
     static async getAll(productId: string, ctx: GraphQLContext) {

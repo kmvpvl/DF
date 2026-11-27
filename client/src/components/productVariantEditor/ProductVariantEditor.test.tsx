@@ -3,8 +3,8 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { IProductVariant } from '@betypes/product';
-import { ILocation } from '@betypes/company';
+import { IProductVariant } from '@df/types/product';
+import { ILocation } from '@df/types/company';
 import ProductVariantEditor from './ProductVariantEditor';
 
 const locations: ILocation[] = [

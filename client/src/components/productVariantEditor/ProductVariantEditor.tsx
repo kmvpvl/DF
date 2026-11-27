@@ -1,8 +1,8 @@
-import './ProductVariantEditor.css';
+import './productVariantEditor.css';
 import { Component } from 'react';
-import { IDiscountTier, IPriceDetail, IProductVariant } from '@betypes/product';
+import { IDiscountTier, IPriceDetail, IProductVariant } from '@df/types/product';
 import MLStringEditor from '../mlstring/mlstring';
-import { ILocation } from '@betypes/company';
+import { ILocation } from '@df/types/company';
 
 interface IProductVariantEditorProps {
   variant: IProductVariant;

@@ -1,5 +1,6 @@
-import { IMLString } from '../lib/mlstring';
-import { IPhoto, ITag } from '../lib/photo';
+import { IMLString } from '@df/types/mlstring';
+import {IPhoto} from '@df/types/photo';
+import {ITag} from '@df/types/tag';
 
 export interface IDiscountTier {
     threshold: number;
@@ -170,4 +171,10 @@ export interface CreateProductVariantInput {
     isWeightBased: boolean;
     weight: number;
     weightUnit: string;
+}
+
+export interface ImportProductsCsvResult {
+    importedCount: number;
+    skippedCount: number;
+    errors: string[];
 }

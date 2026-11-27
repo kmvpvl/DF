@@ -2,15 +2,9 @@ import { ReactNode } from 'react';
 import './photos.css';
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { IPhoto } from '@df/types/photo';
 //import QRCode from "react-qr-code";
-import { IMLString } from '../../mlstring';
-import { ITags } from '../tags/tags';
 
-export interface IPhoto {
-  url: string;
-  caption?: IMLString;
-  tags?: ITags;
-}
 
 export interface IPhotosProps {
   defaultValue?: IPhoto[];

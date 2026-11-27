@@ -1,8 +1,7 @@
 import { type ChangeEvent, type FormEvent } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
-import { type IMLString } from '../../mlstring';
-
+import { IMLString } from '@df/types/mlstring';
 const INITIAL_QUERY = `
   query($fromDate: String, $toDate: String) {
     movements(fromDate: $fromDate, toDate: $toDate) {

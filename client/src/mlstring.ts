@@ -1,11 +1,6 @@
+import { IMLString } from "@df/types/mlstring";
+
 //
-export type IMLString =
-  | string
-  | {
-      default: string;
-      // Используем простой объект вместо массива кортежей
-      ts: Record<string, string>;
-    };
 export class MLString extends String {
   private _translations: Record<string, string> = {};
   constructor(input?: IMLString) {

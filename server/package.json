@@ -28,6 +28,7 @@
         "@types/bcrypt": "^6.0.0",
         "@types/express-session": "^1.18.2",
         "@xmldom/xmldom": "^0.9.9",
+        "@df/types": "*",
         "bcrypt": "^6.0.0",
         "cors": "^2.8.6",
         "docxtemplater": "^3.67.3",

@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
-import type { GraphQLContext } from '../types/types';
+import type { GraphQLContext } from '..';
 import { OrderStatus, Prisma } from '@prisma/client';
-import type { CreateOrderInput } from '../types/order';
+import type { CreateOrderInput } from '@df/types/order';
 import { afterEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({

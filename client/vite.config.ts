@@ -6,9 +6,6 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@betypes': path.resolve(__dirname, '../server/src/types/'),
-    },
   },
   /*   test: {
     globals: true,

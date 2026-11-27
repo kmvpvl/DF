@@ -1,15 +1,11 @@
 // server/src/services/batch.service.ts
 import { Prisma, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import {
-    BatchNumberPreview,
-    CreateBatchInput,
-    GraphQLContext,
-    UpdateBatchInput,
-} from '../types/types';
 import { authorize } from '../utils/auth';
 import { getYearRange } from '../utils/common';
 import { SampleService } from './sample.service';
+import { GraphQLContext } from '..';
+import { BatchNumberPreview, CreateBatchInput, UpdateBatchInput } from '@df/types/batch';
 
 export class BatchService {
     static formatBatchNumberString(

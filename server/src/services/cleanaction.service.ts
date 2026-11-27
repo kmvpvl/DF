@@ -1,8 +1,9 @@
 // server/src/services/clean-action.service.ts
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { CreateCleanActionInput, GraphQLContext } from '../types/types';
+import { GraphQLContext } from '..';
 import { authorize } from '../utils/auth';
+import { CreateCleanActionInput } from '@df/types/clean';
 
 export class CleanActionService {
     static async getAll(

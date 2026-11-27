@@ -1,0 +1,13 @@
+{
+  "name": "dolceforte-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "build:types": "npm run build --workspace=@df/types",
+    "dev:types": "npm run dev --workspace=@df/types"
+  }
+}

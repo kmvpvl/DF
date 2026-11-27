@@ -1,4 +1,4 @@
-import { PublicProductData } from '@betypes/product';
+import { PublicProductData } from '@df/types/product';
 
 export const OrderStatus = {
   DRAFT: 'DRAFT',

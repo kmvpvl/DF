@@ -1,4 +1,5 @@
-import { IMLString, MLString } from '../../mlstring';
+import { IMLString } from '@df/types/mlstring';
+import { MLString } from '../../mlstring';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import './StaffBatches.css';

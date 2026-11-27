@@ -1,12 +1,4 @@
-// server/src/lib/mlstring.ts
-
-export type IMLString =
-    | string
-    | {
-          default: string;
-          // Используем простой объект вместо массива кортежей
-          ts: Record<string, string>; // translations
-      };
+import { IMLString } from "@df/types/mlstring";
 
 export class MLString extends String {
     private _translations: Record<string, string> = {};

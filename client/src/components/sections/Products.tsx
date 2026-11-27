@@ -1,6 +1,6 @@
 import Proto, { IProtoProps, IProtoState } from '../../proto';
 import { MLSTRING_FIELDS } from '../../types/gql';
-import { PublicProductData } from '@betypes/product';
+import { PublicProductData } from '@df/types/product';
 import { ProductCard } from './ProductCard';
 import { IOrderProduct } from './Orders';
 import { Fragment } from 'react/jsx-runtime';

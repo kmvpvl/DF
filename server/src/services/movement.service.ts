@@ -1,8 +1,9 @@
 // server/src/services/movement.service.ts
 import { MovementType, Prisma, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { CreateMovementInput, GraphQLContext } from '../types/types';
+import { GraphQLContext } from '..';
 import { authorize } from '../utils/auth';
+import { CreateMovementInput } from '@df/types/movement';
 
 export class MovementService {
     static async getAll(
@@ -71,7 +72,7 @@ export class MovementService {
             throw new Error('Quantity must be greater than zero');
         }
 
-        const allowedTypes = Object.values(MovementType);
+        const allowedTypes = Object.values<string>(MovementType);
         if (!allowedTypes.includes(data.type)) {
             throw new Error('Unsupported movement type');
         }

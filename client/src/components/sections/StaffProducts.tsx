@@ -1,14 +1,17 @@
 import { type ChangeEvent, createRef } from 'react';
 import Proto, { IProtoProps, IProtoState } from '../../proto';
-import { IMLString, MLString } from '../../mlstring';
+import { MLString } from '../../mlstring';
 import MLStringEditor from '../mlstring/mlstring';
-import Tags, { ITags } from '../tags/tags';
-import Photos, { IPhoto } from '../photos/photos';
+import Tags from '../tags/tags';
+import Photos, {  } from '../photos/photos';
 import { MLSTRING_FIELDS } from '../../types/gql';
 import { ALL_PRODUCT_FIELDS } from './Products';
-import { IProductVariant, ProductBaseData } from '@betypes/product';
+import { IProductVariant, ProductBaseData } from '@df/types/product';
 import ProductVariantEditor from '../productVariantEditor/ProductVariantEditor';
 import './StaffProducts.css';
+import { IMLString } from '@df/types/mlstring';
+import { IPhoto } from '@df/types/photo';
+import { ITag } from '@df/types/tag';
 
 const PRODUCTS_QUERY = `
   query {
@@ -212,7 +215,7 @@ interface StaffProductData extends ProductBaseData {
   fiberGrams: number;
   saltGrams: number;
   standardDose: number;
-  tags: ITags;
+  tags: ITag[];
   photos: IPhoto[];
   isPublic: boolean;
   chapters: IMLString[];
@@ -366,7 +369,7 @@ interface StaffProductForm {
   standardDose: string;
   fiberGrams: string;
   saltGrams: string;
-  tags: ITags;
+  tags: ITag[];
   photos: IPhoto[];
   isPublic: boolean;
   priority: number;

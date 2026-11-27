@@ -1,7 +1,7 @@
 // server/src/services/storage-condition.service.ts
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '../types/types';
+import { GraphQLContext } from '..';
 import { authorize } from '../utils/auth';
 
 export class StorageConditionService {

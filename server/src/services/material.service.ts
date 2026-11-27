@@ -2,10 +2,8 @@
 import { Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import {
-    CreateMaterialInput,
-    UpdateMaterialInput,
     GraphQLContext,
-} from '../types/types';
+} from '..';
 import { authorize } from '../utils/auth';
 import {
     escapeCsvValue,
@@ -13,6 +11,7 @@ import {
     parseCsvBoolean,
     parseCsvNumber,
 } from '../utils/common';
+import { CreateMaterialInput, UpdateMaterialInput } from '@df/types/material';
 const MATERIAL_CSV_HEADERS = [
     'name',
     'description',

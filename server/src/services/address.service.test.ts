@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 import { AddressService, calculateDeliveryCost } from './address.service';
-import type { GraphQLContext } from '../types/types';
+import type { GraphQLContext } from '..';
 
 vi.mock('../lib/prisma', () => ({ prisma: {} }));
 

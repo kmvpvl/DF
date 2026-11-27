@@ -1,7 +1,8 @@
 import React from 'react';
-import { IMLString, mlStrings, MLString } from './mlstring';
+import { mlStrings, MLString } from './mlstring';
 import { I18nContext, I18nContextValue } from './i18n/I18nContext';
-import { ICompany } from '@betypes/company';
+import { ICompany } from '@df/types/company';
+import { IMLString } from '@df/types/mlstring';
 
 export enum ProtoErrorCode {
   serverNotAvailable,

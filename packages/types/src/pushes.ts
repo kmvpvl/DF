@@ -1,4 +1,4 @@
-import { IMLString } from '../lib/mlstring';
+import { IMLString } from "@df/types/mlstring";
 
 export interface IPushMessage {
     title: IMLString;

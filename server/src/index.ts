@@ -8,24 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import 'dotenv/config';
 import { prisma } from './lib/prisma';
-import { ICoords, ILocation } from './types/company';
+import { ICoords, ILocation } from '@df/types/company';
 import multer from 'multer';
-import {
-    CreateBatchInput,
-    CreateCertificateInput,
-    CreateCleanActionInput,
-    CreateEquipmentInput,
-    CreateMaterialInput,
-    CreateMovementInput,
-    CreateProcessMapInput,
-    GraphQLContext,
-    SearchCertificatesInput,
-    UpdateBatchInput,
-    UpdateCertificateInput,
-    UpdateEquipmentInput,
-    UpdateMaterialInput,
-    UpdateProcessMapInput,
-} from './types/types';
 import { BatchService } from './services/batch.service';
 import { gql } from 'graphql-tag';
 import { EquipmentService } from './services/equipment.service';
@@ -40,14 +24,28 @@ import { MovementService } from './services/movement.service';
 import { MovementType } from '@prisma/client';
 import { OrderService } from './services/order.service';
 import { PushService } from './services/push.service';
-import { CreateProductInput, UpdateProductInput } from './types/product';
-import { CreateOrderInput } from './types/order';
+import { CreateProductInput, UpdateProductInput } from '@df/types/product';
+import { CreateOrderInput } from '@df/types/order';
 import { CompanyService } from './services/company.service';
-import { IMLString, MLString } from './lib/mlstring';
+import { MLString } from './lib/mlstring';
 import { AddressService } from './services/address.service';
 import { authorize } from './utils/auth';
+import { IMLString } from '@df/types/mlstring';
+import { CreateBatchInput, CreateCertificateInput, CreateProcessMapInput, SearchCertificatesInput, UpdateBatchInput, UpdateCertificateInput, UpdateProcessMapInput } from '@df/types/batch';
+import { CreateCleanActionInput, CreateEquipmentInput, UpdateEquipmentInput } from '@df/types/clean';
+import { CreateMaterialInput, UpdateMaterialInput } from '@df/types/material';
+import { CreateMovementInput } from '@df/types/movement';
 
 const DEFAULT_SESSION_DURATION_MINUTES = 2880; // 48 hours
+
+export interface GraphQLContext {
+    req: Request;
+    res: Response;
+    prisma: typeof prisma;
+    userId?: string; // Удобно добавить, чтобы не проверять каждый раз req.session
+    companyId?: string;
+    locationId?: string;
+}
 
 function getSessionDurationMinutes(): number {
     const raw = process.env.SESSION_DURATION_MINUTES;

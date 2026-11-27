@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
-import { IAddressSuggestion, ICoords, IRouteEstimate } from '../types/company';
-import { GraphQLContext } from '../types/types';
+import { IAddressSuggestion, ICoords, IRouteEstimate } from '@df/types/company';
+import { GraphQLContext } from '..';
 
 const GEOAPIFY_TTL_MS = 5 * 60 * 1000;
 const ROUTE_TTL_MS = 10 * 60 * 1000;

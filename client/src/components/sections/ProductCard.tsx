@@ -4,7 +4,7 @@ import {
   IDiscountTier,
   IPriceDetail,
   PublicProductData,
-} from '@betypes/product';
+} from '@df/types/product';
 import { IOrderProduct } from './Orders';
 import { Fragment } from 'react/jsx-runtime';
 

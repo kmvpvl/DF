@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { Order, OrderStatus, Prisma, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '../types/types';
+import { GraphQLContext } from '..';
 import { authorize } from '../utils/auth';
 import { getYearRange } from '../utils/common';
 import { ProductService } from './product.service';
@@ -9,8 +9,8 @@ import { PushService } from './push.service';
 import {
     CreateOrderInput,
     CreateOrderProductInput,
-} from '../types/order';
-import { IPushMessage } from '../types/pushes';
+} from '@df/types/order';
+import { IPushMessage } from '@df/types/pushes';
 
 const ORDER_NUMBER_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 const ORDER_NUMBER_ATTEMPTS = 10;

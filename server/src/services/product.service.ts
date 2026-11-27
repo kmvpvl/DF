@@ -1,7 +1,7 @@
 // server/src/services/product.service.ts
 import { ProductType, Role } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { GraphQLContext } from '../types/types';
+import { GraphQLContext } from '..';
 import { authorize } from '../utils/auth';
 import { parseCsv, parseCsvNumber, escapeCsvValue } from '../utils/common';
 import { MLString } from '../lib/mlstring';
@@ -9,7 +9,7 @@ import {
     CreateProductInput,
     UpdateLocationProductConfigArgs,
     UpdateProductInput,
-} from '../types/product';
+} from '@df/types/product';
 
 const PRODUCT_CSV_HEADERS = [
     'name',

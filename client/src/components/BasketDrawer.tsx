@@ -3,7 +3,6 @@ import type {} from '../App';
 import { I18nContext, type I18nContextValue } from '../i18n/I18nContext';
 import Proto, { IProtoProps, IProtoState } from '../proto';
 import { IOrder } from './sections/Orders';
-import {} from './sections/Products';
 import PushNotificationControl from './PushNotificationControl';
 
 export interface OrderPayload {
