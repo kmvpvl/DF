@@ -13,6 +13,10 @@ export async function authorize(
             'NOT_AUTHORIZED: CONTEXT_REQUIRED: Company or location must be defined'
         );
 
+    const user = ctx.userId?await prisma.user.findUnique({where: {id: ctx.userId}}):null;
+    if (!user) throw Error(`NOT_AUTHORIZED: user id = "${ctx.userId}" not found`);
+    if (user && !requiredRoles) return true;
+
     const roles = Array.isArray(requiredRoles)
         ? requiredRoles
         : [requiredRoles];
