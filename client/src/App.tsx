@@ -106,6 +106,12 @@ query {
       reserved_balance
     }
   }
+  chapters {
+    id
+    name ${MLSTRING_FIELDS}
+    description ${MLSTRING_FIELDS}
+    sortOrder
+  }
 }`;
 
 //interface AppProps extends Record<string, never>;
@@ -392,12 +398,6 @@ class App extends Proto<AppProps, AppState> {
             }
           }
         }
-      }
-      chapters {
-        id
-        name ${MLSTRING_FIELDS}
-        description ${MLSTRING_FIELDS}
-        sortOrder
       }
     `;
 
