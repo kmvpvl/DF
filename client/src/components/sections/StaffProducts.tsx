@@ -2524,7 +2524,13 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                 </div>
                 <div className="product-customer-grid">
                   <div className="product-customer-photos">
-                    <Photos defaultValue={form.photos} editMode={true} />
+                    <Photos 
+                      defaultValue={form.photos} 
+                      editMode={true} 
+                      onChange={val=>{
+                        this.setState({form: {...form, photos: val}});
+                      }}
+                    />
                   </div>
                   <div className="product-customer-tags">
                     <Tags
