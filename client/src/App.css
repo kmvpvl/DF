@@ -274,8 +274,7 @@ main {
   color: var(--dark);
 }
 
-.basket-header .push-notifications-button,
-.basket-header .push-notifications-status {
+.basket-header .push-notifications-button {
   padding: 0.5rem 0.7rem;
   font-size: 0.76rem;
 }
@@ -1239,8 +1238,7 @@ main {
   color: #fff;
 }
 
-.push-notifications-button,
-.push-notifications-status {
+.push-notifications-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1284,24 +1282,6 @@ main {
   height: 1.15rem;
   flex: 0 0 auto;
   color: var(--primary);
-}
-
-.push-notifications-status {
-  border-color: #b4e8ca;
-  color: #1b7f4a;
-  background: #ebfff3;
-}
-
-.push-notifications-check {
-  display: inline-grid;
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  color: #fff;
-  background: #1b7f4a;
-  font-size: 0.8rem;
 }
 
 /* ── Hero / Home ────────────────────────────────── */

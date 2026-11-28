@@ -627,6 +627,16 @@ const resolvers = {
                 data: updateData,
             });
         },
+        savePushSubscription: async (
+            _: unknown,
+            { subscription }: { subscription: unknown },
+            ctx: GraphQLContext
+        ) => PushService.saveSubscription(ctx, subscription),
+        removePushSubscription: async (
+            _: unknown,
+            { endpoint }: { endpoint: string },
+            ctx: GraphQLContext
+        ) => PushService.removeSubscription(ctx, endpoint),
         verifyDeliveryAddress: async (
             _: unknown,
             {

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     sendNotification: vi.fn(),
     findUnique: vi.fn(),
     findFirst: vi.fn(),
+    update: vi.fn(),
 }));
 
 process.env.PUBLIC_VAPID_KEY =
@@ -26,13 +27,19 @@ vi.mock('../lib/prisma', () => ({
         user: {
             findUnique: mocks.findUnique,
             findFirst: mocks.findFirst,
+            update: mocks.update,
         },
     },
 }));
 
 import { PushService } from './push.service.js';
+import type { GraphQLContext } from '../index.js';
 
 describe('PushService notifications', () => {
+    const ctx = {
+        req: { session: { userId: 'user-1' } },
+    } as unknown as GraphQLContext;
+
     beforeEach(() => {
         vi.clearAllMocks();
         vi.stubEnv('SMTP_HOST', 'smtp.example.com');
@@ -52,6 +59,7 @@ describe('PushService notifications', () => {
             lang: 'ru',
             pushSubscription: { endpoint: 'https://push.example.com' },
         });
+        mocks.update.mockResolvedValue({ id: 'user-1' });
     });
 
     afterEach(() => {
@@ -76,6 +84,90 @@ describe('PushService notifications', () => {
                 subject: '[FEEDBACK] Question',
                 replyTo: 'customer@example.com',
                 text: expect.stringContaining('Please contact me.'),
+            })
+        );
+    });
+
+    it('sends push notifications to every registered device', async () => {
+        mocks.findFirst.mockResolvedValue({
+            id: 'user-1',
+            lang: 'ru',
+            pushSubscription: [
+                { endpoint: 'https://push.example.com/device-1' },
+                { endpoint: 'https://push.example.com/device-2' },
+            ],
+        });
+
+        await PushService.send(
+            'user-1',
+            { title: 'Title', body: 'Body' },
+            '/customer/Orders/order-1'
+        );
+
+        expect(mocks.sendNotification).toHaveBeenCalledTimes(2);
+        expect(mocks.sendNotification).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                endpoint: 'https://push.example.com/device-1',
+            }),
+            expect.any(String),
+            expect.any(Object)
+        );
+        expect(mocks.sendNotification).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                endpoint: 'https://push.example.com/device-2',
+            }),
+            expect.any(String),
+            expect.any(Object)
+        );
+    });
+
+    it('adds a device subscription without discarding the legacy subscription', async () => {
+        mocks.findFirst.mockResolvedValue({
+            pushSubscription: { endpoint: 'https://push.example.com/old' },
+        });
+        const newSubscription = {
+            endpoint: 'https://push.example.com/new',
+            keys: { p256dh: 'public-key', auth: 'auth-key' },
+        };
+
+        await PushService.saveSubscription(ctx, newSubscription);
+
+        expect(mocks.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'user-1', blocked: false },
+                data: {
+                    pushSubscription: [
+                        { endpoint: 'https://push.example.com/old' },
+                        newSubscription,
+                    ],
+                },
+            })
+        );
+    });
+
+    it('removes only the requested device subscription', async () => {
+        mocks.findFirst.mockResolvedValue({
+            pushSubscription: [
+                { endpoint: 'https://push.example.com/keep' },
+                { endpoint: 'https://push.example.com/remove' },
+            ],
+        });
+
+        await PushService.removeSubscription(
+            ctx,
+            'https://push.example.com/remove'
+        );
+
+        expect(mocks.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { id: 'user-1', blocked: false },
+                data: {
+                    pushSubscription: [
+                        { endpoint: 'https://push.example.com/keep' },
+                    ],
+                },
             })
         );
     });

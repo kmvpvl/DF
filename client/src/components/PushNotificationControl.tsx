@@ -2,7 +2,8 @@ import Proto, { type IProtoProps, type IProtoState } from '../proto';
 
 interface PushNotificationControlProps extends IProtoProps {
   isSubscribed: boolean;
-  onSubscribe: () => void;
+  onSubscribe: () => void | Promise<void>;
+  onUnsubscribe: () => void | Promise<void>;
 }
 
 export default class PushNotificationControl extends Proto<
@@ -10,23 +11,27 @@ export default class PushNotificationControl extends Proto<
   IProtoState
 > {
   render() {
-    const { isSubscribed, onSubscribe } = this.props;
-    if (isSubscribed) {
-      return (
-        <span className="push-notifications-status" role="status">
-          <span className="push-notifications-check" aria-hidden="true">
-            ✓
-          </span>
-          {this.ML('Push notifications enabled')}
-        </span>
-      );
-    }
-
+    const { isSubscribed, onSubscribe, onUnsubscribe } = this.props;
     return (
       <button
         className="push-notifications-button"
         type="button"
-        onClick={onSubscribe}
+        onClick={() => {
+          if (!isSubscribed) {
+            void onSubscribe();
+            return;
+          }
+
+          if (
+            window.confirm(
+              this.ML(
+                'Are you sure you want to unsubscribe from push notifications on this device?'
+              ).toString()
+            )
+          ) {
+            void onUnsubscribe();
+          }
+        }}
       >
         <svg
           aria-hidden="true"
@@ -42,7 +47,11 @@ export default class PushNotificationControl extends Proto<
             strokeLinejoin="round"
           />
         </svg>
-        {this.ML('Enable push notifications')}
+        {this.ML(
+          isSubscribed
+            ? 'Disable push notifications'
+            : 'Enable push notifications'
+        )}
       </button>
     );
   }

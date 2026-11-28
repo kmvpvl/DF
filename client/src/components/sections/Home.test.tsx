@@ -9,7 +9,10 @@ import PushNotificationControl from '../PushNotificationControl';
 import Home from './Home';
 
 describe('Home push notification control', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   const i18nValue: I18nContextValue = {
     language: 'en',
@@ -31,6 +34,7 @@ describe('Home push notification control', () => {
           isLoggedIn={isLoggedIn}
           isPushSubscribed={isPushSubscribed}
           onPushSubscribe={onPushSubscribe}
+          onPushUnsubscribe={vi.fn()}
         />
       </I18nContext.Provider>
     );
@@ -48,7 +52,7 @@ describe('Home push notification control', () => {
     ).toBeVisible();
   });
 
-  it('shows the subscribed status and invokes the subscription action', () => {
+  it('switches the same button to unsubscribe when subscribed', () => {
     const onPushSubscribe = vi.fn();
     renderHome(true, false, onPushSubscribe);
     fireEvent.click(
@@ -58,23 +62,52 @@ describe('Home push notification control', () => {
 
     cleanup();
     renderHome(true, true);
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Push notifications enabled'
-    );
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Enable push notifications' })
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Disable push notifications' })
+    ).toBeVisible();
   });
 
   it('uses the existing ML strings for translated notification labels', () => {
     render(
       <I18nContext.Provider value={{ ...i18nValue, language: 'sr' }}>
-        <PushNotificationControl isSubscribed onSubscribe={vi.fn()} />
+        <PushNotificationControl
+          isSubscribed
+          onSubscribe={vi.fn()}
+          onUnsubscribe={vi.fn()}
+        />
       </I18nContext.Provider>
     );
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Push obaveštenja su uključena'
+    expect(
+      screen.getByRole('button', { name: 'Disable push notifications' })
+    ).toBeInTheDocument();
+  });
+
+  it('asks before unsubscribing this device', () => {
+    const onUnsubscribe = vi.fn();
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirm);
+    render(
+      <I18nContext.Provider value={i18nValue}>
+        <PushNotificationControl
+          isSubscribed
+          onSubscribe={vi.fn()}
+          onUnsubscribe={onUnsubscribe}
+        />
+      </I18nContext.Provider>
     );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Disable push notifications' })
+    );
+
+    expect(confirm).toHaveBeenCalledWith(
+      'Are you sure you want to unsubscribe from push notifications on this device?'
+    );
+    expect(onUnsubscribe).toHaveBeenCalledOnce();
   });
 });

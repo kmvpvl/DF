@@ -71,6 +71,45 @@ const SESSION_USER_QUERY = `
   }
 `;
 
+const SAVE_PUSH_SUBSCRIPTION_MUTATION = `
+  mutation SavePushSubscription($subscription: JSON!) {
+    savePushSubscription(subscription: $subscription) {
+      id
+      pushSubscription
+    }
+  }
+`;
+
+const REMOVE_PUSH_SUBSCRIPTION_MUTATION = `
+  mutation RemovePushSubscription($endpoint: String!) {
+    removePushSubscription(endpoint: $endpoint) {
+      id
+      pushSubscription
+    }
+  }
+`;
+
+const getPushSubscriptionEndpoints = (
+  value: User['pushSubscription']
+): string[] => {
+  const subscriptions = Array.isArray(value)
+    ? value
+    : value
+      ? [value]
+      : [];
+  return subscriptions.flatMap((subscription) => {
+    if (
+      typeof subscription !== 'object' ||
+      subscription === null ||
+      !('endpoint' in subscription) ||
+      typeof subscription.endpoint !== 'string'
+    ) {
+      return [];
+    }
+    return [subscription.endpoint];
+  });
+};
+
 const SEND_ORDER_BY_EMAIL_MUTATION = `
   mutation SendOrderByEmail($input: SendOrderInput!) {
     sendOrderByEmail(input: $input)
@@ -130,6 +169,7 @@ interface AppState extends IProtoState {
   pendingProduct: IOrderProduct | null;
   products: PublicProductData[];
   chapters: IChapter[];
+  isPushSubscribedOnCurrentDevice: boolean;
   objectId?: string;
   showDeliveryRules?: boolean;
   showPrivacyPolicy?: boolean;
@@ -172,6 +212,7 @@ class App extends Proto<AppProps, AppState> {
     pendingProduct: null,
     products: [],
     chapters: [],
+    isPushSubscribedOnCurrentDevice: false,
   };
 
   async fetchProducts() {
@@ -207,6 +248,36 @@ class App extends Proto<AppProps, AppState> {
     this.clearSessionSync();
     window.removeEventListener('popstate', this.syncPageFromLocation);
   }
+
+  private refreshPushSubscriptionState = async (
+    user: User | null | undefined = this.state.user
+  ) => {
+    if (
+      !user ||
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window)
+    ) {
+      this.setState({ isPushSubscribedOnCurrentDevice: false });
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      if (this.state.user?.id !== user.id) return;
+      this.setState({
+        isPushSubscribedOnCurrentDevice: Boolean(
+          subscription &&
+            getPushSubscriptionEndpoints(user.pushSubscription).includes(
+              subscription.endpoint
+            )
+        ),
+      });
+    } catch (error) {
+      console.error('Failed to check this device push subscription:', error);
+      this.setState({ isPushSubscribedOnCurrentDevice: false });
+    }
+  };
 
   private syncPageFromLocation = () => {
     this.setState({
@@ -294,6 +365,7 @@ class App extends Proto<AppProps, AppState> {
       }
 
       this.setState({ user: user ?? null }, () => {
+        void this.refreshPushSubscriptionState(user ?? null);
         if (user) void this.getReserves();
       });
     } catch (error) {
@@ -547,6 +619,7 @@ class App extends Proto<AppProps, AppState> {
         authEditingUser: null,
       }),
       () => {
+        void this.refreshPushSubscriptionState(loggedInUser);
         this.getReserves();
         if (this.state.pendingProduct) {
           const product = this.state.pendingProduct;
@@ -763,65 +836,66 @@ class App extends Proto<AppProps, AppState> {
         }
         //console.log(subscription);
 
-        const MUTATION_ADD_PUSH_SUBSCRIPTION = `
-          mutation UpdateSessionUser($input: UpdateSessionUserInput!) {
-            updateSessionUser(input: $input) {
-              id
-              name
-              fullName
-              entityType
-              phone
-              email
-              bio
-              tgId
-              pib
-              mbr
-              account
-              bank
-              passwordHash
-              pushSubscription
-              deliveryAddress
-              createdAt
-              updatedAt
-            }
-          }
-        `;
-        const newData = await this.gql<{ updateSessionUser: User }>(
-          MUTATION_ADD_PUSH_SUBSCRIPTION,
-          {
-            input: {
-              name: this.state.user?.name,
-              fullName: this.state.user?.fullName,
-              entityType: this.state.user?.entityType,
-              email: this.state.user?.email,
-              phone: this.state.user?.phone || undefined,
-              pib:
-                this.state.user?.entityType === 'LEGAL_ENTITY'
-                  ? this.state.user?.pib
-                  : null,
-              mbr:
-                this.state.user?.entityType === 'LEGAL_ENTITY'
-                  ? this.state.user?.mbr
-                  : null,
-              account:
-                this.state.user?.entityType === 'LEGAL_ENTITY'
-                  ? this.state.user?.account
-                  : null,
-              bank:
-                this.state.user?.entityType === 'LEGAL_ENTITY'
-                  ? this.state.user?.bank
-                  : null,
-              pushSubscription: subscription,
-              deliveryAddress: this.state.user?.deliveryAddress,
-            },
-          }
-        );
+        const newData = await this.gql<{
+          savePushSubscription: Pick<User, 'id' | 'pushSubscription'>;
+        }>(SAVE_PUSH_SUBSCRIPTION_MUTATION, {
+          subscription: subscription.toJSON(),
+        });
 
         this.sessionRestoreRequestId += 1;
-        this.setState({ user: newData.updateSessionUser });
+        this.setState(
+          (state) => ({
+            user: state.user
+              ? {
+                  ...state.user,
+                  pushSubscription:
+                    newData.savePushSubscription.pushSubscription,
+                }
+              : state.user,
+          }),
+          () => void this.refreshPushSubscriptionState()
+        );
       } catch (error) {
         console.error('Ошибка подписки:', error);
       }
+    }
+  }
+
+  async unsubscribeUserFromPush() {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const subscription = await registration?.pushManager.getSubscription();
+      if (!subscription) {
+        await this.refreshPushSubscriptionState();
+        return;
+      }
+
+      const data = await this.gql<{
+        removePushSubscription: Pick<User, 'id' | 'pushSubscription'>;
+      }>(REMOVE_PUSH_SUBSCRIPTION_MUTATION, {
+        endpoint: subscription.endpoint,
+      });
+      this.sessionRestoreRequestId += 1;
+      this.setState(
+        (state) => ({
+          user: state.user
+            ? {
+                ...state.user,
+                pushSubscription:
+                  data.removePushSubscription.pushSubscription,
+              }
+            : state.user,
+          isPushSubscribedOnCurrentDevice: false,
+        })
+      );
+      await subscription.unsubscribe();
+    } catch (error) {
+      console.error('Failed to unsubscribe this device from push:', error);
+      alert(
+        this.ML(
+          'Could not unsubscribe this device from push notifications. Please try again.'
+        ).toString()
+      );
     }
   }
 
@@ -943,8 +1017,9 @@ class App extends Proto<AppProps, AppState> {
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
                 userEntityType={user?.entityType ?? null}
                 isLoggedIn={Boolean(user)}
-                isPushSubscribed={Boolean(user?.pushSubscription)}
+                isPushSubscribed={this.state.isPushSubscribedOnCurrentDevice}
                 onPushSubscribe={this.subscribeUserToPush.bind(this)}
+                onPushUnsubscribe={this.unsubscribeUserFromPush.bind(this)}
               />
               <Products
                 user={this.state.user}
@@ -1040,7 +1115,11 @@ class App extends Proto<AppProps, AppState> {
           onDecreaseQty={this.handleDecreaseBasketItemQty}
           onRemoveItem={this.handleRemoveBasketItem}
           onSubmitOrder={this.handleSubmitOrder}
+          isPushSubscribedOnCurrentDevice={
+            this.state.isPushSubscribedOnCurrentDevice
+          }
           onPushSubscribe={this.subscribeUserToPush.bind(this)}
+          onPushUnsubscribe={this.unsubscribeUserFromPush.bind(this)}
           onOpenUsingRules={() => this.setState({ showTermsOfUse: true })}
           onOpenDeliveryRules={() => this.setState({ showDeliveryRules: true })}
           disableConrols={this.state.isLoadingBasket}

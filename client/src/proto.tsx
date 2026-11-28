@@ -31,7 +31,7 @@ export interface User {
   account?: string | null;
   bank?: string | null;
   deliveryAddress?: string | null;
-  pushSubscription?: object | null;
+  pushSubscription?: object | object[] | null;
 }
 
 export interface IProtoState {

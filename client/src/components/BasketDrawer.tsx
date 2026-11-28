@@ -50,7 +50,9 @@ interface BasketDrawerProps extends IProtoProps {
   onDecreaseQty: (id: string, variantLabel?: string) => void;
   onRemoveItem: (id: string, variantLabel?: string) => void;
   onSubmitOrder: (payload: OrderPayload) => Promise<void>;
-  onPushSubscribe: () => void;
+  isPushSubscribedOnCurrentDevice?: boolean;
+  onPushSubscribe: () => void | Promise<void>;
+  onPushUnsubscribe?: () => void | Promise<void>;
   onOpenUsingRules?: () => void;
   onOpenDeliveryRules?: () => void;
   disableConrols: boolean;
@@ -703,8 +705,11 @@ class BasketDrawer extends Proto<BasketDrawerProps, BasketDrawerState> {
             <h2>{this.ML('Basket')}</h2>
             {this.props.user && (
               <PushNotificationControl
-                isSubscribed={Boolean(this.props.user.pushSubscription)}
+                isSubscribed={
+                  this.props.isPushSubscribedOnCurrentDevice ?? false
+                }
                 onSubscribe={this.props.onPushSubscribe}
+                onUnsubscribe={this.props.onPushUnsubscribe ?? (() => {})}
               />
             )}
             <button

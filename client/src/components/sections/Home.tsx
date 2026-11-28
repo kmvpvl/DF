@@ -7,7 +7,8 @@ interface HomeProps extends IProtoProps {
   userEntityType: 'INDIVIDUAL' | 'LEGAL_ENTITY' | null;
   isLoggedIn: boolean;
   isPushSubscribed: boolean;
-  onPushSubscribe: () => void;
+  onPushSubscribe: () => void | Promise<void>;
+  onPushUnsubscribe: () => void | Promise<void>;
 }
 
 interface HomeState extends IProtoState {
@@ -86,6 +87,7 @@ class Home extends Proto<HomeProps, HomeState> {
             <PushNotificationControl
               isSubscribed={this.props.isPushSubscribed}
               onSubscribe={this.props.onPushSubscribe}
+              onUnsubscribe={this.props.onPushUnsubscribe}
             />
           )}
           {/*<button

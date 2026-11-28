@@ -952,6 +952,8 @@ type Mutation {
     setUserLanguage(lang: String!): User!
     login(email: String!, password: String!, lang: String): User!
     updateSessionUser(input: UpdateSessionUserInput!): User!
+    savePushSubscription(subscription: JSON!): User!
+    removePushSubscription(endpoint: String!): User!
     verifyDeliveryAddress(
         address: String!
         lat: Float!

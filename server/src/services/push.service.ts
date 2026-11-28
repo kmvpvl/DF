@@ -54,8 +54,103 @@ function configureVapidDetails(): void {
     );
 }
 
+function getPushSubscriptions(value: unknown): webpush.PushSubscription[] {
+    const subscriptions = Array.isArray(value)
+        ? value
+        : value
+          ? [value]
+          : [];
+    return subscriptions.filter(
+        (subscription): subscription is webpush.PushSubscription =>
+            typeof subscription === 'object' &&
+            subscription !== null &&
+            'endpoint' in subscription &&
+            typeof subscription.endpoint === 'string'
+    );
+}
+
 export class PushService {
     private static smtpTransporter: Transporter | null = null;
+
+    static async saveSubscription(
+        ctx: GraphQLContext,
+        subscription: unknown
+    ) {
+        const userId = ctx.req.session.userId;
+        if (!userId) throw new Error('Not authenticated');
+        if (
+            typeof subscription !== 'object' ||
+            subscription === null ||
+            !('endpoint' in subscription) ||
+            typeof subscription.endpoint !== 'string' ||
+            !subscription.endpoint.trim()
+        ) {
+            throw new Error('Invalid push subscription');
+        }
+
+        const user = await prisma.user.findFirst({
+            where: { id: userId, blocked: false },
+            select: { pushSubscription: true },
+        });
+        if (!user) throw new Error('User not found');
+
+        const currentValue = user.pushSubscription;
+        const currentSubscriptions = Array.isArray(currentValue)
+            ? currentValue
+            : currentValue
+              ? [currentValue]
+              : [];
+        const subscriptionsByEndpoint = new Map<string, object>();
+        for (const current of currentSubscriptions) {
+            if (
+                typeof current === 'object' &&
+                current !== null &&
+                'endpoint' in current &&
+                typeof current.endpoint === 'string'
+            ) {
+                subscriptionsByEndpoint.set(current.endpoint, current);
+            }
+        }
+        subscriptionsByEndpoint.set(subscription.endpoint, subscription);
+
+        return await prisma.user.update({
+            where: { id: userId, blocked: false },
+            data: {
+                pushSubscription: [...subscriptionsByEndpoint.values()],
+            },
+        });
+    }
+
+    static async removeSubscription(ctx: GraphQLContext, endpoint: string) {
+        const userId = ctx.req.session.userId;
+        if (!userId) throw new Error('Not authenticated');
+        if (!endpoint.trim()) throw new Error('Push endpoint is required');
+
+        const user = await prisma.user.findFirst({
+            where: { id: userId, blocked: false },
+            select: { pushSubscription: true },
+        });
+        if (!user) throw new Error('User not found');
+
+        const currentValue = user.pushSubscription;
+        const currentSubscriptions = Array.isArray(currentValue)
+            ? currentValue
+            : currentValue
+              ? [currentValue]
+              : [];
+        const subscriptions = currentSubscriptions.filter(
+            (current) =>
+                typeof current !== 'object' ||
+                current === null ||
+                !('endpoint' in current) ||
+                current.endpoint !== endpoint
+        );
+
+        return await prisma.user.update({
+            where: { id: userId, blocked: false },
+            data: { pushSubscription: subscriptions },
+        });
+    }
 
     private static getSmtpTransporter(): Transporter {
         if (this.smtpTransporter) {
@@ -235,7 +330,10 @@ export class PushService {
             );
         });
         const pushNotification = Promise.resolve().then(async () => {
-            if (!order.customerUserId || !customer?.pushSubscription) {
+            if (
+                !order.customerUserId ||
+                getPushSubscriptions(customer?.pushSubscription).length === 0
+            ) {
                 throw new Error('Customer has no push subscription');
             }
             await this.send(order.customerUserId, message, orderUrl);
@@ -448,7 +546,8 @@ export class PushService {
             },
         });
         if (!user) throw Error(`User id = "${toUserId} not found`);
-        if (!user.pushSubscription)
+        const subscriptions = getPushSubscriptions(user.pushSubscription);
+        if (subscriptions.length === 0)
             throw Error(`User id = "${toUserId}" has no subscription`);
 
         if (lang === undefined) lang = user.lang ?? undefined;
@@ -459,31 +558,58 @@ export class PushService {
             url: url, // Кастомное поле для роутинга
         });
 
-        try {
-            await webpush.sendNotification(
-                user.pushSubscription as unknown as webpush.PushSubscription,
-                notificationPayload,
-                {
+        const results = await Promise.allSettled(
+            subscriptions.map((subscription) =>
+                webpush.sendNotification(subscription, notificationPayload, {
                     TTL: 24 * 60 * 60,
                     urgency: 'normal',
-                }
-            );
-        } catch (error: unknown) {
+                })
+            )
+        );
+        const staleEndpoints = new Set<string>();
+        const failures: unknown[] = [];
+        results.forEach((result, index) => {
+            if (result.status === 'fulfilled') return;
             const statusCode =
-                typeof error === 'object' &&
-                error !== null &&
-                'statusCode' in error
-                    ? Number((error as { statusCode?: unknown }).statusCode)
+                typeof result.reason === 'object' &&
+                result.reason !== null &&
+                'statusCode' in result.reason
+                    ? Number(
+                          (result.reason as { statusCode?: unknown }).statusCode
+                      )
                     : undefined;
-
             if (statusCode === 404 || statusCode === 410) {
+                staleEndpoints.add(subscriptions[index].endpoint);
+            }
+            failures.push(result.reason);
+        });
+
+        if (staleEndpoints.size > 0) {
+            const latestUser = await prisma.user.findFirst({
+                where: { id: toUserId, blocked: false },
+                select: { pushSubscription: true },
+            });
+            if (latestUser) {
+                const activeSubscriptions = getPushSubscriptions(
+                    latestUser.pushSubscription
+                ).filter(
+                    (subscription) => !staleEndpoints.has(subscription.endpoint)
+                );
                 await prisma.user.update({
-                    where: { id: user.id },
-                    data: { pushSubscription: Prisma.JsonNull },
+                    where: { id: toUserId },
+                    data: {
+                        pushSubscription:
+                            activeSubscriptions.length > 0
+                                ? (JSON.parse(
+                                      JSON.stringify(activeSubscriptions)
+                                  ) as Prisma.InputJsonValue)
+                                : Prisma.JsonNull,
+                    },
                 });
             }
-            throw error;
         }
+
+        if (failures.length > 0) throw failures[0];
     }
     static async sendLocationManagers(
         ctx: GraphQLContext,
@@ -493,7 +619,7 @@ export class PushService {
         try {
             const users = await CompanyService.locationManagers(ctx);
             const recipients = users.filter((user) =>
-                Boolean(user.user.pushSubscription)
+                getPushSubscriptions(user.user.pushSubscription).length > 0
             );
             const results = await Promise.allSettled(
                 recipients.map((user) => this.send(user.userId, message, url))
