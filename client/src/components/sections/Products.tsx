@@ -6,6 +6,7 @@ import { IOrderProduct } from './Orders';
 import { Fragment } from 'react/jsx-runtime';
 import { Toggle } from '../toggle/toggle';
 import React from 'react';
+import { IChapter } from '@df/types/chapter';
 
 export const NESTED_PRODUCT_FIELDS = `
   # 1. Вариации товара (например: разные объемы или веса)
@@ -107,6 +108,7 @@ interface ProductsProps extends IProtoProps {
   onAddToBasket: (product: IOrderProduct) => void;
   onLegalEntityCtaClick: () => void;
   products: PublicProductData[];
+  chapters: IChapter[];
 }
 
 interface ProductsState extends IProtoState {
@@ -125,20 +127,9 @@ class Products extends Proto<ProductsProps, ProductsState> {
   };
 
   render() {
-    const chaptersOut = [
-      ...new Set(this.props.products.flatMap((val) => val.chapters)),
-    ];
-    if (this.props.products.filter((el) => el.chapters?.length === 0))
-      chaptersOut.push('');
-
-    //const { dictionary } = dictionaries.en as I18nContextValue;
-    //const products = dictionaries.en.products.items as unknown as Product[];
-    /*const chapterLabels = dictionaries.en.products.chapterLabels as Record<
-      string,
-      string
-    >;*/
-    //const chapterOrder = dictionaries.en.products.chapterOrder as string[];
-    const chapters = chaptersOut.map((el) => this.toString(el));
+    const chapters = [...this.props.chapters].sort(
+      (a, b) => a.sortOrder - b.sortOrder
+    );
     const products = this.props.products;
 
     return (
@@ -190,15 +181,11 @@ class Products extends Proto<ProductsProps, ProductsState> {
             />
           </div>
 
-          {chapters.map((chapter, chapterId) => {
+          {[...chapters, null].map((chapter, chapterId) => {
             let items =
-              chapter.toString() === ''
-                ? products.filter((p) => p.chapters?.length === 0)
-                : products.filter((p) =>
-                    p.chapters
-                      ?.map((el) => this.toString(el))
-                      .includes(chapter.toString())
-                  );
+              chapter === null
+                ? products.filter((p) => !p.chapters || p.chapters.length === 0)
+                : products.filter((p) => p.chapters?.includes(chapter.id));
             if (this.searchInputRef.current?.value) {
               const searchTerm =
                 this.searchInputRef.current.value.toLowerCase();
@@ -209,8 +196,8 @@ class Products extends Proto<ProductsProps, ProductsState> {
             return (
               <div key={chapterId} className="products-chapter">
                 <h3 className="products-chapter-title">
-                  {chapter.toString() !== ''
-                    ? chapter.toString()
+                  {chapter
+                    ? this.toString(chapter.name)
                     : this.ML('Others')}
                 </h3>
                 {items.length > 0 ? (

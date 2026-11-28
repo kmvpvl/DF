@@ -79,6 +79,7 @@ model Company {
   id               String             @id @default(cuid())
   name             String
   products         Product[]
+  chapters         Chapter[]
   materials        Material[]
   storageCondition StorageCondition[]
   locations        Location[]
@@ -86,6 +87,17 @@ model Company {
   userCompanyRoles UserCompanyRoles[]
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  name        Json
+  description Json     @default("{\"default\":\"\", \"ts\":{}}")
+  sortOrder   Int      @default(0)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {

@@ -68,6 +68,13 @@ type Company {
     updatedAt: String!
 }
 
+type Chapter {
+    id: ID!
+    name: MLString!
+    description: MLString!
+    sortOrder: Int!
+}
+
 type Location {
     id: ID!
     name: String!
@@ -232,7 +239,7 @@ type Product {
     units: JSON
     tags: JSON!
     photos: JSON!
-    chapters: JSON!
+    chapters: [ID!]!
     isPublic: Boolean!
     priority: Int!
     variants: [ProductVariant!]
@@ -270,7 +277,7 @@ type PublicProduct {
     description: MLString!
     photos: JSON!
     tags: JSON!
-    chapters: JSON!
+    chapters: [ID!]!
     isPublic: Boolean!
     priority: Int!
     standardDose: Float!
@@ -669,7 +676,7 @@ input CreateProductInput {
     standardDose: Float!
     photos: JSON!
     tags: JSON!
-    chapters: JSON!
+    chapters: [ID!]!
     isPublic: Boolean!
     priority: Int!
     # Вложенное создание структуры (Nested Writes)
@@ -693,7 +700,7 @@ input UpdateProductInput {
     standardDose: Float
     photos: JSON
     tags: JSON
-    chapters: JSON
+    chapters: [ID!]
     isPublic: Boolean
     priority: Int
     # Вложенное создание структуры (Nested Writes)
@@ -905,6 +912,7 @@ type RouteEstimate {
 type Query {
     hello: String
     companyInfo: Company!
+    chapters: [Chapter!]!
     userById(id: ID!): User!
     userInfo(id: ID, email: String): User
     sessionUser: User

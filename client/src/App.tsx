@@ -21,6 +21,8 @@ import {
 } from './components/sections/Orders.tsx';
 import { ICompany } from '@df/types/company';
 import { PublicProductData } from '@df/types/product';
+import { IChapter } from '@df/types/chapter';
+import { MLSTRING_FIELDS } from './types/gql';
 import Customer from './components/sections/customer/customer.tsx';
 import { DeliveryRules } from './components/deliveryRules/deliveryRules.tsx';
 import { UsingRules } from './components/usingRules/usingRules.tsx';
@@ -121,6 +123,7 @@ interface AppState extends IProtoState {
   authEditingUser: User | null;
   pendingProduct: IOrderProduct | null;
   products: PublicProductData[];
+  chapters: IChapter[];
   objectId?: string;
   showDeliveryRules?: boolean;
   showPrivacyPolicy?: boolean;
@@ -162,6 +165,7 @@ class App extends Proto<AppProps, AppState> {
     authEditingUser: null,
     pendingProduct: null,
     products: [],
+    chapters: [],
   };
 
   async fetchProducts() {
@@ -169,8 +173,9 @@ class App extends Proto<AppProps, AppState> {
       const data = await this.gql<{
         companyInfo: ICompany | null;
         getPublicProductsWithStock: PublicProductData[];
+        chapters: IChapter[];
       }>(QUERY_PUBLIC_STOCKS);
-      const { companyInfo, getPublicProductsWithStock } = data;
+      const { companyInfo, getPublicProductsWithStock, chapters } = data;
       if (!Array.isArray(getPublicProductsWithStock)) {
         throw new Error('Products response does not contain a product list.');
       }
@@ -178,6 +183,7 @@ class App extends Proto<AppProps, AppState> {
         companyInfo,
         currentLocation: companyInfo?.locations[0]?.id ?? null,
         products: getPublicProductsWithStock,
+        chapters: Array.isArray(chapters) ? chapters : [],
       });
     } catch (error) {
       console.error('Failed to load public products:', error);
@@ -386,6 +392,12 @@ class App extends Proto<AppProps, AppState> {
             }
           }
         }
+      }
+      chapters {
+        id
+        name ${MLSTRING_FIELDS}
+        description ${MLSTRING_FIELDS}
+        sortOrder
       }
     `;
 
@@ -941,6 +953,7 @@ class App extends Proto<AppProps, AppState> {
                 onAddToBasket={this.handleAddToBasket}
                 onLegalEntityCtaClick={this.handleLegalEntityCtaClick}
                 products={this.state.products}
+                chapters={this.state.chapters}
               />
               <Delivery />
               <Contacts />

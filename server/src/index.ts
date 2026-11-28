@@ -189,6 +189,11 @@ const resolvers = {
         },
         companyInfo: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
             CompanyService.info(ctx),
+        chapters: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
+            prisma.chapter.findMany({
+                where: { companyId: ctx.companyId! },
+                orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            }),
         equipments: async (_: unknown, __: unknown, ctx: GraphQLContext) =>
             EquipmentService.getAll(ctx),
         users: async (_: unknown, __: unknown, { req }: GraphQLContext) => {

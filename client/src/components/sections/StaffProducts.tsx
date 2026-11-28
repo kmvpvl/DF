@@ -12,6 +12,7 @@ import './StaffProducts.css';
 import { IMLString } from '@df/types/mlstring';
 import { IPhoto } from '@df/types/photo';
 import { ITag } from '@df/types/tag';
+import { IChapter } from '@df/types/chapter';
 
 const PRODUCTS_QUERY = `
   query {
@@ -27,6 +28,12 @@ const PRODUCTS_QUERY = `
       consumptionUnit
       rateOfLoss
       ratio
+    }
+    chapters {
+      id
+      name ${MLSTRING_FIELDS}
+      description ${MLSTRING_FIELDS}
+      sortOrder
     }
   }
 `;
@@ -218,7 +225,7 @@ interface StaffProductData extends ProductBaseData {
   tags: ITag[];
   photos: IPhoto[];
   isPublic: boolean;
-  chapters: IMLString[];
+  chapters: string[];
   priority: number;
   createdAt: string;
   updatedAt: string;
@@ -373,7 +380,7 @@ interface StaffProductForm {
   photos: IPhoto[];
   isPublic: boolean;
   priority: number;
-  chapters: IMLString[];
+  chapters: string[];
   variants: IProductVariant[];
 }
 
@@ -386,6 +393,7 @@ interface ImportProductsCsvResult {
 interface IStaffProductsState extends IProtoState {
   products: StaffProductData[];
   materials: MaterialOption[];
+  chapters: IChapter[];
   productAutoCostLoading: boolean;
   productAutoCosts: Record<string, number | null>;
   productAutoCostMarginals: Record<string, number | null>;
@@ -476,6 +484,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
   state: IStaffProductsState = {
     products: [],
     materials: [],
+    chapters: [],
     productAutoCostLoading: false,
     productAutoCosts: {},
     productAutoCostMarginals: {},
@@ -1328,6 +1337,7 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
       const data = await this.gql<{
         products: StaffProductData[];
         materials: MaterialOption[];
+        chapters: IChapter[];
       }>(PRODUCTS_QUERY);
       const products = data.products.sort((a, b) =>
         new MLString(a.name)
@@ -1339,6 +1349,9 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
           loading: false,
           products,
           materials: data.materials,
+          chapters: [...data.chapters].sort(
+            (a, b) => a.sortOrder - b.sortOrder
+          ),
         },
         () => {
           this.triggerProductTableAutoCostCalculation();
@@ -2521,14 +2534,51 @@ class StaffProducts extends Proto<IStaffProductsProps, IStaffProductsState> {
                         this.setState({ form: { ...form, tags: val } });
                       }}
                     />
-                    <Tags
-                      caption={'Chapters'}
-                      editMode={true}
-                      defaultValue={form.chapters}
-                      onChange={(val) => {
-                        this.setState({ form: { ...form, chapters: val } });
-                      }}
-                    />
+                    <div className="chapters-editor-container">
+                      <div className="chapters-editor-header">
+                        <div className="chapters-editor-heading">
+                          <div className="chapters-editor-caption">Chapters</div>
+                          <div className="chapters-editor-hint">
+                            Select every chapter that contains this product.
+                          </div>
+                        </div>
+                      </div>
+                      {this.state.chapters.length === 0 ? (
+                        <div className="chapters-editor-empty">
+                          No chapters are available yet.
+                        </div>
+                      ) : (
+                        <div className="chapters-editor-list">
+                          {this.state.chapters.map((chapter) => {
+                            const selected = form.chapters.includes(chapter.id);
+                            return (
+                              <label
+                                className="chapters-editor-item"
+                                key={chapter.id}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  onChange={(event) => {
+                                    const chapters = event.target.checked
+                                      ? [...form.chapters, chapter.id]
+                                      : form.chapters.filter(
+                                          (id) => id !== chapter.id
+                                        );
+                                    this.setState({
+                                      form: { ...form, chapters },
+                                    });
+                                  }}
+                                />
+                                <span>
+                                  {new MLString(chapter.name).toString()}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </section>

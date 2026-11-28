@@ -81,7 +81,7 @@ export interface ProductBaseData {
 
     description?: IMLString;
     batchPrefix?: string;
-    chapters?: IMLString[];
+    chapters?: string[];
     priority?: number;
     standardDose?: number;
     units?: IMLString;
