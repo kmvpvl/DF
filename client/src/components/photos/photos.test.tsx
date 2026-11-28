@@ -17,6 +17,72 @@ afterEach(() => {
 });
 
 describe('Photos client view', () => {
+  it('uploads every image selected through the file picker', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
+    const onChange = vi.fn();
+    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+      const file = (init.body as FormData).get('image') as File;
+      const filename = file.name.replace(/\.[^.]+$/, '');
+      return {
+        ok: true,
+        json: async () => ({
+          url: `/uploads/${filename}.jpg`,
+          thumbnailUrl: `/uploads/thumb-${filename}.webp`,
+        }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<Photos editMode onChange={onChange} />);
+    const input = container.querySelector('input[type="file"]');
+    expect(input).not.toBeNull();
+
+    fireEvent.change(input!, {
+      target: {
+        files: [
+          new File(['first'], 'first.jpg', { type: 'image/jpeg' }),
+          new File(['second'], 'second.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    });
+
+    expect(await screen.findByAltText('Product photo 2')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith([
+      {
+        url: '/uploads/first.jpg',
+        thumbnailUrl: '/uploads/thumb-first.webp',
+        caption: undefined,
+      },
+      {
+        url: '/uploads/second.jpg',
+        thumbnailUrl: '/uploads/thumb-second.webp',
+        caption: undefined,
+      },
+    ]);
+  });
+
+  it('reorders photos in edit mode and reports the new value', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
+    const onChange = vi.fn();
+    render(
+      <Photos
+        editMode
+        onChange={onChange}
+        defaultValue={[
+          { url: '/uploads/first.jpg' },
+          { url: '/uploads/second.jpg' },
+        ]}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move photo 1 right' }));
+
+    expect(onChange).toHaveBeenCalledWith([
+      { url: '/uploads/second.jpg' },
+      { url: '/uploads/first.jpg' },
+    ]);
+  });
+
   it('opens the original image in a screen-fitted viewer and closes with Escape', () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.test');
     render(

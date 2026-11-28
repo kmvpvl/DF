@@ -60,32 +60,45 @@ export default class Photos extends React.Component<
       thumbnailUrl: data.thumbnailUrl,
     };
   }
-  protected async editModeLoadImages(files: FileList) {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
+  protected async editModeLoadImages(files: File[]) {
+    const uploadedPhotos: IPhoto[] = [];
+    for (const file of files) {
       if (!file.type.startsWith('image/')) continue;
 
       try {
-        // Загружаем на сервер и получаем URL
         const uploadedImage = await this.uploadFileToServer(file);
-
-        // Обновляем состояние
-        const nState = { ...this.state }; // Создаем копию стейта
-        nState.value.push({
+        uploadedPhotos.push({
           url: uploadedImage.url,
           thumbnailUrl: uploadedImage.thumbnailUrl,
-          caption: undefined, // или пустой объект, в зависимости от IMLString
+          caption: undefined,
         });
-
-        this.setState(nState);
-        if (this.props.onChange) this.props.onChange(nState.value);
       } catch (error) {
         console.error('Не удалось загрузить изображение:', error);
         alert('Ошибка при загрузке файла');
       }
     }
+
+    if (uploadedPhotos.length > 0) {
+      this.setState(
+        (state) => ({ value: [...state.value, ...uploadedPhotos] }),
+        () => this.props.onChange?.(this.state.value)
+      );
+    }
   }
+  private movePhoto(fromIndex: number, toIndex: number) {
+    if (
+      toIndex < 0 ||
+      toIndex >= this.state.value.length ||
+      fromIndex === toIndex
+    )
+      return;
+
+    const value = [...this.state.value];
+    const [photo] = value.splice(fromIndex, 1);
+    value.splice(toIndex, 0, photo);
+    this.setState({ value }, () => this.props.onChange?.(value));
+  }
+
   nextPhoto(cycle: boolean = true) {
     if (this.state.value.length === 0) return;
     if (
@@ -172,8 +185,8 @@ export default class Photos extends React.Component<
               multiple
               accept="image/*"
               onChange={(event) => {
-                const files = event.currentTarget.files;
-                if (files) this.editModeLoadImages(files);
+                const files = Array.from(event.currentTarget.files ?? []);
+                if (files.length > 0) void this.editModeLoadImages(files);
                 event.currentTarget.value = '';
               }}
             ></input>
@@ -186,30 +199,30 @@ export default class Photos extends React.Component<
               event.preventDefault();
               event.dataTransfer.dropEffect = 'copy';
               event.currentTarget.classList.toggle('ready-to-drop', true);
-              console.log('Enter');
+              //console.log('Enter');
             }}
             onDragLeave={(event) => {
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
-              console.log('leave');
+              //console.log('leave');
             }}
             onDragEnd={(event) => {
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
-              console.log('end');
+              //console.log('end');
             }}
             onDragOver={(event) => {
               event.preventDefault();
               event.dataTransfer.dropEffect = 'copy';
-              console.log('Over');
+              //console.log('Over');
             }}
             onDrop={(event) => {
               const dt = event.dataTransfer;
-              const files = dt.files;
-              this.editModeLoadImages(files);
+              const files = Array.from(dt.files);
+              void this.editModeLoadImages(files);
               event.preventDefault();
               event.currentTarget.classList.toggle('ready-to-drop', false);
-              console.log('Drop');
+              //console.log('Drop');
             }}
           >
             <span className="photos-admin-drop-icon" aria-hidden="true">
@@ -221,22 +234,55 @@ export default class Photos extends React.Component<
           {this.state.value.map((photo, idx) => (
             <div
               className="photo-admin-container has-context-toolbar"
-              key={idx}
+              key={photo.url}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/photo-index', String(idx));
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const fromIndex = Number(
+                  event.dataTransfer.getData('text/photo-index')
+                );
+                if (Number.isInteger(fromIndex)) {
+                  this.movePhoto(fromIndex, idx);
+                }
+              }}
             >
               <img
                 src={`${import.meta.env.VITE_API_BASE_URL}${photo.thumbnailUrl ?? photo.url}`}
                 alt={`Product photo ${idx + 1}`}
               />
+              <div className="photos-admin-reorder" aria-label="Photo order">
+                <button
+                  type="button"
+                  aria-label={`Move photo ${idx + 1} left`}
+                  disabled={idx === 0}
+                  onClick={() => this.movePhoto(idx, idx - 1)}
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Move photo ${idx + 1} right`}
+                  disabled={idx === this.state.value.length - 1}
+                  onClick={() => this.movePhoto(idx, idx + 1)}
+                >
+                  →
+                </button>
+              </div>
               <button
                 type="button"
                 className="photos-admin-remove"
                 aria-label={`Remove photo ${idx + 1}`}
                 onClick={() => {
-                  const nState = this.state;
-                  nState.value.splice(idx, 1);
-                  this.setState(nState);
-                  if (this.props.onChange !== undefined)
-                    this.props.onChange(this.state.value);
+                  const value = this.state.value.filter((_, index) => index !== idx);
+                  this.setState({ value }, () => this.props.onChange?.(value));
                 }}
               >
                 <span aria-hidden="true">×</span>
